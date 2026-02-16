@@ -318,6 +318,36 @@ When acting as the coding agent:
 4. If a feature is uncertain, implement the simplest plausible version.
 5. Do not invent new scope without explicit instruction.
 6. If asked to choose between options, pick the option that reduces code and UI complexity.
+7. Use micro-tasks with very small human effort (target: under 5 minutes each).
+8. For every micro-task:
+   - AI does implementation work.
+   - AI explains exactly what code was changed and why.
+   - Human performs a short verification step in Godot.
+   - AI asks for confirmation before making a commit.
+9. Create one commit per completed micro-task when files changed.
+10. Do not push to remote unless the human explicitly asks.
+
+### 17.1 Git & Commit Workflow (Required)
+- Repository is managed with Git and GitHub workflow in mind.
+- Commit messages must be clear and scoped to one micro-task.
+- Preferred commit style: `type: short summary` (for example `feat: add player movement`).
+- If a micro-task has no tracked file changes (for example empty folders only), do not force a commit.
+- Keep planning docs local unless explicitly requested for sharing.
+- `plan/` is considered local planning space and should not be pushed by default.
+
+### 17.2 Communication & Explanation Rules (Required)
+- After any AI code edit, explain in beginner-friendly language:
+  - what files changed
+  - what each change does
+  - why it is needed in the gameplay loop
+  - what the human should test next
+- Do not continue to the next implementation step until the human confirms the current micro-task.
+- If the human reports an issue, fix that issue first, then re-run the same micro-task check.
+
+### 17.3 Docs-First Guidance (Required)
+- When Godot behavior is uncertain, check official Godot docs first.
+- Prefer official docs over random tutorials.
+- Provide links when giving setup guidance that the human performs in the editor.
 
 ---
 
