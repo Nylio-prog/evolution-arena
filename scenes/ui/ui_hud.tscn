@@ -40,3 +40,13 @@ offset_right = 60.0
 offset_bottom = 36.0
 text = "Time: 0s"
 horizontal_alignment = 1
+
+[node name="LineageLabel" type="Label" parent="."]
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -340.0
+offset_top = 40.0
+offset_right = -16.0
+offset_bottom = 64.0
+text = "Lineage: None"
+horizontal_alignment = 2
