@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3 uid="uid://cwu387f2512jo"]
+
+[ext_resource type="Script" path="res://scripts/modules/orbiter.gd" id="1_1f8de"]
+
+[node name="Orbiter" type="Node2D" unique_id=322936049]
+script = ExtResource("1_1f8de")

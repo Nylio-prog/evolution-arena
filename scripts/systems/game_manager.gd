@@ -1,7 +1,9 @@
 extends Node2D
 
 const SPIKE_RING_SCENE: PackedScene = preload("res://scenes/modules/spike_ring.tscn")
+const ORBITER_SCENE: PackedScene = preload("res://scenes/modules/orbiter.tscn")
 const SPIKES_MAX_LEVEL: int = 3
+const ORBITERS_MAX_LEVEL: int = 3
 
 @onready var player: Node = get_node_or_null("Player")
 @onready var xp_system: Node = get_node_or_null("XpSystem")
@@ -22,6 +24,8 @@ var run_ended: bool = false
 var run_paused_for_levelup: bool = false
 var spikes_level: int = 0
 var spike_ring_instance: Node2D
+var orbiters_level: int = 0
+var orbiter_instance: Node2D
 
 func _ready() -> void:
 	if player != null and player.has_signal("hp_changed"):
@@ -65,7 +69,7 @@ func _ready() -> void:
 	if levelup_choice_1 != null:
 		levelup_choice_1.connect("pressed", Callable(self, "_on_levelup_choice_pressed").bind("spikes"))
 	if levelup_choice_2 != null:
-		levelup_choice_2.connect("pressed", Callable(self, "_on_levelup_choice_pressed").bind("spikes"))
+		levelup_choice_2.connect("pressed", Callable(self, "_on_levelup_choice_pressed").bind("orbiters"))
 	if levelup_choice_3 != null:
 		levelup_choice_3.connect("pressed", Callable(self, "_on_levelup_choice_pressed").bind("spikes"))
 
@@ -157,8 +161,11 @@ func _on_player_leveled_up(_new_level: int) -> void:
 func _on_levelup_choice_pressed(choice_id: String) -> void:
 	if run_ended:
 		return
-	if choice_id == "spikes":
-		_apply_spike_upgrade()
+	match choice_id:
+		"spikes":
+			_apply_spike_upgrade()
+		"orbiters":
+			_apply_orbiter_upgrade()
 
 	if levelup_ui != null:
 		levelup_ui.visible = false
@@ -170,16 +177,21 @@ func _on_restart_pressed() -> void:
 
 func _refresh_levelup_choice_text() -> void:
 	var next_spike_level: int = mini(spikes_level + 1, SPIKES_MAX_LEVEL)
-	var label_text: String = "Spikes L%d (%d)" % [next_spike_level, _spike_count_for_level(next_spike_level)]
+	var spikes_label_text: String = "Spikes L%d (%d)" % [next_spike_level, _spike_count_for_level(next_spike_level)]
 	if spikes_level >= SPIKES_MAX_LEVEL:
-		label_text = "Spikes MAX"
+		spikes_label_text = "Spikes MAX"
+
+	var next_orbiter_level: int = mini(orbiters_level + 1, ORBITERS_MAX_LEVEL)
+	var orbiters_label_text: String = "Orbiters L%d (%d)" % [next_orbiter_level, _orbiter_count_for_level(next_orbiter_level)]
+	if orbiters_level >= ORBITERS_MAX_LEVEL:
+		orbiters_label_text = "Orbiters MAX"
 
 	if levelup_choice_1 != null:
-		levelup_choice_1.text = label_text
+		levelup_choice_1.text = spikes_label_text
 	if levelup_choice_2 != null:
-		levelup_choice_2.text = label_text
+		levelup_choice_2.text = orbiters_label_text
 	if levelup_choice_3 != null:
-		levelup_choice_3.text = label_text
+		levelup_choice_3.text = spikes_label_text
 
 func _apply_spike_upgrade() -> void:
 	if spikes_level >= SPIKES_MAX_LEVEL:
@@ -194,6 +206,19 @@ func _apply_spike_upgrade() -> void:
 	if spike_ring_instance != null and spike_ring_instance.has_method("set_level"):
 		spike_ring_instance.call("set_level", spikes_level)
 
+func _apply_orbiter_upgrade() -> void:
+	if orbiters_level >= ORBITERS_MAX_LEVEL:
+		return
+
+	orbiters_level += 1
+	if orbiter_instance == null and player != null:
+		orbiter_instance = ORBITER_SCENE.instantiate() as Node2D
+		if orbiter_instance != null:
+			player.add_child(orbiter_instance)
+
+	if orbiter_instance != null and orbiter_instance.has_method("set_level"):
+		orbiter_instance.call("set_level", orbiters_level)
+
 func _spike_count_for_level(level: int) -> int:
 	match level:
 		1:
@@ -202,5 +227,14 @@ func _spike_count_for_level(level: int) -> int:
 			return 6
 		3:
 			return 8
+		_:
+			return 0
+
+func _orbiter_count_for_level(level: int) -> int:
+	match level:
+		1:
+			return 1
+		2, 3:
+			return 2
 		_:
 			return 0
