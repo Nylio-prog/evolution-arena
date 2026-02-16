@@ -7,3 +7,6 @@
 
 # Local planning docs (keep out of remote repo)
 /plan/
+
+# Local export artifacts
+/build/
