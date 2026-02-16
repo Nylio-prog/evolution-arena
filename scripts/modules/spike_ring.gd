@@ -4,6 +4,7 @@ extends Node2D
 @export var spike_distance: float = 26.0
 @export var spike_collision_radius: float = 5.0
 @export var spike_color: Color = Color(0.95, 0.95, 0.95, 1.0)
+@export var spike_outline_color: Color = Color(0.1, 0.1, 0.1, 0.9)
 @export var damage_interval_seconds: float = 0.2
 @export var debug_log_hits: bool = false
 
@@ -31,6 +32,7 @@ func set_level(new_level: int) -> void:
 
 func set_lineage_color(color: Color) -> void:
 	spike_color = color
+	spike_outline_color = color.darkened(0.8)
 	queue_redraw()
 
 func _rebuild_spike_areas() -> void:
@@ -97,4 +99,6 @@ func _draw() -> void:
 		var normal := Vector2(-direction.y, direction.x)
 		var left := base_center + normal * 4.0
 		var right := base_center - normal * 4.0
-		draw_colored_polygon(PackedVector2Array([tip, left, right]), spike_color)
+		var points := PackedVector2Array([tip, left, right])
+		draw_colored_polygon(points, spike_color)
+		draw_polyline(PackedVector2Array([tip, left, right, tip]), spike_outline_color, 1.2, true)

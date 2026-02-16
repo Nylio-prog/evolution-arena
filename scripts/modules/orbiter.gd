@@ -5,6 +5,7 @@ extends Node2D
 @export var base_orbit_speed_rps: float = 2.5
 @export var orbiter_collision_radius: float = 9.0
 @export var orbiter_color: Color = Color(0.85, 0.95, 1.0, 1.0)
+@export var orbiter_outline_color: Color = Color(0.08, 0.14, 0.18, 0.95)
 @export var damage_interval_seconds: float = 0.2
 @export var debug_log_hits: bool = false
 
@@ -36,6 +37,7 @@ func set_level(new_level: int) -> void:
 
 func set_lineage_color(color: Color) -> void:
 	orbiter_color = color
+	orbiter_outline_color = color.darkened(0.75)
 	queue_redraw()
 
 func _configure_level_stats() -> void:
@@ -131,3 +133,4 @@ func _draw() -> void:
 		if orbiter_area == null:
 			continue
 		draw_circle(orbiter_area.position, orbiter_collision_radius, orbiter_color)
+		draw_arc(orbiter_area.position, orbiter_collision_radius, 0.0, TAU, 24, orbiter_outline_color, 1.6, true)

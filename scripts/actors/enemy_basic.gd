@@ -7,6 +7,8 @@ signal died(world_position: Vector2)
 @export var contact_damage: int = 10
 @export var visual_radius: float = 10.0
 @export var visual_color: Color = Color(1, 0.2, 0.2, 1)
+@export var outline_color: Color = Color(0.35, 0.05, 0.05, 1.0)
+@export var outline_width: float = 2.0
 @export var debug_log_damage: bool = false
 
 var current_hp: int
@@ -19,6 +21,7 @@ func _ready() -> void:
 
 func _draw() -> void:
 	draw_circle(Vector2.ZERO, visual_radius, visual_color)
+	draw_arc(Vector2.ZERO, visual_radius, 0.0, TAU, 40, outline_color, outline_width, true)
 
 func _physics_process(_delta: float) -> void:
 	if not is_instance_valid(_player):

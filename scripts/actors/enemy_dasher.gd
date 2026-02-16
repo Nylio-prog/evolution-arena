@@ -8,6 +8,7 @@ signal died(world_position: Vector2)
 @export var contact_damage: int = 10
 @export var visual_radius: float = 9.0
 @export var visual_color: Color = Color(1.0, 0.45, 0.2, 1.0)
+@export var outline_color: Color = Color(0.45, 0.12, 0.05, 1.0)
 @export var dash_interval_seconds: float = 1.45
 @export var dash_duration_seconds: float = 0.66
 @export var dash_windup_seconds: float = 0.20
@@ -27,8 +28,22 @@ func _ready() -> void:
 
 func _draw() -> void:
 	draw_circle(Vector2.ZERO, visual_radius, visual_color)
+	draw_arc(Vector2.ZERO, visual_radius, 0.0, TAU, 40, outline_color, 2.0, true)
+
+	# Dasher identity mark so it reads differently from basic enemies.
+	draw_colored_polygon(
+		PackedVector2Array([
+			Vector2(0.0, -visual_radius - 2.0),
+			Vector2(3.5, -visual_radius + 4.0),
+			Vector2(-3.5, -visual_radius + 4.0)
+		]),
+		Color(1.0, 0.9, 0.6, 0.95)
+	)
 	if _dash_windup_left > 0.0:
 		draw_arc(Vector2.ZERO, visual_radius + 4.0, 0.0, TAU, 32, Color(1.0, 0.8, 0.2, 1.0), 2.0, true)
+		var windup_dir: Vector2 = _dash_direction
+		if windup_dir.length_squared() > 0.001:
+			draw_line(Vector2.ZERO, windup_dir * (visual_radius + 8.0), Color(1.0, 0.85, 0.3, 1.0), 2.0)
 
 func _physics_process(delta: float) -> void:
 	if not is_instance_valid(_player):
