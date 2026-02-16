@@ -5,6 +5,10 @@ extends Node2D
 @onready var hp_label: Label = get_node_or_null("UiHud/HPLabel")
 @onready var xp_bar: ProgressBar = get_node_or_null("UiHud/XPBar")
 @onready var level_label: Label = get_node_or_null("UiHud/LevelLabel")
+@onready var levelup_ui: CanvasLayer = get_node_or_null("UiLevelup")
+@onready var levelup_choice_1: Button = get_node_or_null("UiLevelup/Root/ChoiceButton1")
+@onready var levelup_choice_2: Button = get_node_or_null("UiLevelup/Root/ChoiceButton2")
+@onready var levelup_choice_3: Button = get_node_or_null("UiLevelup/Root/ChoiceButton3")
 @onready var game_over_ui: CanvasLayer = get_node_or_null("GameOver")
 @onready var game_over_stats_label: Label = get_node_or_null("GameOver/Root/StatsLabel")
 @onready var game_over_restart_button: Button = get_node_or_null("GameOver/Root/RestartButton")
@@ -12,6 +16,7 @@ extends Node2D
 var elapsed_seconds: float = 0.0
 var level_reached: int = 1
 var run_ended: bool = false
+var run_paused_for_levelup: bool = false
 
 func _ready() -> void:
 	if player != null and player.has_signal("hp_changed"):
@@ -22,6 +27,8 @@ func _ready() -> void:
 		xp_system.connect("xp_changed", Callable(self, "_on_xp_changed"))
 	if xp_system != null and xp_system.has_signal("level_changed"):
 		xp_system.connect("level_changed", Callable(self, "_on_level_changed"))
+	if xp_system != null and xp_system.has_signal("leveled_up"):
+		xp_system.connect("leveled_up", Callable(self, "_on_player_leveled_up"))
 
 	if player != null:
 		var current_hp_value = player.get("current_hp")
@@ -47,8 +54,20 @@ func _ready() -> void:
 	if game_over_restart_button != null:
 		game_over_restart_button.connect("pressed", Callable(self, "_on_restart_pressed"))
 
+	if levelup_ui != null:
+		levelup_ui.visible = false
+
+	if levelup_choice_1 != null:
+		levelup_choice_1.connect("pressed", Callable(self, "_on_levelup_choice_pressed"))
+	if levelup_choice_2 != null:
+		levelup_choice_2.connect("pressed", Callable(self, "_on_levelup_choice_pressed"))
+	if levelup_choice_3 != null:
+		levelup_choice_3.connect("pressed", Callable(self, "_on_levelup_choice_pressed"))
+
 func _process(delta: float) -> void:
 	if run_ended:
+		return
+	if run_paused_for_levelup:
 		return
 	elapsed_seconds += delta
 
@@ -114,6 +133,22 @@ func _show_game_over() -> void:
 
 	if game_over_ui != null:
 		game_over_ui.visible = true
+
+func _on_player_leveled_up(_new_level: int) -> void:
+	if run_ended:
+		return
+	run_paused_for_levelup = true
+	_set_gameplay_active(false)
+	if levelup_ui != null:
+		levelup_ui.visible = true
+
+func _on_levelup_choice_pressed() -> void:
+	if run_ended:
+		return
+	if levelup_ui != null:
+		levelup_ui.visible = false
+	run_paused_for_levelup = false
+	_set_gameplay_active(true)
 
 func _on_restart_pressed() -> void:
 	get_tree().reload_current_scene()

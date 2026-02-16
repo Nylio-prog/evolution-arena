@@ -1,3 +1,41 @@
 [gd_scene format=3 uid="uid://btqxqlyulj1ii"]
 
 [node name="UiLevelup" type="CanvasLayer" unique_id=1975498355]
+
+[node name="Root" type="Control" parent="." unique_id=818588563]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="TitleLabel" type="Label" parent="Root" unique_id=1542619791]
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 23.0
+text = "EVOLVE"
+
+[node name="ChoiceButton1" type="Button" parent="Root" unique_id=60842756]
+layout_mode = 0
+offset_left = 295.0
+offset_top = 298.0
+offset_right = 388.0
+offset_bottom = 329.0
+text = "Mutation 1"
+
+[node name="ChoiceButton2" type="Button" parent="Root" unique_id=1121768704]
+layout_mode = 0
+offset_left = 533.0
+offset_top = 299.0
+offset_right = 626.0
+offset_bottom = 330.0
+text = "Mutation 2"
+
+[node name="ChoiceButton3" type="Button" parent="Root" unique_id=1457214829]
+layout_mode = 0
+offset_left = 790.0
+offset_top = 300.0
+offset_right = 883.0
+offset_bottom = 331.0
+text = "Mutation 3"
