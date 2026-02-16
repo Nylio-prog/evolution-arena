@@ -67,6 +67,9 @@ var _last_player_hp: int = -1
 const LINEAGE_CHOICES: Array[String] = ["predator", "swarm", "bulwark"]
 
 func _ready() -> void:
+	if OS.has_feature("standalone") and not OS.has_feature("dev_cheats"):
+		debug_allow_grant_xp = false
+
 	if player != null and player.has_signal("hp_changed"):
 		player.connect("hp_changed", Callable(self, "_on_player_hp_changed"))
 	if player != null and player.has_signal("died"):
@@ -144,7 +147,7 @@ func _process(delta: float) -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	var key_event := event as InputEventKey
 	if key_event != null and key_event.pressed and not key_event.echo:
-		if key_event.keycode == KEY_G and OS.is_debug_build():
+		if key_event.keycode == KEY_G and _can_use_debug_xp_cheat():
 			_debug_grant_xp()
 			get_viewport().set_input_as_handled()
 			return
@@ -494,21 +497,49 @@ func _set_lineage_choice_button_texts() -> void:
 	_set_levelup_mode(true)
 	if levelup_lineage_prompt_label != null:
 		levelup_lineage_prompt_label.text = "Choose your lineage"
-	_set_lineage_choice_text(lineage_choice_1, lineage_choice_1_text, "Predator", "Aggressive close-range pressure")
-	_set_lineage_choice_text(lineage_choice_2, lineage_choice_2_text, "Swarm", "Orbit and area control growth")
-	_set_lineage_choice_text(lineage_choice_3, lineage_choice_3_text, "Bulwark", "Defensive sustain and spacing")
+	_set_lineage_choice_text(
+		lineage_choice_1,
+		lineage_choice_1_text,
+		"Predator",
+		"Aggressive close-range pressure",
+		"Starter: Pulse Nova L1"
+	)
+	_set_lineage_choice_text(
+		lineage_choice_2,
+		lineage_choice_2_text,
+		"Swarm",
+		"Orbit and area control growth",
+		"Starter: Orbiters L1"
+	)
+	_set_lineage_choice_text(
+		lineage_choice_3,
+		lineage_choice_3_text,
+		"Bulwark",
+		"Defensive sustain and spacing",
+		"Starter: Membrane L1"
+	)
 
-func _set_lineage_choice_text(button: Button, rich_text: RichTextLabel, title_text: String, description_text: String) -> void:
+func _set_lineage_choice_text(
+	button: Button,
+	rich_text: RichTextLabel,
+	title_text: String,
+	description_text: String,
+	starter_text: String
+) -> void:
 	if button == null:
 		return
 	if rich_text == null:
-		button.text = "%s\n%s" % [title_text, description_text]
+		button.text = "%s\n%s\n%s" % [title_text, description_text, starter_text]
 		return
 	button.text = ""
-	rich_text.text = _format_lineage_choice_bbcode(title_text, description_text)
+	rich_text.text = _format_lineage_choice_bbcode(title_text, description_text, starter_text)
 
-func _format_lineage_choice_bbcode(title_text: String, description_text: String) -> String:
-	return "[center][b]%s[/b]\n%s[/center]" % [title_text, description_text]
+func _format_lineage_choice_bbcode(title_text: String, description_text: String, starter_text: String) -> String:
+	return "[center][b]%s[/b]\n%s\n[color=#9ec4d6]%s[/color][/center]" % [
+		title_text,
+		description_text,
+		starter_text
+	]
 
 func _apply_lineage_choice(choice_index: int) -> bool:
 	if mutation_system == null:
@@ -540,9 +571,7 @@ func _get_current_lineage_name() -> String:
 	return "None"
 
 func _debug_grant_xp() -> void:
-	if not OS.is_debug_build():
-		return
-	if not debug_allow_grant_xp:
+	if not _can_use_debug_xp_cheat():
 		return
 	if xp_system == null:
 		return
@@ -551,6 +580,13 @@ func _debug_grant_xp() -> void:
 
 	xp_system.call("add_xp", debug_grant_xp_amount)
 	print("Debug XP granted: +", debug_grant_xp_amount)
+
+func _can_use_debug_xp_cheat() -> bool:
+	if not debug_allow_grant_xp:
+		return false
+	if OS.has_feature("editor"):
+		return true
+	return OS.has_feature("dev_cheats")
 
 func _play_sfx(event_id: String) -> void:
 	if audio_manager == null:

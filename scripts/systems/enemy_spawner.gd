@@ -51,7 +51,10 @@ func _on_spawn_timer_timeout() -> void:
 		return
 
 	enemy_instance.global_position = _player.global_position + offset
-	get_tree().current_scene.add_child(enemy_instance)
+	var spawn_parent: Node = get_tree().current_scene
+	if spawn_parent == null:
+		spawn_parent = get_tree().root
+	spawn_parent.add_child(enemy_instance)
 
 	if debug_log_spawn:
 		print("Spawned enemy at ", enemy_instance.global_position)
