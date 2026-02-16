@@ -1,3 +1,35 @@
 [gd_scene format=3 uid="uid://chcru5d2lttfj"]
 
 [node name="GameOver" type="CanvasLayer" unique_id=1682334316]
+
+[node name="Root" type="Control" parent="." unique_id=1055943695]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="TitleLabel" type="Label" parent="Root" unique_id=791508933]
+layout_mode = 0
+offset_left = 482.0
+offset_top = 46.0
+offset_right = 647.0
+offset_bottom = 69.0
+text = "You were consumed. "
+
+[node name="StatsLabel" type="Label" parent="Root" unique_id=1609278240]
+layout_mode = 0
+offset_left = 494.0
+offset_top = 168.0
+offset_right = 637.0
+offset_bottom = 191.0
+text = "Time: 0s | Level: 1 "
+
+[node name="RestartButton" type="Button" parent="Root" unique_id=956640254]
+layout_mode = 0
+offset_left = 528.0
+offset_top = 302.0
+offset_right = 593.0
+offset_bottom = 333.0
+text = "Restart"

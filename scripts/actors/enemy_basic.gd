@@ -14,6 +14,7 @@ var _player: Node2D
 
 func _ready() -> void:
 	current_hp = max_hp
+	add_to_group("enemies")
 	queue_redraw()
 
 func _draw() -> void:

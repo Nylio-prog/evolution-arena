@@ -1,9 +1,10 @@
-[gd_scene load_steps=4 format=3 uid="uid://dtiv6dfiwc8k0"]
+[gd_scene load_steps=5 format=3 uid="uid://dtiv6dfiwc8k0"]
 
 [ext_resource type="PackedScene" uid="uid://b8q3qd56dv6ge" path="res://scenes/actors/player.tscn" id="1_e05a3"]
 [ext_resource type="PackedScene" uid="uid://ivifr0y86qqc" path="res://scenes/actors/enemy_basic.tscn" id="2_wl4x5"]
 [ext_resource type="PackedScene" uid="uid://chajohnv7utp" path="res://scenes/ui/ui_hud.tscn" id="3_rbtd0"]
 [ext_resource type="Script" path="res://scripts/systems/game_manager.gd" id="4_6g2vy"]
+[ext_resource type="PackedScene" uid="uid://chcru5d2lttfj" path="res://scenes/ui/game_over.tscn" id="5_p3n4s"]
 
 [node name="Arena" type="Node2D" unique_id=1478589997]
 position = Vector2(578, 302)
@@ -16,3 +17,6 @@ position = Vector2(-428, -194)
 debug_log_damage = false
 
 [node name="UiHud" parent="." instance=ExtResource("3_rbtd0")]
+
+[node name="GameOver" parent="." instance=ExtResource("5_p3n4s")]
+visible = false
