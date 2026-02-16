@@ -5,6 +5,7 @@ const SPIKE_RING_SCENE: PackedScene = preload("res://scenes/modules/spike_ring.t
 const ORBITER_SCENE: PackedScene = preload("res://scenes/modules/orbiter.tscn")
 const MEMBRANE_SCENE: PackedScene = preload("res://scenes/modules/membrane.tscn")
 const PULSE_NOVA_SCENE: PackedScene = preload("res://scenes/modules/pulse_nova.tscn")
+const ACID_TRAIL_SCENE: PackedScene = preload("res://scenes/modules/acid_trail.tscn")
 const LINEAGES: Dictionary = {
 	"predator": "Predator",
 	"swarm": "Swarm",
@@ -16,21 +17,24 @@ const LINEAGE_VISUALS: Dictionary = {
 		"spike_color": Color(1.0, 0.55, 0.35, 1.0),
 		"orbiter_color": Color(1.0, 0.45, 0.35, 1.0),
 		"membrane_color": Color(1.0, 0.50, 0.30, 0.85),
-		"pulse_color": Color(1.0, 0.58, 0.42, 1.0)
+		"pulse_color": Color(1.0, 0.58, 0.42, 1.0),
+		"acid_color": Color(1.0, 0.57, 0.32, 0.55)
 	},
 	"swarm": {
 		"player_accent": Color(0.35, 1.0, 0.85, 0.95),
 		"spike_color": Color(0.55, 1.0, 0.90, 1.0),
 		"orbiter_color": Color(0.40, 1.0, 0.85, 1.0),
 		"membrane_color": Color(0.45, 1.0, 0.90, 0.85),
-		"pulse_color": Color(0.38, 1.0, 0.88, 1.0)
+		"pulse_color": Color(0.38, 1.0, 0.88, 1.0),
+		"acid_color": Color(0.42, 1.0, 0.86, 0.55)
 	},
 	"bulwark": {
 		"player_accent": Color(1.0, 0.85, 0.35, 0.95),
 		"spike_color": Color(1.0, 0.90, 0.45, 1.0),
 		"orbiter_color": Color(1.0, 0.85, 0.55, 1.0),
 		"membrane_color": Color(1.0, 0.90, 0.55, 0.88),
-		"pulse_color": Color(1.0, 0.90, 0.58, 1.0)
+		"pulse_color": Color(1.0, 0.90, 0.58, 1.0),
+		"acid_color": Color(0.95, 0.92, 0.52, 0.55)
 	}
 }
 const DEFAULT_PLAYER_ACCENT: Color = Color(1.0, 1.0, 1.0, 0.0)
@@ -38,6 +42,7 @@ const DEFAULT_SPIKE_COLOR: Color = Color(0.95, 0.95, 0.95, 1.0)
 const DEFAULT_ORBITER_COLOR: Color = Color(0.85, 0.95, 1.0, 1.0)
 const DEFAULT_MEMBRANE_COLOR: Color = Color(0.75, 0.95, 1.0, 0.8)
 const DEFAULT_PULSE_COLOR: Color = Color(0.75, 0.95, 1.0, 0.95)
+const DEFAULT_ACID_COLOR: Color = Color(0.42, 1.0, 0.86, 0.50)
 const WEIGHT_BASE: float = 1.0
 const WEIGHT_SAME_LINEAGE_BONUS: float = 2.0
 const WEIGHT_OFF_LINEAGE_BONUS: float = 0.2
@@ -49,6 +54,7 @@ signal lineage_changed(lineage_id: String, lineage_name: String)
 @export_range(0, 3) var starting_orbiters_level: int = 0
 @export_range(0, 3) var starting_membrane_level: int = 0
 @export_range(0, 3) var starting_pulse_nova_level: int = 0
+@export_range(0, 3) var starting_acid_trail_level: int = 0
 @export var debug_log_weighted_rolls: bool = false
 
 var player: Node2D
@@ -61,6 +67,7 @@ var spike_ring_instance: Node2D
 var orbiter_instance: Node2D
 var membrane_instance: Node2D
 var pulse_nova_instance: Node2D
+var acid_trail_instance: Node2D
 
 func _ready() -> void:
 	mutation_defs = MUTATIONS_DATA.get_all()
@@ -174,6 +181,8 @@ func _apply_starting_loadout() -> void:
 		apply_mutation("membrane")
 	for _i in range(clampi(starting_pulse_nova_level, 0, _get_mutation_max_level("pulse_nova"))):
 		apply_mutation("pulse_nova")
+	for _i in range(clampi(starting_acid_trail_level, 0, _get_mutation_max_level("acid_trail"))):
+		apply_mutation("acid_trail")
 
 func _get_available_mutation_ids() -> Array[String]:
 	var ids: Array[String] = []
@@ -290,6 +299,10 @@ func _apply_mutation_effect(mutation_id: String, new_level: int) -> void:
 			_ensure_pulse_nova()
 			if pulse_nova_instance != null and pulse_nova_instance.has_method("set_level"):
 				pulse_nova_instance.call("set_level", new_level)
+		"acid_trail":
+			_ensure_acid_trail()
+			if acid_trail_instance != null and acid_trail_instance.has_method("set_level"):
+				acid_trail_instance.call("set_level", new_level)
 	_apply_lineage_visuals()
 
 func _ensure_spike_ring() -> void:
@@ -336,6 +349,17 @@ func _ensure_pulse_nova() -> void:
 		player.add_child(pulse_nova_instance)
 		_apply_lineage_visuals()
 
+func _ensure_acid_trail() -> void:
+	if acid_trail_instance != null:
+		return
+	if player == null:
+		return
+
+	acid_trail_instance = ACID_TRAIL_SCENE.instantiate() as Node2D
+	if acid_trail_instance != null:
+		player.add_child(acid_trail_instance)
+		_apply_lineage_visuals()
+
 func _get_mutation_max_level(mutation_id: String) -> int:
 	var mutation_def: Dictionary = mutation_defs.get(mutation_id, {})
 	return int(mutation_def.get("max_level", 0))
@@ -350,6 +374,7 @@ func _apply_lineage_visuals() -> void:
 	var orbiter_color: Color = Color(style.get("orbiter_color", DEFAULT_ORBITER_COLOR))
 	var membrane_color: Color = Color(style.get("membrane_color", DEFAULT_MEMBRANE_COLOR))
 	var pulse_color: Color = Color(style.get("pulse_color", DEFAULT_PULSE_COLOR))
+	var acid_color: Color = Color(style.get("acid_color", DEFAULT_ACID_COLOR))
 
 	if player != null and player.has_method("set_lineage_accent"):
 		player.call("set_lineage_accent", player_accent)
@@ -361,3 +386,5 @@ func _apply_lineage_visuals() -> void:
 		membrane_instance.call("set_lineage_color", membrane_color)
 	if pulse_nova_instance != null and pulse_nova_instance.has_method("set_lineage_color"):
 		pulse_nova_instance.call("set_lineage_color", pulse_color)
+	if acid_trail_instance != null and acid_trail_instance.has_method("set_lineage_color"):
+		acid_trail_instance.call("set_lineage_color", acid_color)

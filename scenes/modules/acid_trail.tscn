@@ -1,0 +1,6 @@
+[gd_scene format=3 uid="uid://djdep5fo8nkg0"]
+
+[ext_resource type="Script" path="res://scripts/modules/acid_trail.gd" id="1_ajm3s"]
+
+[node name="AcidTrail" type="Node2D" unique_id=1686274410]
+script = ExtResource("1_ajm3s")
