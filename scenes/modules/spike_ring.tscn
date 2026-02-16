@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3 uid="uid://cwla4kyh500a4"]
+
+[ext_resource type="Script" path="res://scripts/modules/spike_ring.gd" id="1_er4h6"]
+
+[node name="SpikeRing" type="Node2D" unique_id=1459318333]
+script = ExtResource("1_er4h6")

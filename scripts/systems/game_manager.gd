@@ -1,5 +1,8 @@
 extends Node2D
 
+const SPIKE_RING_SCENE: PackedScene = preload("res://scenes/modules/spike_ring.tscn")
+const SPIKES_MAX_LEVEL: int = 3
+
 @onready var player: Node = get_node_or_null("Player")
 @onready var xp_system: Node = get_node_or_null("XpSystem")
 @onready var hp_label: Label = get_node_or_null("UiHud/HPLabel")
@@ -17,6 +20,8 @@ var elapsed_seconds: float = 0.0
 var level_reached: int = 1
 var run_ended: bool = false
 var run_paused_for_levelup: bool = false
+var spikes_level: int = 0
+var spike_ring_instance: Node2D
 
 func _ready() -> void:
 	if player != null and player.has_signal("hp_changed"):
@@ -58,11 +63,11 @@ func _ready() -> void:
 		levelup_ui.visible = false
 
 	if levelup_choice_1 != null:
-		levelup_choice_1.connect("pressed", Callable(self, "_on_levelup_choice_pressed"))
+		levelup_choice_1.connect("pressed", Callable(self, "_on_levelup_choice_pressed").bind("spikes"))
 	if levelup_choice_2 != null:
-		levelup_choice_2.connect("pressed", Callable(self, "_on_levelup_choice_pressed"))
+		levelup_choice_2.connect("pressed", Callable(self, "_on_levelup_choice_pressed").bind("spikes"))
 	if levelup_choice_3 != null:
-		levelup_choice_3.connect("pressed", Callable(self, "_on_levelup_choice_pressed"))
+		levelup_choice_3.connect("pressed", Callable(self, "_on_levelup_choice_pressed").bind("spikes"))
 
 func _process(delta: float) -> void:
 	if run_ended:
@@ -127,6 +132,12 @@ func _set_gameplay_active(active: bool) -> void:
 			continue
 		enemy_node.set_physics_process(active)
 
+	for module_node_raw in get_tree().get_nodes_in_group("player_modules"):
+		var module_node := module_node_raw as Node
+		if module_node == null:
+			continue
+		module_node.set_process(active)
+
 func _show_game_over() -> void:
 	if game_over_stats_label != null:
 		game_over_stats_label.text = "Time: %ds | Level: %d" % [int(elapsed_seconds), level_reached]
@@ -137,14 +148,18 @@ func _show_game_over() -> void:
 func _on_player_leveled_up(_new_level: int) -> void:
 	if run_ended:
 		return
+	_refresh_levelup_choice_text()
 	run_paused_for_levelup = true
 	_set_gameplay_active(false)
 	if levelup_ui != null:
 		levelup_ui.visible = true
 
-func _on_levelup_choice_pressed() -> void:
+func _on_levelup_choice_pressed(choice_id: String) -> void:
 	if run_ended:
 		return
+	if choice_id == "spikes":
+		_apply_spike_upgrade()
+
 	if levelup_ui != null:
 		levelup_ui.visible = false
 	run_paused_for_levelup = false
@@ -152,3 +167,40 @@ func _on_levelup_choice_pressed() -> void:
 
 func _on_restart_pressed() -> void:
 	get_tree().reload_current_scene()
+
+func _refresh_levelup_choice_text() -> void:
+	var next_spike_level: int = mini(spikes_level + 1, SPIKES_MAX_LEVEL)
+	var label_text: String = "Spikes L%d (%d)" % [next_spike_level, _spike_count_for_level(next_spike_level)]
+	if spikes_level >= SPIKES_MAX_LEVEL:
+		label_text = "Spikes MAX"
+
+	if levelup_choice_1 != null:
+		levelup_choice_1.text = label_text
+	if levelup_choice_2 != null:
+		levelup_choice_2.text = label_text
+	if levelup_choice_3 != null:
+		levelup_choice_3.text = label_text
+
+func _apply_spike_upgrade() -> void:
+	if spikes_level >= SPIKES_MAX_LEVEL:
+		return
+
+	spikes_level += 1
+	if spike_ring_instance == null and player != null:
+		spike_ring_instance = SPIKE_RING_SCENE.instantiate() as Node2D
+		if spike_ring_instance != null:
+			player.add_child(spike_ring_instance)
+
+	if spike_ring_instance != null and spike_ring_instance.has_method("set_level"):
+		spike_ring_instance.call("set_level", spikes_level)
+
+func _spike_count_for_level(level: int) -> int:
+	match level:
+		1:
+			return 4
+		2:
+			return 6
+		3:
+			return 8
+		_:
+			return 0
