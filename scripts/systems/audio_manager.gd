@@ -22,6 +22,8 @@ const DEFAULT_STREAM_PATHS: Dictionary = {
 var _sfx_players: Array[AudioStreamPlayer] = []
 var _music_player: AudioStreamPlayer
 var _stream_cache: Dictionary = {}
+var _sfx_volume_linear: float = 1.0
+var _music_volume_linear: float = 1.0
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -81,16 +83,24 @@ func stop_music() -> void:
 		_music_player.stop()
 
 func set_sfx_volume_linear(value: float) -> void:
+	_sfx_volume_linear = clampf(value, 0.0, 1.0)
 	var bus_index: int = AudioServer.get_bus_index(BUS_SFX)
 	if bus_index < 0:
 		return
-	AudioServer.set_bus_volume_db(bus_index, linear_to_db(clampf(value, 0.0001, 1.0)))
+	AudioServer.set_bus_volume_db(bus_index, _linear_to_db_safe(_sfx_volume_linear))
 
 func set_music_volume_linear(value: float) -> void:
+	_music_volume_linear = clampf(value, 0.0, 1.0)
 	var bus_index: int = AudioServer.get_bus_index(BUS_MUSIC)
 	if bus_index < 0:
 		return
-	AudioServer.set_bus_volume_db(bus_index, linear_to_db(clampf(value, 0.0001, 1.0)))
+	AudioServer.set_bus_volume_db(bus_index, _linear_to_db_safe(_music_volume_linear))
+
+func get_sfx_volume_linear() -> float:
+	return _sfx_volume_linear
+
+func get_music_volume_linear() -> float:
+	return _music_volume_linear
 
 func set_sfx_muted(muted: bool) -> void:
 	var bus_index: int = AudioServer.get_bus_index(BUS_SFX)
@@ -140,13 +150,8 @@ func _create_players() -> void:
 		_sfx_players.append(player)
 
 func _set_default_bus_volumes() -> void:
-	var sfx_index: int = AudioServer.get_bus_index(BUS_SFX)
-	if sfx_index >= 0:
-		AudioServer.set_bus_volume_db(sfx_index, default_sfx_volume_db)
-
-	var music_index: int = AudioServer.get_bus_index(BUS_MUSIC)
-	if music_index >= 0:
-		AudioServer.set_bus_volume_db(music_index, default_music_volume_db)
+	set_sfx_volume_linear(db_to_linear(default_sfx_volume_db))
+	set_music_volume_linear(db_to_linear(default_music_volume_db))
 
 func _preload_optional_streams() -> void:
 	_stream_cache.clear()
@@ -189,3 +194,9 @@ func _get_available_sfx_player() -> AudioStreamPlayer:
 	if _sfx_players.is_empty():
 		return null
 	return _sfx_players[0]
+
+func _linear_to_db_safe(value: float) -> float:
+	var clamped_value: float = clampf(value, 0.0, 1.0)
+	if clamped_value <= 0.0001:
+		return -80.0
+	return linear_to_db(clamped_value)

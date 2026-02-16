@@ -1,8 +1,20 @@
-[gd_scene load_steps=4 format=3 uid="uid://chajohnv7utp"]
+[gd_scene load_steps=5 format=3 uid="uid://chajohnv7utp"]
 
 [ext_resource type="FontFile" path="res://art/fonts/Rajdhani-Regular.ttf" id="1_xl7m1"]
 [ext_resource type="FontFile" path="res://art/fonts/Rajdhani-SemiBold.ttf" id="2_7gn6w"]
 [ext_resource type="FontFile" path="res://art/fonts/Rajdhani-Bold.ttf" id="3_ok9s4"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_audio_panel"]
+bg_color = Color(0.0431373, 0.0666667, 0.0941176, 0.9)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.286275, 0.490196, 0.603922, 0.55)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
 
 [node name="UiHud" type="CanvasLayer" unique_id=2120896698]
 
@@ -60,3 +72,65 @@ offset_bottom = 64.0
 theme_override_fonts/font = ExtResource("1_xl7m1")
 text = "Lineage: None"
 horizontal_alignment = 2
+
+[node name="AudioButton" type="Button" parent="."]
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -100.0
+offset_top = 70.0
+offset_right = -16.0
+offset_bottom = 98.0
+theme_override_fonts/font = ExtResource("2_7gn6w")
+theme_override_font_sizes/font_size = 18
+text = "Audio"
+
+[node name="AudioPanel" type="PanelContainer" parent="."]
+visible = false
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -292.0
+offset_top = 104.0
+offset_right = -16.0
+offset_bottom = 226.0
+theme_override_styles/panel = SubResource("StyleBoxFlat_audio_panel")
+
+[node name="Padding" type="MarginContainer" parent="AudioPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 12
+theme_override_constants/margin_bottom = 10
+
+[node name="Rows" type="VBoxContainer" parent="AudioPanel/Padding"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="SfxLabel" type="Label" parent="AudioPanel/Padding/Rows"]
+layout_mode = 2
+theme_override_fonts/font = ExtResource("2_7gn6w")
+theme_override_font_sizes/font_size = 18
+text = "SFX"
+
+[node name="SfxSlider" type="HSlider" parent="AudioPanel/Padding/Rows"]
+custom_minimum_size = Vector2(0, 20)
+layout_mode = 2
+size_flags_horizontal = 3
+max_value = 1.0
+step = 0.01
+value = 0.5
+
+[node name="MusicLabel" type="Label" parent="AudioPanel/Padding/Rows"]
+layout_mode = 2
+theme_override_fonts/font = ExtResource("2_7gn6w")
+theme_override_font_sizes/font_size = 18
+text = "Music"
+
+[node name="MusicSlider" type="HSlider" parent="AudioPanel/Padding/Rows"]
+custom_minimum_size = Vector2(0, 20)
+layout_mode = 2
+size_flags_horizontal = 3
+max_value = 1.0
+step = 0.01
+value = 0.4

@@ -18,6 +18,10 @@ const MUTATION_ICON_BY_ID: Dictionary = {
 @onready var level_label: Label = get_node_or_null("UiHud/LevelLabel")
 @onready var timer_label: Label = get_node_or_null("UiHud/TimerLabel")
 @onready var lineage_label: Label = get_node_or_null("UiHud/LineageLabel")
+@onready var audio_button: Button = get_node_or_null("UiHud/AudioButton")
+@onready var audio_panel: Control = get_node_or_null("UiHud/AudioPanel")
+@onready var sfx_slider: HSlider = get_node_or_null("UiHud/AudioPanel/Padding/Rows/SfxSlider")
+@onready var music_slider: HSlider = get_node_or_null("UiHud/AudioPanel/Padding/Rows/MusicSlider")
 @onready var levelup_ui: CanvasLayer = get_node_or_null("UiLevelup")
 @onready var levelup_lineage_prompt_label: Label = get_node_or_null("UiLevelup/Root/Layout/LineagePromptLabel")
 @onready var levelup_help_label: Label = get_node_or_null("UiLevelup/Root/Layout/HelpLabel")
@@ -88,6 +92,7 @@ func _ready() -> void:
 			_on_level_changed(int(current_level_value))
 	_update_timer_label()
 	_refresh_lineage_labels()
+	_setup_audio_controls()
 	_play_music("bgm_main")
 
 	for node in get_tree().get_nodes_in_group("biomass_pickups"):
@@ -159,9 +164,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			get_viewport().set_input_as_handled()
 
 func _on_player_hp_changed(current_hp: int, max_hp: int) -> void:
-	if hp_label == null:
-		pass
-	else:
+	if hp_label != null:
 		hp_label.text = "HP: %d/%d" % [current_hp, max_hp]
 	if _last_player_hp >= 0 and current_hp < _last_player_hp:
 		_play_sfx("player_hit")
@@ -514,6 +517,50 @@ func _play_sfx(event_id: String) -> void:
 	if not audio_manager.has_method("play_sfx"):
 		return
 	audio_manager.call("play_sfx", event_id)
+
+func _setup_audio_controls() -> void:
+	if audio_panel != null:
+		audio_panel.visible = false
+
+	var sfx_value: float = 0.5
+	var music_value: float = 0.4
+	if audio_manager != null:
+		if audio_manager.has_method("get_sfx_volume_linear"):
+			sfx_value = float(audio_manager.call("get_sfx_volume_linear"))
+		if audio_manager.has_method("get_music_volume_linear"):
+			music_value = float(audio_manager.call("get_music_volume_linear"))
+
+	if audio_button != null:
+		audio_button.connect("pressed", Callable(self, "_on_audio_button_pressed"))
+
+	if sfx_slider != null:
+		sfx_slider.value = sfx_value
+		sfx_slider.connect("value_changed", Callable(self, "_on_sfx_slider_value_changed"))
+		_on_sfx_slider_value_changed(sfx_slider.value)
+
+	if music_slider != null:
+		music_slider.value = music_value
+		music_slider.connect("value_changed", Callable(self, "_on_music_slider_value_changed"))
+		_on_music_slider_value_changed(music_slider.value)
+
+func _on_audio_button_pressed() -> void:
+	if audio_panel != null:
+		audio_panel.visible = not audio_panel.visible
+	_play_sfx("ui_click")
+
+func _on_sfx_slider_value_changed(value: float) -> void:
+	if audio_manager == null:
+		return
+	if not audio_manager.has_method("set_sfx_volume_linear"):
+		return
+	audio_manager.call("set_sfx_volume_linear", value)
+
+func _on_music_slider_value_changed(value: float) -> void:
+	if audio_manager == null:
+		return
+	if not audio_manager.has_method("set_music_volume_linear"):
+		return
+	audio_manager.call("set_music_volume_linear", value)
 
 func _play_music(track_id: String = "bgm_main") -> void:
 	if audio_manager == null:
