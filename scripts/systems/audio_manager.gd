@@ -13,6 +13,11 @@ const DEFAULT_STREAM_PATHS: Dictionary = {
 	"player_death": "res://audio/sfx/player_death.wav",
 	"bgm_main": "res://audio/music/bgm.ogg"
 }
+const SFX_EVENT_COOLDOWN_SEC: Dictionary = {
+	"ui_click": 0.04,
+	"pickup": 0.05,
+	"player_hit": 0.12
+}
 
 @export var default_sfx_volume_db: float = -6.0
 @export var default_music_volume_db: float = -10.0
@@ -26,6 +31,7 @@ var _sfx_volume_linear: float = 1.0
 var _music_volume_linear: float = 1.0
 var _sfx_muted: bool = false
 var _music_muted: bool = false
+var _last_sfx_played_at: Dictionary = {}
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -35,6 +41,9 @@ func _ready() -> void:
 	_preload_optional_streams()
 
 func play_sfx(event_id: String, volume_db_offset: float = 0.0, pitch_scale: float = 1.0) -> bool:
+	if _is_sfx_rate_limited(event_id):
+		return false
+
 	var stream: AudioStream = _get_stream(event_id)
 	if stream == null:
 		return false
@@ -47,6 +56,7 @@ func play_sfx(event_id: String, volume_db_offset: float = 0.0, pitch_scale: floa
 	player.volume_db = volume_db_offset
 	player.pitch_scale = clampf(pitch_scale, 0.5, 2.0)
 	player.play()
+	_last_sfx_played_at[event_id] = _get_time_seconds()
 	return true
 
 func play_music(track_id: String = "bgm_main", restart_if_same: bool = false) -> bool:
@@ -212,3 +222,18 @@ func _linear_to_db_safe(value: float) -> float:
 	if clamped_value <= 0.0001:
 		return -80.0
 	return linear_to_db(clamped_value)
+
+func _is_sfx_rate_limited(event_id: String) -> bool:
+	if not SFX_EVENT_COOLDOWN_SEC.has(event_id):
+		return false
+
+	var cooldown_seconds: float = float(SFX_EVENT_COOLDOWN_SEC.get(event_id, 0.0))
+	if cooldown_seconds <= 0.0:
+		return false
+
+	var now_seconds: float = _get_time_seconds()
+	var last_played_seconds: float = float(_last_sfx_played_at.get(event_id, -1000.0))
+	return (now_seconds - last_played_seconds) < cooldown_seconds
+
+func _get_time_seconds() -> float:
+	return float(Time.get_ticks_usec()) / 1000000.0
