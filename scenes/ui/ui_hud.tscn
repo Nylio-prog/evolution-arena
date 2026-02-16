@@ -6,3 +6,15 @@
 offset_right = 40.0
 offset_bottom = 23.0
 text = "HP: 100/100"
+
+[node name="XPBar" type="ProgressBar" parent="." unique_id=1403211170]
+offset_left = 1050.0
+offset_right = 1054.0
+offset_bottom = 27.0
+max_value = 10.0
+
+[node name="LevelLabel" type="Label" parent="." unique_id=1538901739]
+offset_left = 577.0
+offset_right = 635.0
+offset_bottom = 23.0
+text = "Level: 1"

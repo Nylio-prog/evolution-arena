@@ -6,6 +6,7 @@ signal collected(amount: int)
 @export var debug_log_collect: bool = true
 
 func _ready() -> void:
+	add_to_group("biomass_pickups")
 	body_entered.connect(_on_body_entered)
 
 func _on_body_entered(body: Node) -> void:

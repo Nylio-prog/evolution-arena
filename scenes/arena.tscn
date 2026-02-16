@@ -6,12 +6,16 @@
 [ext_resource type="Script" uid="uid://d106i6a2grg7p" path="res://scripts/systems/game_manager.gd" id="4_6g2vy"]
 [ext_resource type="PackedScene" uid="uid://chcru5d2lttfj" path="res://scenes/ui/game_over.tscn" id="5_p3n4s"]
 [ext_resource type="PackedScene" uid="uid://uywt1j4p6mfb" path="res://scenes/systems/biomass_pickup.tscn" id="6_4ag8t"]
+[ext_resource type="Script" uid="uid://pobg3kqvblvq" path="res://scripts/systems/xp_system.gd" id="7_x7sj1"]
 
 [node name="Arena" type="Node2D" unique_id=1478589997]
 position = Vector2(578, 302)
 script = ExtResource("4_6g2vy")
 
 [node name="Player" parent="." unique_id=1353408687 instance=ExtResource("1_e05a3")]
+
+[node name="XpSystem" type="Node" parent="." unique_id=364193305]
+script = ExtResource("7_x7sj1")
 
 [node name="EnemyBasic" parent="." unique_id=1781779772 instance=ExtResource("2_wl4x5")]
 position = Vector2(-428, -194)
@@ -24,3 +28,33 @@ visible = false
 
 [node name="BiomassPickup" parent="." unique_id=493457500 instance=ExtResource("6_4ag8t")]
 position = Vector2(-365, -11)
+
+[node name="BiomassPickup2" parent="." unique_id=1229811607 instance=ExtResource("6_4ag8t")]
+position = Vector2(-365, -11)
+
+[node name="BiomassPickup3" parent="." unique_id=87526325 instance=ExtResource("6_4ag8t")]
+position = Vector2(-365, -11)
+
+[node name="BiomassPickup4" parent="." unique_id=617632111 instance=ExtResource("6_4ag8t")]
+position = Vector2(-365, -11)
+
+[node name="BiomassPickup5" parent="." unique_id=1488073878 instance=ExtResource("6_4ag8t")]
+position = Vector2(-280, 53)
+
+[node name="BiomassPickup6" parent="." unique_id=1661169361 instance=ExtResource("6_4ag8t")]
+position = Vector2(-403, 27)
+
+[node name="BiomassPickup7" parent="." unique_id=257769322 instance=ExtResource("6_4ag8t")]
+position = Vector2(-365, 50)
+
+[node name="BiomassPickup8" parent="." unique_id=138229569 instance=ExtResource("6_4ag8t")]
+position = Vector2(-365, -63)
+
+[node name="BiomassPickup9" parent="." unique_id=1063474226 instance=ExtResource("6_4ag8t")]
+position = Vector2(-365, 24)
+
+[node name="BiomassPickup10" parent="." unique_id=1571271250 instance=ExtResource("6_4ag8t")]
+position = Vector2(-395, -11)
+
+[node name="BiomassPickup11" parent="." unique_id=1268711035 instance=ExtResource("6_4ag8t")]
+position = Vector2(-325, -11)
