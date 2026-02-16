@@ -1,11 +1,14 @@
 extends Node
 
 const ENEMY_BASIC_SCENE: PackedScene = preload("res://scenes/actors/enemy_basic.tscn")
+const ENEMY_DASHER_SCENE: PackedScene = preload("res://scenes/actors/enemy_dasher.tscn")
 
 @export var initial_wait_time: float = 1.0
 @export var min_wait_time: float = 0.25
 @export var ramp_duration_seconds: float = 120.0
 @export var spawn_distance: float = 480.0
+@export var dasher_initial_ratio: float = 0.05
+@export var dasher_max_ratio: float = 0.30
 @export var debug_log_spawn: bool = false
 
 @onready var spawn_timer: Timer = get_node_or_null("SpawnTimer")
@@ -41,7 +44,8 @@ func _on_spawn_timer_timeout() -> void:
 
 	var angle: float = randf() * TAU
 	var offset := Vector2.RIGHT.rotated(angle) * spawn_distance
-	var enemy_instance := ENEMY_BASIC_SCENE.instantiate() as Node2D
+	var enemy_scene: PackedScene = _select_enemy_scene()
+	var enemy_instance := enemy_scene.instantiate() as Node2D
 	if enemy_instance == null:
 		return
 
@@ -50,6 +54,13 @@ func _on_spawn_timer_timeout() -> void:
 
 	if debug_log_spawn:
 		print("Spawned enemy at ", enemy_instance.global_position)
+
+func _select_enemy_scene() -> PackedScene:
+	var ramp_ratio: float = clampf(_elapsed_seconds / ramp_duration_seconds, 0.0, 1.0)
+	var current_dasher_ratio: float = lerpf(dasher_initial_ratio, dasher_max_ratio, ramp_ratio)
+	if randf() < current_dasher_ratio:
+		return ENEMY_DASHER_SCENE
+	return ENEMY_BASIC_SCENE
 
 func _update_spawn_wait_time() -> void:
 	if spawn_timer == null:
