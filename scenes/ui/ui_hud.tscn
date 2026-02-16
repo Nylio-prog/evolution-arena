@@ -3,27 +3,40 @@
 [node name="UiHud" type="CanvasLayer" unique_id=2120896698]
 
 [node name="HPLabel" type="Label" parent="." unique_id=1220445069]
-offset_right = 40.0
-offset_bottom = 23.0
+anchor_right = 0.0
+anchor_bottom = 0.0
+offset_left = 16.0
+offset_top = 12.0
+offset_right = 160.0
+offset_bottom = 36.0
 text = "HP: 100/100"
 
 [node name="XPBar" type="ProgressBar" parent="." unique_id=1403211170]
-offset_left = 1037.0
-offset_top = 1.0
-offset_right = 1149.0
-offset_bottom = 28.0
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -260.0
+offset_top = 12.0
+offset_right = -16.0
+offset_bottom = 36.0
 max_value = 10.0
+show_percentage = false
 
 [node name="LevelLabel" type="Label" parent="." unique_id=1538901739]
-offset_left = 880.0
-offset_top = 3.0
-offset_right = 938.0
-offset_bottom = 26.0
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -340.0
+offset_top = 12.0
+offset_right = -268.0
+offset_bottom = 36.0
 text = "Level: 1"
+horizontal_alignment = 2
 
 [node name="TimerLabel" type="Label" parent="." unique_id=1858303960]
-offset_left = 556.0
-offset_top = 4.0
-offset_right = 620.0
-offset_bottom = 27.0
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -60.0
+offset_top = 12.0
+offset_right = 60.0
+offset_bottom = 36.0
 text = "Time: 0s"
+horizontal_alignment = 1
