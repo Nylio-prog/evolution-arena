@@ -5,6 +5,7 @@ const MUTATIONS: Dictionary = {
 		"id": "spikes",
 		"name": "Spikes",
 		"description": "Grow defensive spikes around your organism.",
+		"lineages": ["predator", "bulwark"],
 		"max_level": 3,
 		"levels": {
 			1: {"short": "4 spikes", "description": "Grow 4 spikes around your body."},
@@ -16,6 +17,7 @@ const MUTATIONS: Dictionary = {
 		"id": "orbiters",
 		"name": "Orbiters",
 		"description": "Spawn orbiting cells that damage enemies.",
+		"lineages": ["swarm", "bulwark"],
 		"max_level": 3,
 		"levels": {
 			1: {"short": "1 cell", "description": "Spawn 1 orbiting cell."},

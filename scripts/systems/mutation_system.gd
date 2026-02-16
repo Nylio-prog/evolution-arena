@@ -8,6 +8,9 @@ const LINEAGES: Dictionary = {
 	"swarm": "Swarm",
 	"bulwark": "Bulwark"
 }
+const WEIGHT_BASE: float = 1.0
+const WEIGHT_SAME_LINEAGE_BONUS: float = 2.0
+const WEIGHT_OFF_LINEAGE_BONUS: float = 0.2
 
 signal mutation_applied(mutation_id: String, new_level: int)
 signal lineage_changed(lineage_id: String, lineage_name: String)
@@ -39,17 +42,21 @@ func get_levelup_options(count: int = 3) -> Array[Dictionary]:
 		return current_levelup_options
 
 	var selected_ids: Array[String] = []
-	var pool: Array[String] = []
-	pool.append_array(available_ids)
+	var first_pass_pool: Array[String] = []
+	first_pass_pool.append_array(available_ids)
 
-	while selected_ids.size() < count and pool.size() > 0:
-		var index: int = randi() % pool.size()
-		selected_ids.append(pool[index])
-		pool.remove_at(index)
+	while selected_ids.size() < count and not first_pass_pool.is_empty():
+		var selected_id: String = _pick_weighted_mutation_id(first_pass_pool)
+		if selected_id.is_empty():
+			break
+		selected_ids.append(selected_id)
+		first_pass_pool.erase(selected_id)
 
-	while selected_ids.size() < count:
-		var filler_index: int = randi() % available_ids.size()
-		selected_ids.append(available_ids[filler_index])
+	while selected_ids.size() < count and not available_ids.is_empty():
+		var filler_id: String = _pick_weighted_mutation_id(available_ids)
+		if filler_id.is_empty():
+			break
+		selected_ids.append(filler_id)
 
 	var options: Array[Dictionary] = []
 	for mutation_id in selected_ids:
@@ -139,6 +146,52 @@ func _build_option(mutation_id: String) -> Dictionary:
 		"description": String(level_data.get("description", mutation_def.get("description", "")))
 	}
 	return option
+
+func _pick_weighted_mutation_id(candidate_ids: Array[String]) -> String:
+	if candidate_ids.is_empty():
+		return ""
+
+	var total_weight: float = 0.0
+	var weights: Array[float] = []
+	for mutation_id in candidate_ids:
+		var weight: float = _get_mutation_weight(mutation_id)
+		weights.append(weight)
+		total_weight += weight
+
+	if total_weight <= 0.0:
+		return candidate_ids[randi() % candidate_ids.size()]
+
+	var roll: float = randf() * total_weight
+	var running_weight: float = 0.0
+	for i in range(candidate_ids.size()):
+		running_weight += weights[i]
+		if roll <= running_weight:
+			return candidate_ids[i]
+
+	return candidate_ids[candidate_ids.size() - 1]
+
+func _get_mutation_weight(mutation_id: String) -> float:
+	var mutation_def: Dictionary = mutation_defs.get(mutation_id, {})
+	if current_lineage_id.is_empty():
+		return WEIGHT_BASE
+
+	var lineage_tags: Array[String] = _get_mutation_lineage_tags(mutation_def)
+	if lineage_tags.has(current_lineage_id):
+		return WEIGHT_BASE + WEIGHT_SAME_LINEAGE_BONUS
+	return WEIGHT_BASE + WEIGHT_OFF_LINEAGE_BONUS
+
+func _get_mutation_lineage_tags(mutation_def: Dictionary) -> Array[String]:
+	var tags: Array[String] = []
+	var lineages_variant: Variant = mutation_def.get("lineages", [])
+	if lineages_variant is Array:
+		for raw_tag in lineages_variant:
+			tags.append(String(raw_tag).to_lower())
+		return tags
+
+	var single_lineage: String = String(mutation_def.get("lineage", "")).strip_edges().to_lower()
+	if not single_lineage.is_empty():
+		tags.append(single_lineage)
+	return tags
 
 func _apply_mutation_effect(mutation_id: String, new_level: int) -> void:
 	if player == null:
