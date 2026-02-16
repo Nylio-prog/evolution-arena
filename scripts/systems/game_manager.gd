@@ -21,7 +21,9 @@ const MUTATION_ICON_BY_ID: Dictionary = {
 @onready var audio_button: Button = get_node_or_null("UiHud/AudioButton")
 @onready var audio_panel: Control = get_node_or_null("UiHud/AudioPanel")
 @onready var sfx_slider: HSlider = get_node_or_null("UiHud/AudioPanel/Padding/Rows/SfxSlider")
+@onready var sfx_mute_toggle: CheckButton = get_node_or_null("UiHud/AudioPanel/Padding/Rows/SfxMuteToggle")
 @onready var music_slider: HSlider = get_node_or_null("UiHud/AudioPanel/Padding/Rows/MusicSlider")
+@onready var music_mute_toggle: CheckButton = get_node_or_null("UiHud/AudioPanel/Padding/Rows/MusicMuteToggle")
 @onready var levelup_ui: CanvasLayer = get_node_or_null("UiLevelup")
 @onready var levelup_lineage_prompt_label: Label = get_node_or_null("UiLevelup/Root/Layout/LineagePromptLabel")
 @onready var levelup_help_label: Label = get_node_or_null("UiLevelup/Root/Layout/HelpLabel")
@@ -524,11 +526,17 @@ func _setup_audio_controls() -> void:
 
 	var sfx_value: float = 0.5
 	var music_value: float = 0.4
+	var sfx_muted: bool = false
+	var music_muted: bool = false
 	if audio_manager != null:
 		if audio_manager.has_method("get_sfx_volume_linear"):
 			sfx_value = float(audio_manager.call("get_sfx_volume_linear"))
 		if audio_manager.has_method("get_music_volume_linear"):
 			music_value = float(audio_manager.call("get_music_volume_linear"))
+		if audio_manager.has_method("get_sfx_muted"):
+			sfx_muted = bool(audio_manager.call("get_sfx_muted"))
+		if audio_manager.has_method("get_music_muted"):
+			music_muted = bool(audio_manager.call("get_music_muted"))
 
 	if audio_button != null:
 		audio_button.connect("pressed", Callable(self, "_on_audio_button_pressed"))
@@ -538,10 +546,20 @@ func _setup_audio_controls() -> void:
 		sfx_slider.connect("value_changed", Callable(self, "_on_sfx_slider_value_changed"))
 		_on_sfx_slider_value_changed(sfx_slider.value)
 
+	if sfx_mute_toggle != null:
+		sfx_mute_toggle.button_pressed = sfx_muted
+		sfx_mute_toggle.connect("toggled", Callable(self, "_on_sfx_mute_toggled"))
+		_on_sfx_mute_toggled(sfx_mute_toggle.button_pressed)
+
 	if music_slider != null:
 		music_slider.value = music_value
 		music_slider.connect("value_changed", Callable(self, "_on_music_slider_value_changed"))
 		_on_music_slider_value_changed(music_slider.value)
+
+	if music_mute_toggle != null:
+		music_mute_toggle.button_pressed = music_muted
+		music_mute_toggle.connect("toggled", Callable(self, "_on_music_mute_toggled"))
+		_on_music_mute_toggled(music_mute_toggle.button_pressed)
 
 func _on_audio_button_pressed() -> void:
 	if audio_panel != null:
@@ -561,6 +579,20 @@ func _on_music_slider_value_changed(value: float) -> void:
 	if not audio_manager.has_method("set_music_volume_linear"):
 		return
 	audio_manager.call("set_music_volume_linear", value)
+
+func _on_sfx_mute_toggled(pressed: bool) -> void:
+	if audio_manager == null:
+		return
+	if not audio_manager.has_method("set_sfx_muted"):
+		return
+	audio_manager.call("set_sfx_muted", pressed)
+
+func _on_music_mute_toggled(pressed: bool) -> void:
+	if audio_manager == null:
+		return
+	if not audio_manager.has_method("set_music_muted"):
+		return
+	audio_manager.call("set_music_muted", pressed)
 
 func _play_music(track_id: String = "bgm_main") -> void:
 	if audio_manager == null:

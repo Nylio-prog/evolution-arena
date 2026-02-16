@@ -24,6 +24,8 @@ var _music_player: AudioStreamPlayer
 var _stream_cache: Dictionary = {}
 var _sfx_volume_linear: float = 1.0
 var _music_volume_linear: float = 1.0
+var _sfx_muted: bool = false
+var _music_muted: bool = false
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -103,14 +105,22 @@ func get_music_volume_linear() -> float:
 	return _music_volume_linear
 
 func set_sfx_muted(muted: bool) -> void:
+	_sfx_muted = muted
 	var bus_index: int = AudioServer.get_bus_index(BUS_SFX)
 	if bus_index >= 0:
 		AudioServer.set_bus_mute(bus_index, muted)
 
 func set_music_muted(muted: bool) -> void:
+	_music_muted = muted
 	var bus_index: int = AudioServer.get_bus_index(BUS_MUSIC)
 	if bus_index >= 0:
 		AudioServer.set_bus_mute(bus_index, muted)
+
+func get_sfx_muted() -> bool:
+	return _sfx_muted
+
+func get_music_muted() -> bool:
+	return _music_muted
 
 func _ensure_audio_buses() -> void:
 	var master_index: int = AudioServer.get_bus_index(BUS_MASTER)
@@ -152,6 +162,8 @@ func _create_players() -> void:
 func _set_default_bus_volumes() -> void:
 	set_sfx_volume_linear(db_to_linear(default_sfx_volume_db))
 	set_music_volume_linear(db_to_linear(default_music_volume_db))
+	set_sfx_muted(false)
+	set_music_muted(false)
 
 func _preload_optional_streams() -> void:
 	_stream_cache.clear()

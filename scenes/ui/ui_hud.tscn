@@ -93,7 +93,7 @@ anchor_right = 1.0
 offset_left = -292.0
 offset_top = 104.0
 offset_right = -16.0
-offset_bottom = 226.0
+offset_bottom = 304.0
 theme_override_styles/panel = SubResource("StyleBoxFlat_audio_panel")
 
 [node name="Padding" type="MarginContainer" parent="AudioPanel"]
@@ -121,6 +121,12 @@ max_value = 1.0
 step = 0.01
 value = 0.5
 
+[node name="SfxMuteToggle" type="CheckButton" parent="AudioPanel/Padding/Rows"]
+layout_mode = 2
+theme_override_fonts/font = ExtResource("2_7gn6w")
+theme_override_font_sizes/font_size = 16
+text = "Mute SFX"
+
 [node name="MusicLabel" type="Label" parent="AudioPanel/Padding/Rows"]
 layout_mode = 2
 theme_override_fonts/font = ExtResource("2_7gn6w")
@@ -134,3 +140,9 @@ size_flags_horizontal = 3
 max_value = 1.0
 step = 0.01
 value = 0.4
+
+[node name="MusicMuteToggle" type="CheckButton" parent="AudioPanel/Padding/Rows"]
+layout_mode = 2
+theme_override_fonts/font = ExtResource("2_7gn6w")
+theme_override_font_sizes/font_size = 16
+text = "Mute Music"
