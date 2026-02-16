@@ -23,15 +23,15 @@ offset_right = 334.0
 offset_bottom = 42.0
 grow_horizontal = 2
 grow_vertical = 2
-alignment = 1
 theme_override_constants/separation = 10
+alignment = 1
 
 [node name="TitleLabel" type="Label" parent="Root/Layout" unique_id=1542619791]
 layout_mode = 2
 text = "EVOLVE"
 horizontal_alignment = 1
 
-[node name="LineagePromptLabel" type="Label" parent="Root/Layout"]
+[node name="LineagePromptLabel" type="Label" parent="Root/Layout" unique_id=242926227]
 layout_mode = 2
 text = "Choose your lineage"
 horizontal_alignment = 1
@@ -43,78 +43,75 @@ theme_override_constants/separation = 10
 [node name="ChoiceButton1" type="Button" parent="Root/Layout/ChoicesRow" unique_id=60842756]
 custom_minimum_size = Vector2(224, 84)
 layout_mode = 2
-text = ""
 
-[node name="MutationText" type="RichTextLabel" parent="Root/Layout/ChoicesRow/ChoiceButton1"]
+[node name="MutationText" type="RichTextLabel" parent="Root/Layout/ChoicesRow/ChoiceButton1" unique_id=2031412416]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
 offset_top = 8.0
 offset_bottom = -8.0
+grow_horizontal = 2
+grow_vertical = 2
 mouse_filter = 2
 bbcode_enabled = true
-scroll_active = false
-fit_content = true
 text = "[center][b]Mutation 1[/b][/center]"
+fit_content = true
+scroll_active = false
 
 [node name="ChoiceButton2" type="Button" parent="Root/Layout/ChoicesRow" unique_id=1121768704]
 custom_minimum_size = Vector2(224, 84)
 layout_mode = 2
-text = ""
 
-[node name="MutationText" type="RichTextLabel" parent="Root/Layout/ChoicesRow/ChoiceButton2"]
+[node name="MutationText" type="RichTextLabel" parent="Root/Layout/ChoicesRow/ChoiceButton2" unique_id=162651388]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
 offset_top = 8.0
 offset_bottom = -8.0
+grow_horizontal = 2
+grow_vertical = 2
 mouse_filter = 2
 bbcode_enabled = true
-scroll_active = false
-fit_content = true
 text = "[center][b]Mutation 2[/b][/center]"
+fit_content = true
+scroll_active = false
 
 [node name="ChoiceButton3" type="Button" parent="Root/Layout/ChoicesRow" unique_id=1457214829]
 custom_minimum_size = Vector2(224, 84)
 layout_mode = 2
-text = ""
 
-[node name="MutationText" type="RichTextLabel" parent="Root/Layout/ChoicesRow/ChoiceButton3"]
+[node name="MutationText" type="RichTextLabel" parent="Root/Layout/ChoicesRow/ChoiceButton3" unique_id=1926433652]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
 offset_top = 8.0
 offset_bottom = -8.0
+grow_horizontal = 2
+grow_vertical = 2
 mouse_filter = 2
 bbcode_enabled = true
-scroll_active = false
-fit_content = true
 text = "[center][b]Mutation 3[/b][/center]"
+fit_content = true
+scroll_active = false
 
-[node name="LineageChoicesColumn" type="VBoxContainer" parent="Root/Layout"]
+[node name="LineageChoicesColumn" type="VBoxContainer" parent="Root/Layout" unique_id=288044493]
 visible = false
 layout_mode = 2
 
-[node name="LineageButton1" type="Button" parent="Root/Layout/LineageChoicesColumn"]
+[node name="LineageButton1" type="Button" parent="Root/Layout/LineageChoicesColumn" unique_id=143338590]
 custom_minimum_size = Vector2(668, 64)
 layout_mode = 2
 text = "Predator"
 
-[node name="LineageButton2" type="Button" parent="Root/Layout/LineageChoicesColumn"]
+[node name="LineageButton2" type="Button" parent="Root/Layout/LineageChoicesColumn" unique_id=1126261879]
 custom_minimum_size = Vector2(668, 64)
 layout_mode = 2
 text = "Swarm"
 
-[node name="LineageButton3" type="Button" parent="Root/Layout/LineageChoicesColumn"]
+[node name="LineageButton3" type="Button" parent="Root/Layout/LineageChoicesColumn" unique_id=515158070]
 custom_minimum_size = Vector2(668, 64)
 layout_mode = 2
 text = "Bulwark"
