@@ -1,0 +1,18 @@
+[gd_scene load_steps=3 format=3 uid="uid://uywt1j4p6mfb"]
+
+[ext_resource type="Texture2D" uid="uid://cptfgrjd73utv" path="res://icon.svg" id="1_hdavb"]
+[ext_resource type="Script" path="res://scripts/systems/biomass_pickup.gd" id="2_ijx7p"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_85jwq"]
+radius = 6.0
+
+[node name="BiomassPickup" type="Area2D" unique_id=493457500]
+script = ExtResource("2_ijx7p")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=294200155]
+shape = SubResource("CircleShape2D_85jwq")
+
+[node name="Sprite2D" type="Sprite2D" parent="." unique_id=333590219]
+modulate = Color(0.1497069, 0.60367393, 0.5370635, 1)
+scale = Vector2(0.05, 0.05)
+texture = ExtResource("1_hdavb")

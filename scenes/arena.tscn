@@ -1,10 +1,11 @@
-[gd_scene load_steps=5 format=3 uid="uid://dtiv6dfiwc8k0"]
+[gd_scene format=3 uid="uid://dtiv6dfiwc8k0"]
 
 [ext_resource type="PackedScene" uid="uid://b8q3qd56dv6ge" path="res://scenes/actors/player.tscn" id="1_e05a3"]
 [ext_resource type="PackedScene" uid="uid://ivifr0y86qqc" path="res://scenes/actors/enemy_basic.tscn" id="2_wl4x5"]
 [ext_resource type="PackedScene" uid="uid://chajohnv7utp" path="res://scenes/ui/ui_hud.tscn" id="3_rbtd0"]
-[ext_resource type="Script" path="res://scripts/systems/game_manager.gd" id="4_6g2vy"]
+[ext_resource type="Script" uid="uid://d106i6a2grg7p" path="res://scripts/systems/game_manager.gd" id="4_6g2vy"]
 [ext_resource type="PackedScene" uid="uid://chcru5d2lttfj" path="res://scenes/ui/game_over.tscn" id="5_p3n4s"]
+[ext_resource type="PackedScene" uid="uid://uywt1j4p6mfb" path="res://scenes/systems/biomass_pickup.tscn" id="6_4ag8t"]
 
 [node name="Arena" type="Node2D" unique_id=1478589997]
 position = Vector2(578, 302)
@@ -16,7 +17,10 @@ script = ExtResource("4_6g2vy")
 position = Vector2(-428, -194)
 debug_log_damage = false
 
-[node name="UiHud" parent="." instance=ExtResource("3_rbtd0")]
+[node name="UiHud" parent="." unique_id=1003024215 instance=ExtResource("3_rbtd0")]
 
-[node name="GameOver" parent="." instance=ExtResource("5_p3n4s")]
+[node name="GameOver" parent="." unique_id=173502092 instance=ExtResource("5_p3n4s")]
 visible = false
+
+[node name="BiomassPickup" parent="." unique_id=493457500 instance=ExtResource("6_4ag8t")]
+position = Vector2(-365, -11)
