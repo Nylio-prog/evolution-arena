@@ -11,9 +11,9 @@ const ORBITERS_MAX_LEVEL: int = 3
 @onready var xp_bar: ProgressBar = get_node_or_null("UiHud/XPBar")
 @onready var level_label: Label = get_node_or_null("UiHud/LevelLabel")
 @onready var levelup_ui: CanvasLayer = get_node_or_null("UiLevelup")
-@onready var levelup_choice_1: Button = get_node_or_null("UiLevelup/Root/ChoiceButton1")
-@onready var levelup_choice_2: Button = get_node_or_null("UiLevelup/Root/ChoiceButton2")
-@onready var levelup_choice_3: Button = get_node_or_null("UiLevelup/Root/ChoiceButton3")
+@onready var levelup_choice_1: Button = get_node_or_null("UiLevelup/Root/Layout/ChoicesRow/ChoiceButton1")
+@onready var levelup_choice_2: Button = get_node_or_null("UiLevelup/Root/Layout/ChoicesRow/ChoiceButton2")
+@onready var levelup_choice_3: Button = get_node_or_null("UiLevelup/Root/Layout/ChoicesRow/ChoiceButton3")
 @onready var game_over_ui: CanvasLayer = get_node_or_null("GameOver")
 @onready var game_over_stats_label: Label = get_node_or_null("GameOver/Root/StatsLabel")
 @onready var game_over_restart_button: Button = get_node_or_null("GameOver/Root/RestartButton")
@@ -80,6 +80,31 @@ func _process(delta: float) -> void:
 		return
 	elapsed_seconds += delta
 
+func _unhandled_input(event: InputEvent) -> void:
+	if not run_paused_for_levelup:
+		return
+	if run_ended:
+		return
+
+	var key_event := event as InputEventKey
+	if key_event == null:
+		return
+	if not key_event.pressed:
+		return
+	if key_event.echo:
+		return
+
+	match key_event.keycode:
+		KEY_1, KEY_KP_1:
+			_on_levelup_choice_pressed("spikes")
+			get_viewport().set_input_as_handled()
+		KEY_2, KEY_KP_2:
+			_on_levelup_choice_pressed("orbiters")
+			get_viewport().set_input_as_handled()
+		KEY_3, KEY_KP_3:
+			_on_levelup_choice_pressed("spikes")
+			get_viewport().set_input_as_handled()
+
 func _on_player_hp_changed(current_hp: int, max_hp: int) -> void:
 	if hp_label == null:
 		return
@@ -141,6 +166,7 @@ func _set_gameplay_active(active: bool) -> void:
 		if module_node == null:
 			continue
 		module_node.set_process(active)
+		module_node.set_physics_process(active)
 
 	for spawner_node_raw in get_tree().get_nodes_in_group("enemy_spawners"):
 		var spawner_node := spawner_node_raw as Node
@@ -184,12 +210,12 @@ func _on_restart_pressed() -> void:
 
 func _refresh_levelup_choice_text() -> void:
 	var next_spike_level: int = mini(spikes_level + 1, SPIKES_MAX_LEVEL)
-	var spikes_label_text: String = "Spikes L%d (%d)" % [next_spike_level, _spike_count_for_level(next_spike_level)]
+	var spikes_label_text: String = "Spikes L%d - %d spikes" % [next_spike_level, _spike_count_for_level(next_spike_level)]
 	if spikes_level >= SPIKES_MAX_LEVEL:
 		spikes_label_text = "Spikes MAX"
 
 	var next_orbiter_level: int = mini(orbiters_level + 1, ORBITERS_MAX_LEVEL)
-	var orbiters_label_text: String = "Orbiters L%d (%d)" % [next_orbiter_level, _orbiter_count_for_level(next_orbiter_level)]
+	var orbiters_label_text: String = "Orbiters L%d - %d cells" % [next_orbiter_level, _orbiter_count_for_level(next_orbiter_level)]
 	if orbiters_level >= ORBITERS_MAX_LEVEL:
 		orbiters_label_text = "Orbiters MAX"
 

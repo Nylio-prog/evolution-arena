@@ -10,32 +10,40 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 
-[node name="TitleLabel" type="Label" parent="Root" unique_id=1542619791]
-layout_mode = 0
-offset_right = 40.0
-offset_bottom = 23.0
-text = "EVOLVE"
+[node name="Layout" type="VBoxContainer" parent="Root" unique_id=1730551340]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -334.0
+offset_top = -41.0
+offset_right = 334.0
+offset_bottom = 42.0
+grow_horizontal = 2
+grow_vertical = 2
+alignment = 1
 
-[node name="ChoiceButton1" type="Button" parent="Root" unique_id=60842756]
-layout_mode = 0
-offset_left = 295.0
-offset_top = 298.0
-offset_right = 388.0
-offset_bottom = 329.0
+[node name="TitleLabel" type="Label" parent="Root/Layout" unique_id=1542619791]
+layout_mode = 2
+text = "EVOLVE"
+horizontal_alignment = 1
+
+[node name="ChoicesRow" type="HBoxContainer" parent="Root/Layout" unique_id=286693580]
+layout_mode = 2
+
+[node name="ChoiceButton1" type="Button" parent="Root/Layout/ChoicesRow" unique_id=60842756]
+custom_minimum_size = Vector2(220, 56)
+layout_mode = 2
 text = "Mutation 1"
 
-[node name="ChoiceButton2" type="Button" parent="Root" unique_id=1121768704]
-layout_mode = 0
-offset_left = 533.0
-offset_top = 299.0
-offset_right = 626.0
-offset_bottom = 330.0
+[node name="ChoiceButton2" type="Button" parent="Root/Layout/ChoicesRow" unique_id=1121768704]
+custom_minimum_size = Vector2(220, 56)
+layout_mode = 2
 text = "Mutation 2"
 
-[node name="ChoiceButton3" type="Button" parent="Root" unique_id=1457214829]
-layout_mode = 0
-offset_left = 790.0
-offset_top = 300.0
-offset_right = 883.0
-offset_bottom = 331.0
+[node name="ChoiceButton3" type="Button" parent="Root/Layout/ChoicesRow" unique_id=1457214829]
+custom_minimum_size = Vector2(220, 56)
+layout_mode = 2
 text = "Mutation 3"
