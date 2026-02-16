@@ -1,8 +1,56 @@
-[gd_scene load_steps=4 format=3 uid="uid://btqxqlyulj1ii"]
+[gd_scene load_steps=7 format=3 uid="uid://btqxqlyulj1ii"]
 
 [ext_resource type="FontFile" path="res://art/fonts/Rajdhani-Regular.ttf" id="1_q8x2f"]
 [ext_resource type="FontFile" path="res://art/fonts/Rajdhani-SemiBold.ttf" id="2_3nq6d"]
 [ext_resource type="FontFile" path="res://art/fonts/Rajdhani-Bold.ttf" id="3_q1p9k"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel"]
+bg_color = Color(0.0431373, 0.0666667, 0.0941176, 0.93)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.286275, 0.490196, 0.603922, 0.55)
+corner_radius_top_left = 14
+corner_radius_top_right = 14
+corner_radius_bottom_right = 14
+corner_radius_bottom_left = 14
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_card"]
+bg_color = Color(0.0627451, 0.0980392, 0.133333, 0.95)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.282353, 0.470588, 0.572549, 0.48)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_card_hover"]
+bg_color = Color(0.0980392, 0.152941, 0.203922, 0.98)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.462745, 0.756863, 0.913725, 0.85)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_card_pressed"]
+bg_color = Color(0.121569, 0.180392, 0.235294, 0.98)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.537255, 0.835294, 0.964706, 0.95)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
 
 [node name="UiLevelup" type="CanvasLayer" unique_id=1975498355]
 
@@ -14,6 +62,30 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 
+[node name="Backdrop" type="ColorRect" parent="Root"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 0.58)
+
+[node name="Panel" type="Panel" parent="Root"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -536.0
+offset_top = -320.0
+offset_right = 536.0
+offset_bottom = 320.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
+
 [node name="Layout" type="VBoxContainer" parent="Root" unique_id=1730551340]
 layout_mode = 1
 anchors_preset = 8
@@ -21,98 +93,176 @@ anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = -334.0
-offset_top = -41.0
-offset_right = 334.0
-offset_bottom = 42.0
+offset_left = -500.0
+offset_top = -280.0
+offset_right = 500.0
+offset_bottom = 280.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_constants/separation = 10
+theme_override_constants/separation = 16
 alignment = 1
+
+[node name="TopPadding" type="Control" parent="Root/Layout"]
+custom_minimum_size = Vector2(0, 20)
+layout_mode = 2
 
 [node name="TitleLabel" type="Label" parent="Root/Layout" unique_id=1542619791]
 layout_mode = 2
 theme_override_fonts/font = ExtResource("3_q1p9k")
-theme_override_font_sizes/font_size = 34
+theme_override_font_sizes/font_size = 44
 text = "EVOLVE"
 horizontal_alignment = 1
 
 [node name="LineagePromptLabel" type="Label" parent="Root/Layout" unique_id=242926227]
 layout_mode = 2
 theme_override_fonts/font = ExtResource("3_q1p9k")
-theme_override_font_sizes/font_size = 22
+theme_override_font_sizes/font_size = 30
 text = "Choose your lineage"
 horizontal_alignment = 1
 
 [node name="HelpLabel" type="Label" parent="Root/Layout" unique_id=1889439289]
 layout_mode = 2
 theme_override_fonts/font = ExtResource("1_q8x2f")
-theme_override_font_sizes/font_size = 18
+theme_override_font_sizes/font_size = 20
+theme_override_colors/font_color = Color(0.8, 0.86, 0.92, 0.92)
 text = "Choose once. It biases future mutations."
 horizontal_alignment = 1
 
 [node name="ChoicesRow" type="HBoxContainer" parent="Root/Layout" unique_id=286693580]
 layout_mode = 2
-theme_override_constants/separation = 10
+theme_override_constants/separation = 16
+alignment = 1
 
 [node name="ChoiceButton1" type="Button" parent="Root/Layout/ChoicesRow" unique_id=60842756]
-custom_minimum_size = Vector2(224, 84)
+custom_minimum_size = Vector2(318, 164)
 layout_mode = 2
 theme_override_fonts/font = ExtResource("2_3nq6d")
+theme_override_styles/normal = SubResource("StyleBoxFlat_card")
+theme_override_styles/hover = SubResource("StyleBoxFlat_card_hover")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_card_pressed")
+theme_override_styles/focus = SubResource("StyleBoxFlat_card_hover")
+
+[node name="MutationIcon" type="TextureRect" parent="Root/Layout/ChoicesRow/ChoiceButton1"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -20.0
+offset_top = -70.0
+offset_right = 20.0
+offset_bottom = -30.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
 
 [node name="MutationText" type="RichTextLabel" parent="Root/Layout/ChoicesRow/ChoiceButton1" unique_id=2031412416]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_top = 8.0
-offset_bottom = -8.0
+offset_left = 10.0
+offset_top = 52.0
+offset_right = -10.0
+offset_bottom = -12.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 theme_override_fonts/normal_font = ExtResource("1_q8x2f")
+theme_override_fonts/bold_font = ExtResource("3_q1p9k")
 bbcode_enabled = true
 text = "[center][b]Mutation 1[/b][/center]"
 fit_content = true
 scroll_active = false
 
 [node name="ChoiceButton2" type="Button" parent="Root/Layout/ChoicesRow" unique_id=1121768704]
-custom_minimum_size = Vector2(224, 84)
+custom_minimum_size = Vector2(318, 164)
 layout_mode = 2
 theme_override_fonts/font = ExtResource("2_3nq6d")
+theme_override_styles/normal = SubResource("StyleBoxFlat_card")
+theme_override_styles/hover = SubResource("StyleBoxFlat_card_hover")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_card_pressed")
+theme_override_styles/focus = SubResource("StyleBoxFlat_card_hover")
+
+[node name="MutationIcon" type="TextureRect" parent="Root/Layout/ChoicesRow/ChoiceButton2"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -20.0
+offset_top = -70.0
+offset_right = 20.0
+offset_bottom = -30.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
 
 [node name="MutationText" type="RichTextLabel" parent="Root/Layout/ChoicesRow/ChoiceButton2" unique_id=162651388]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_top = 8.0
-offset_bottom = -8.0
+offset_left = 10.0
+offset_top = 52.0
+offset_right = -10.0
+offset_bottom = -12.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 theme_override_fonts/normal_font = ExtResource("1_q8x2f")
+theme_override_fonts/bold_font = ExtResource("3_q1p9k")
 bbcode_enabled = true
 text = "[center][b]Mutation 2[/b][/center]"
 fit_content = true
 scroll_active = false
 
 [node name="ChoiceButton3" type="Button" parent="Root/Layout/ChoicesRow" unique_id=1457214829]
-custom_minimum_size = Vector2(224, 84)
+custom_minimum_size = Vector2(318, 164)
 layout_mode = 2
 theme_override_fonts/font = ExtResource("2_3nq6d")
+theme_override_styles/normal = SubResource("StyleBoxFlat_card")
+theme_override_styles/hover = SubResource("StyleBoxFlat_card_hover")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_card_pressed")
+theme_override_styles/focus = SubResource("StyleBoxFlat_card_hover")
+
+[node name="MutationIcon" type="TextureRect" parent="Root/Layout/ChoicesRow/ChoiceButton3"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -20.0
+offset_top = -70.0
+offset_right = 20.0
+offset_bottom = -30.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
 
 [node name="MutationText" type="RichTextLabel" parent="Root/Layout/ChoicesRow/ChoiceButton3" unique_id=1926433652]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_top = 8.0
-offset_bottom = -8.0
+offset_left = 10.0
+offset_top = 52.0
+offset_right = -10.0
+offset_bottom = -12.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 theme_override_fonts/normal_font = ExtResource("1_q8x2f")
+theme_override_fonts/bold_font = ExtResource("3_q1p9k")
 bbcode_enabled = true
 text = "[center][b]Mutation 3[/b][/center]"
 fit_content = true
@@ -121,12 +271,22 @@ scroll_active = false
 [node name="LineageChoicesColumn" type="VBoxContainer" parent="Root/Layout" unique_id=288044493]
 visible = false
 layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="LineageBottomPadding" type="Control" parent="Root/Layout"]
+visible = false
+custom_minimum_size = Vector2(0, 20)
+layout_mode = 2
 
 [node name="LineageButton1" type="Button" parent="Root/Layout/LineageChoicesColumn" unique_id=143338590]
-custom_minimum_size = Vector2(668, 64)
+custom_minimum_size = Vector2(980, 92)
 layout_mode = 2
 theme_override_fonts/font = ExtResource("2_3nq6d")
 theme_override_font_sizes/font_size = 24
+theme_override_styles/normal = SubResource("StyleBoxFlat_card")
+theme_override_styles/hover = SubResource("StyleBoxFlat_card_hover")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_card_pressed")
+theme_override_styles/focus = SubResource("StyleBoxFlat_card_hover")
 text = "Predator"
 
 [node name="LineageText" type="RichTextLabel" parent="Root/Layout/LineageChoicesColumn/LineageButton1"]
@@ -134,8 +294,8 @@ layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_top = 8.0
-offset_bottom = -8.0
+offset_top = 10.0
+offset_bottom = -10.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
@@ -147,10 +307,14 @@ fit_content = true
 scroll_active = false
 
 [node name="LineageButton2" type="Button" parent="Root/Layout/LineageChoicesColumn" unique_id=1126261879]
-custom_minimum_size = Vector2(668, 64)
+custom_minimum_size = Vector2(980, 92)
 layout_mode = 2
 theme_override_fonts/font = ExtResource("2_3nq6d")
 theme_override_font_sizes/font_size = 24
+theme_override_styles/normal = SubResource("StyleBoxFlat_card")
+theme_override_styles/hover = SubResource("StyleBoxFlat_card_hover")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_card_pressed")
+theme_override_styles/focus = SubResource("StyleBoxFlat_card_hover")
 text = "Swarm"
 
 [node name="LineageText" type="RichTextLabel" parent="Root/Layout/LineageChoicesColumn/LineageButton2"]
@@ -158,8 +322,8 @@ layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_top = 8.0
-offset_bottom = -8.0
+offset_top = 10.0
+offset_bottom = -10.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
@@ -171,10 +335,14 @@ fit_content = true
 scroll_active = false
 
 [node name="LineageButton3" type="Button" parent="Root/Layout/LineageChoicesColumn" unique_id=515158070]
-custom_minimum_size = Vector2(668, 64)
+custom_minimum_size = Vector2(980, 92)
 layout_mode = 2
 theme_override_fonts/font = ExtResource("2_3nq6d")
 theme_override_font_sizes/font_size = 24
+theme_override_styles/normal = SubResource("StyleBoxFlat_card")
+theme_override_styles/hover = SubResource("StyleBoxFlat_card_hover")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_card_pressed")
+theme_override_styles/focus = SubResource("StyleBoxFlat_card_hover")
 text = "Bulwark"
 
 [node name="LineageText" type="RichTextLabel" parent="Root/Layout/LineageChoicesColumn/LineageButton3"]
@@ -182,8 +350,8 @@ layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_top = 8.0
-offset_bottom = -8.0
+offset_top = 10.0
+offset_bottom = -10.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2

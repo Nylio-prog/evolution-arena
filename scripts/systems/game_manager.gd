@@ -1,6 +1,14 @@
 ﻿extends Node2D
 
 const BIOMASS_PICKUP_SCENE: PackedScene = preload("res://scenes/systems/biomass_pickup.tscn")
+const MUTATION_ICON_SPIKES: Texture2D = preload("res://art/sprites/ui/mutation_spikes.png")
+const MUTATION_ICON_ORBITERS: Texture2D = preload("res://art/sprites/ui/mutation_orbiters.png")
+const MUTATION_ICON_MEMBRANE: Texture2D = preload("res://art/sprites/ui/mutation_membrane.png")
+const MUTATION_ICON_BY_ID: Dictionary = {
+	"spikes": MUTATION_ICON_SPIKES,
+	"orbiters": MUTATION_ICON_ORBITERS,
+	"membrane": MUTATION_ICON_MEMBRANE
+}
 
 @onready var player: Node = get_node_or_null("Player")
 @onready var xp_system: Node = get_node_or_null("XpSystem")
@@ -17,6 +25,9 @@ const BIOMASS_PICKUP_SCENE: PackedScene = preload("res://scenes/systems/biomass_
 @onready var levelup_choice_1: Button = get_node_or_null("UiLevelup/Root/Layout/ChoicesRow/ChoiceButton1")
 @onready var levelup_choice_2: Button = get_node_or_null("UiLevelup/Root/Layout/ChoicesRow/ChoiceButton2")
 @onready var levelup_choice_3: Button = get_node_or_null("UiLevelup/Root/Layout/ChoicesRow/ChoiceButton3")
+@onready var levelup_choice_1_icon: TextureRect = get_node_or_null("UiLevelup/Root/Layout/ChoicesRow/ChoiceButton1/MutationIcon")
+@onready var levelup_choice_2_icon: TextureRect = get_node_or_null("UiLevelup/Root/Layout/ChoicesRow/ChoiceButton2/MutationIcon")
+@onready var levelup_choice_3_icon: TextureRect = get_node_or_null("UiLevelup/Root/Layout/ChoicesRow/ChoiceButton3/MutationIcon")
 @onready var levelup_choice_1_text: RichTextLabel = get_node_or_null("UiLevelup/Root/Layout/ChoicesRow/ChoiceButton1/MutationText")
 @onready var levelup_choice_2_text: RichTextLabel = get_node_or_null("UiLevelup/Root/Layout/ChoicesRow/ChoiceButton2/MutationText")
 @onready var levelup_choice_3_text: RichTextLabel = get_node_or_null("UiLevelup/Root/Layout/ChoicesRow/ChoiceButton3/MutationText")
@@ -27,6 +38,7 @@ const BIOMASS_PICKUP_SCENE: PackedScene = preload("res://scenes/systems/biomass_
 @onready var lineage_choice_1_text: RichTextLabel = get_node_or_null("UiLevelup/Root/Layout/LineageChoicesColumn/LineageButton1/LineageText")
 @onready var lineage_choice_2_text: RichTextLabel = get_node_or_null("UiLevelup/Root/Layout/LineageChoicesColumn/LineageButton2/LineageText")
 @onready var lineage_choice_3_text: RichTextLabel = get_node_or_null("UiLevelup/Root/Layout/LineageChoicesColumn/LineageButton3/LineageText")
+@onready var lineage_bottom_padding: Control = get_node_or_null("UiLevelup/Root/Layout/LineageBottomPadding")
 @onready var game_over_ui: CanvasLayer = get_node_or_null("GameOver")
 @onready var game_over_stats_label: Label = get_node_or_null("GameOver/Root/StatsLabel")
 @onready var game_over_restart_button: Button = get_node_or_null("GameOver/Root/RestartButton")
@@ -327,32 +339,52 @@ func _refresh_levelup_choice_text() -> Array:
 		if options_variant is Array:
 			options = options_variant
 
-	_set_choice_button_text(levelup_choice_1, levelup_choice_1_text, options, 0)
-	_set_choice_button_text(levelup_choice_2, levelup_choice_2_text, options, 1)
-	_set_choice_button_text(levelup_choice_3, levelup_choice_3_text, options, 2)
+	_set_choice_button_text(levelup_choice_1, levelup_choice_1_icon, levelup_choice_1_text, options, 0)
+	_set_choice_button_text(levelup_choice_2, levelup_choice_2_icon, levelup_choice_2_text, options, 1)
+	_set_choice_button_text(levelup_choice_3, levelup_choice_3_icon, levelup_choice_3_text, options, 2)
 	return options
 
-func _set_choice_button_text(button: Button, rich_text: RichTextLabel, options: Array, index: int) -> void:
+func _set_choice_button_text(button: Button, icon: TextureRect, rich_text: RichTextLabel, options: Array, index: int) -> void:
 	if button == null:
 		return
 	if index >= options.size():
 		button.text = "No Mutation"
+		if icon != null:
+			icon.visible = false
 		if rich_text != null:
 			rich_text.text = "[center]No Mutation[/center]"
 		return
 
 	if not (options[index] is Dictionary):
 		button.text = "No Mutation"
+		if icon != null:
+			icon.visible = false
 		if rich_text != null:
 			rich_text.text = "[center]No Mutation[/center]"
 		return
 
 	var option: Dictionary = options[index]
+	_set_choice_icon(icon, option)
 	var plain_text: String = _format_mutation_option_text(option)
 	button.text = plain_text
 	if rich_text != null:
 		button.text = ""
 		rich_text.text = _format_mutation_option_bbcode(option)
+
+func _set_choice_icon(icon: TextureRect, option: Dictionary) -> void:
+	if icon == null:
+		return
+
+	var mutation_id: String = String(option.get("id", ""))
+	if mutation_id.is_empty() or not MUTATION_ICON_BY_ID.has(mutation_id):
+		icon.texture = null
+		icon.visible = false
+		return
+
+	var icon_texture_variant: Variant = MUTATION_ICON_BY_ID.get(mutation_id, null)
+	var icon_texture: Texture2D = icon_texture_variant as Texture2D
+	icon.texture = icon_texture
+	icon.visible = icon_texture != null
 
 func _format_mutation_option_text(option: Dictionary) -> String:
 	var mutation_name: String = String(option.get("name", "Mutation"))
@@ -440,6 +472,8 @@ func _set_levelup_mode(lineage_mode: bool) -> void:
 		levelup_choices_row.visible = not lineage_mode
 	if lineage_choices_column != null:
 		lineage_choices_column.visible = lineage_mode
+	if lineage_bottom_padding != null:
+		lineage_bottom_padding.visible = lineage_mode
 
 func _get_current_lineage_name() -> String:
 	if mutation_system != null and mutation_system.has_method("get_current_lineage_name"):
