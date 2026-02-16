@@ -24,6 +24,7 @@ offset_bottom = 42.0
 grow_horizontal = 2
 grow_vertical = 2
 alignment = 1
+theme_override_constants/separation = 10
 
 [node name="TitleLabel" type="Label" parent="Root/Layout" unique_id=1542619791]
 layout_mode = 2
@@ -37,21 +38,67 @@ horizontal_alignment = 1
 
 [node name="ChoicesRow" type="HBoxContainer" parent="Root/Layout" unique_id=286693580]
 layout_mode = 2
+theme_override_constants/separation = 10
 
 [node name="ChoiceButton1" type="Button" parent="Root/Layout/ChoicesRow" unique_id=60842756]
-custom_minimum_size = Vector2(220, 56)
+custom_minimum_size = Vector2(224, 84)
 layout_mode = 2
-text = "Mutation 1"
+text = ""
+
+[node name="MutationText" type="RichTextLabel" parent="Root/Layout/ChoicesRow/ChoiceButton1"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+offset_top = 8.0
+offset_bottom = -8.0
+mouse_filter = 2
+bbcode_enabled = true
+scroll_active = false
+fit_content = true
+text = "[center][b]Mutation 1[/b][/center]"
 
 [node name="ChoiceButton2" type="Button" parent="Root/Layout/ChoicesRow" unique_id=1121768704]
-custom_minimum_size = Vector2(220, 56)
+custom_minimum_size = Vector2(224, 84)
 layout_mode = 2
-text = "Mutation 2"
+text = ""
+
+[node name="MutationText" type="RichTextLabel" parent="Root/Layout/ChoicesRow/ChoiceButton2"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+offset_top = 8.0
+offset_bottom = -8.0
+mouse_filter = 2
+bbcode_enabled = true
+scroll_active = false
+fit_content = true
+text = "[center][b]Mutation 2[/b][/center]"
 
 [node name="ChoiceButton3" type="Button" parent="Root/Layout/ChoicesRow" unique_id=1457214829]
-custom_minimum_size = Vector2(220, 56)
+custom_minimum_size = Vector2(224, 84)
 layout_mode = 2
-text = "Mutation 3"
+text = ""
+
+[node name="MutationText" type="RichTextLabel" parent="Root/Layout/ChoicesRow/ChoiceButton3"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+offset_top = 8.0
+offset_bottom = -8.0
+mouse_filter = 2
+bbcode_enabled = true
+scroll_active = false
+fit_content = true
+text = "[center][b]Mutation 3[/b][/center]"
 
 [node name="LineageChoicesColumn" type="VBoxContainer" parent="Root/Layout"]
 visible = false

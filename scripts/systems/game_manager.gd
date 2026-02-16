@@ -16,6 +16,9 @@ const BIOMASS_PICKUP_SCENE: PackedScene = preload("res://scenes/systems/biomass_
 @onready var levelup_choice_1: Button = get_node_or_null("UiLevelup/Root/Layout/ChoicesRow/ChoiceButton1")
 @onready var levelup_choice_2: Button = get_node_or_null("UiLevelup/Root/Layout/ChoicesRow/ChoiceButton2")
 @onready var levelup_choice_3: Button = get_node_or_null("UiLevelup/Root/Layout/ChoicesRow/ChoiceButton3")
+@onready var levelup_choice_1_text: RichTextLabel = get_node_or_null("UiLevelup/Root/Layout/ChoicesRow/ChoiceButton1/MutationText")
+@onready var levelup_choice_2_text: RichTextLabel = get_node_or_null("UiLevelup/Root/Layout/ChoicesRow/ChoiceButton2/MutationText")
+@onready var levelup_choice_3_text: RichTextLabel = get_node_or_null("UiLevelup/Root/Layout/ChoicesRow/ChoiceButton3/MutationText")
 @onready var lineage_choices_column: VBoxContainer = get_node_or_null("UiLevelup/Root/Layout/LineageChoicesColumn")
 @onready var lineage_choice_1: Button = get_node_or_null("UiLevelup/Root/Layout/LineageChoicesColumn/LineageButton1")
 @onready var lineage_choice_2: Button = get_node_or_null("UiLevelup/Root/Layout/LineageChoicesColumn/LineageButton2")
@@ -305,32 +308,54 @@ func _refresh_levelup_choice_text() -> Array:
 		if options_variant is Array:
 			options = options_variant
 
-	_set_choice_button_text(levelup_choice_1, options, 0)
-	_set_choice_button_text(levelup_choice_2, options, 1)
-	_set_choice_button_text(levelup_choice_3, options, 2)
+	_set_choice_button_text(levelup_choice_1, levelup_choice_1_text, options, 0)
+	_set_choice_button_text(levelup_choice_2, levelup_choice_2_text, options, 1)
+	_set_choice_button_text(levelup_choice_3, levelup_choice_3_text, options, 2)
 	return options
 
-func _set_choice_button_text(button: Button, options: Array, index: int) -> void:
+func _set_choice_button_text(button: Button, rich_text: RichTextLabel, options: Array, index: int) -> void:
 	if button == null:
 		return
 	if index >= options.size():
 		button.text = "No Mutation"
+		if rich_text != null:
+			rich_text.text = "[center]No Mutation[/center]"
 		return
 
 	if not (options[index] is Dictionary):
 		button.text = "No Mutation"
+		if rich_text != null:
+			rich_text.text = "[center]No Mutation[/center]"
 		return
 
 	var option: Dictionary = options[index]
-	button.text = _format_mutation_option_text(option)
+	var plain_text: String = _format_mutation_option_text(option)
+	button.text = plain_text
+	if rich_text != null:
+		button.text = ""
+		rich_text.text = _format_mutation_option_bbcode(option)
 
 func _format_mutation_option_text(option: Dictionary) -> String:
 	var mutation_name: String = String(option.get("name", "Mutation"))
 	var next_level: int = int(option.get("next_level", 1))
-	var short_text: String = String(option.get("short", ""))
-	if short_text.is_empty():
+	var summary_text: String = String(option.get("short", ""))
+	if summary_text.is_empty():
+		summary_text = String(option.get("description", ""))
+
+	if summary_text.is_empty():
 		return "%s L%d" % [mutation_name, next_level]
-	return "%s L%d - %s" % [mutation_name, next_level, short_text]
+	return "%s L%d\n%s" % [mutation_name, next_level, summary_text]
+
+func _format_mutation_option_bbcode(option: Dictionary) -> String:
+	var mutation_name: String = String(option.get("name", "Mutation"))
+	var next_level: int = int(option.get("next_level", 1))
+	var summary_text: String = String(option.get("short", ""))
+	if summary_text.is_empty():
+		summary_text = String(option.get("description", ""))
+
+	if summary_text.is_empty():
+		return "[center][b]%s L%d[/b][/center]" % [mutation_name, next_level]
+	return "[center][b]%s L%d[/b]\n%s[/center]" % [mutation_name, next_level, summary_text]
 
 func _should_prompt_lineage_now() -> bool:
 	if level_reached < 2:
