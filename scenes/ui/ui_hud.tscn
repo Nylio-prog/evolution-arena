@@ -1,3 +1,8 @@
 [gd_scene format=3 uid="uid://chajohnv7utp"]
 
 [node name="UiHud" type="CanvasLayer" unique_id=2120896698]
+
+[node name="HPLabel" type="Label" parent="." unique_id=1220445069]
+offset_right = 40.0
+offset_bottom = 23.0
+text = "HP: 100/100"
