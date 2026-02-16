@@ -1,14 +1,13 @@
-[gd_scene load_steps=9 format=3 uid="uid://dtiv6dfiwc8k0"]
+[gd_scene format=3 uid="uid://dtiv6dfiwc8k0"]
 
 [ext_resource type="PackedScene" uid="uid://b8q3qd56dv6ge" path="res://scenes/actors/player.tscn" id="1_e05a3"]
-[ext_resource type="PackedScene" uid="uid://ivifr0y86qqc" path="res://scenes/actors/enemy_basic.tscn" id="2_wl4x5"]
 [ext_resource type="PackedScene" uid="uid://chajohnv7utp" path="res://scenes/ui/ui_hud.tscn" id="3_rbtd0"]
 [ext_resource type="Script" uid="uid://d106i6a2grg7p" path="res://scripts/systems/game_manager.gd" id="4_6g2vy"]
 [ext_resource type="PackedScene" uid="uid://chcru5d2lttfj" path="res://scenes/ui/game_over.tscn" id="5_p3n4s"]
 [ext_resource type="PackedScene" uid="uid://uywt1j4p6mfb" path="res://scenes/systems/biomass_pickup.tscn" id="6_4ag8t"]
 [ext_resource type="Script" uid="uid://pobg3kqvblvq" path="res://scripts/systems/xp_system.gd" id="7_x7sj1"]
 [ext_resource type="PackedScene" uid="uid://btqxqlyulj1ii" path="res://scenes/ui/ui_levelup.tscn" id="8_rdvuh"]
-[ext_resource type="Script" path="res://scripts/systems/enemy_spawner.gd" id="9_yl4i1"]
+[ext_resource type="Script" uid="uid://dfjo7orusdc6v" path="res://scripts/systems/enemy_spawner.gd" id="9_yl4i1"]
 
 [node name="Arena" type="Node2D" unique_id=1478589997]
 position = Vector2(578, 302)
@@ -19,10 +18,6 @@ script = ExtResource("4_6g2vy")
 [node name="XpSystem" type="Node" parent="." unique_id=364193305]
 script = ExtResource("7_x7sj1")
 
-[node name="EnemyBasic" parent="." unique_id=1781779772 instance=ExtResource("2_wl4x5")]
-position = Vector2(-428, -194)
-debug_log_damage = false
-
 [node name="UiHud" parent="." unique_id=1003024215 instance=ExtResource("3_rbtd0")]
 
 [node name="UiLevelup" parent="." unique_id=1776680150 instance=ExtResource("8_rdvuh")]
@@ -31,17 +26,11 @@ visible = false
 [node name="GameOver" parent="." unique_id=173502092 instance=ExtResource("5_p3n4s")]
 visible = false
 
-[node name="BiomassPickup" parent="." unique_id=493457500 instance=ExtResource("6_4ag8t")]
-position = Vector2(-365, -11)
-
-[node name="BiomassPickup2" parent="." unique_id=1229811607 instance=ExtResource("6_4ag8t")]
-position = Vector2(-365, 94)
-
-[node name="BiomassPickup3" parent="." unique_id=87526325 instance=ExtResource("6_4ag8t")]
-position = Vector2(-365, 238)
-
 [node name="EnemySpawner" type="Node" parent="." unique_id=273176210]
 script = ExtResource("9_yl4i1")
 
 [node name="SpawnTimer" type="Timer" parent="EnemySpawner" unique_id=321070893]
 autostart = true
+
+[node name="BiomassPickup" parent="." unique_id=493457500 instance=ExtResource("6_4ag8t")]
+position = Vector2(-299, -10)

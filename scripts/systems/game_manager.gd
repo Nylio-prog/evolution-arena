@@ -2,6 +2,7 @@ extends Node2D
 
 const SPIKE_RING_SCENE: PackedScene = preload("res://scenes/modules/spike_ring.tscn")
 const ORBITER_SCENE: PackedScene = preload("res://scenes/modules/orbiter.tscn")
+const BIOMASS_PICKUP_SCENE: PackedScene = preload("res://scenes/systems/biomass_pickup.tscn")
 const SPIKES_MAX_LEVEL: int = 3
 const ORBITERS_MAX_LEVEL: int = 3
 
@@ -27,6 +28,7 @@ var spikes_level: int = 0
 var spike_ring_instance: Node2D
 var orbiters_level: int = 0
 var orbiter_instance: Node2D
+var debug_log_drops: bool = true
 
 func _ready() -> void:
 	if player != null and player.has_signal("hp_changed"):
@@ -57,6 +59,8 @@ func _ready() -> void:
 
 	for node in get_tree().get_nodes_in_group("biomass_pickups"):
 		_connect_biomass_pickup(node as Node)
+	for node in get_tree().get_nodes_in_group("enemies"):
+		_connect_enemy_death(node as Node)
 	get_tree().connect("node_added", Callable(self, "_on_tree_node_added"))
 
 	if game_over_ui != null:
@@ -127,12 +131,26 @@ func _on_level_changed(current_level: int) -> void:
 	level_label.text = "Level: %d" % current_level
 
 func _on_tree_node_added(node: Node) -> void:
+	_connect_enemy_death(node)
 	_connect_biomass_pickup(node)
+
+func _connect_enemy_death(node: Node) -> void:
+	if node == null:
+		return
+	if node == player:
+		return
+	if not node.has_signal("died"):
+		return
+	if not node.has_method("take_damage"):
+		return
+
+	var death_callable := Callable(self, "_on_enemy_died")
+	if node.is_connected("died", death_callable):
+		return
+	node.connect("died", death_callable)
 
 func _connect_biomass_pickup(node: Node) -> void:
 	if node == null:
-		return
-	if not node.is_in_group("biomass_pickups"):
 		return
 	if not node.has_signal("collected"):
 		return
@@ -148,6 +166,21 @@ func _on_biomass_collected(amount: int) -> void:
 	if not xp_system.has_method("add_xp"):
 		return
 	xp_system.call("add_xp", amount)
+
+func _on_enemy_died(world_position: Vector2) -> void:
+	if debug_log_drops:
+		print("Enemy died at ", world_position, " -> spawning biomass")
+	call_deferred("_spawn_biomass_pickup", world_position)
+
+func _spawn_biomass_pickup(world_position: Vector2) -> void:
+	var pickup := BIOMASS_PICKUP_SCENE.instantiate() as Node2D
+	if pickup == null:
+		return
+	add_child(pickup)
+	var offset := Vector2(randf_range(-10.0, 10.0), randf_range(-10.0, 10.0))
+	pickup.global_position = world_position + offset
+	if debug_log_drops:
+		print("Biomass spawned at ", pickup.global_position)
 
 func _on_player_died() -> void:
 	run_ended = true
