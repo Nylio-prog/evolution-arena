@@ -6,6 +6,7 @@ const MUTATIONS: Dictionary = {
 		"name": "Spikes",
 		"description": "Grow defensive spikes around your organism.",
 		"lineages": ["predator", "bulwark"],
+		"lineage_affinity": {"predator": 2.0, "bulwark": 1.6},
 		"max_level": 3,
 		"levels": {
 			1: {"short": "4 spikes", "description": "Grow 4 spikes around your body."},
@@ -18,6 +19,7 @@ const MUTATIONS: Dictionary = {
 		"name": "Orbiters",
 		"description": "Spawn orbiting cells that damage enemies.",
 		"lineages": ["swarm", "bulwark"],
+		"lineage_affinity": {"swarm": 2.0, "bulwark": 1.4},
 		"max_level": 3,
 		"levels": {
 			1: {"short": "1 cell", "description": "Spawn 1 orbiting cell."},
@@ -30,6 +32,7 @@ const MUTATIONS: Dictionary = {
 		"name": "Membrane",
 		"description": "Grow a protective layer to reduce incoming damage.",
 		"lineages": ["bulwark"],
+		"lineage_affinity": {"bulwark": 2.4},
 		"max_level": 3,
 		"levels": {
 			1: {"short": "-15% dmg", "description": "Reduce incoming damage by 15%."},
@@ -42,6 +45,7 @@ const MUTATIONS: Dictionary = {
 		"name": "Pulse Nova",
 		"description": "Emit periodic shockwaves that hit nearby enemies.",
 		"lineages": ["predator", "swarm"],
+		"lineage_affinity": {"predator": 2.1, "swarm": 1.7},
 		"max_level": 3,
 		"levels": {
 			1: {"short": "small pulse", "description": "Emit a weak short-range pulse."},
@@ -54,6 +58,7 @@ const MUTATIONS: Dictionary = {
 		"name": "Acid Trail",
 		"description": "Leave corrosive residue while moving.",
 		"lineages": ["predator", "swarm"],
+		"lineage_affinity": {"predator": 2.2, "swarm": 1.6},
 		"max_level": 3,
 		"levels": {
 			1: {"short": "trail unlock", "description": "Start leaving a short acid trail."},
@@ -66,6 +71,7 @@ const MUTATIONS: Dictionary = {
 		"name": "Metabolism",
 		"description": "Adapt internal systems for sustain and tempo.",
 		"lineages": ["bulwark", "swarm"],
+		"lineage_affinity": {"bulwark": 2.2, "swarm": 1.2},
 		"max_level": 3,
 		"levels": {
 			1: {"short": "+regen", "description": "Gain light passive health regeneration."},

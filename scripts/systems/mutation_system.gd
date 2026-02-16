@@ -49,8 +49,8 @@ const DEFAULT_PULSE_COLOR: Color = Color(0.75, 0.95, 1.0, 0.95)
 const DEFAULT_ACID_COLOR: Color = Color(0.42, 1.0, 0.86, 0.50)
 const DEFAULT_METABOLISM_COLOR: Color = Color(0.75, 1.0, 0.78, 0.95)
 const WEIGHT_BASE: float = 1.0
-const WEIGHT_SAME_LINEAGE_BONUS: float = 2.0
-const WEIGHT_OFF_LINEAGE_BONUS: float = 0.2
+const WEIGHT_DEFAULT_SAME_LINEAGE_BONUS: float = 2.0
+const WEIGHT_DEFAULT_OFF_LINEAGE_BONUS: float = 0.2
 
 signal mutation_applied(mutation_id: String, new_level: int)
 signal lineage_changed(lineage_id: String, lineage_name: String)
@@ -209,7 +209,7 @@ func _build_option(mutation_id: String) -> Dictionary:
 	var levels: Dictionary = mutation_def.get("levels", {})
 	var level_data: Dictionary = levels.get(next_level, {})
 	var lineage_tags: Array[String] = _get_mutation_lineage_tags(mutation_def)
-	var favored: bool = (not current_lineage_id.is_empty()) and lineage_tags.has(current_lineage_id)
+	var favored: bool = _is_mutation_favored_for_current_lineage(mutation_def)
 
 	var option: Dictionary = {
 		"id": mutation_id,
@@ -250,10 +250,43 @@ func _get_mutation_weight(mutation_id: String) -> float:
 	if current_lineage_id.is_empty():
 		return WEIGHT_BASE
 
+	var lineage_bonus: float = _get_lineage_affinity_bonus(mutation_def)
+	return WEIGHT_BASE + lineage_bonus
+
+func _is_mutation_favored_for_current_lineage(mutation_def: Dictionary) -> bool:
+	if current_lineage_id.is_empty():
+		return false
+
+	var lineage_affinity: Dictionary = _get_mutation_lineage_affinity(mutation_def)
+	if lineage_affinity.has(current_lineage_id):
+		return true
+
+	var lineage_tags: Array[String] = _get_mutation_lineage_tags(mutation_def)
+	return lineage_tags.has(current_lineage_id)
+
+func _get_lineage_affinity_bonus(mutation_def: Dictionary) -> float:
+	if current_lineage_id.is_empty():
+		return 0.0
+
+	var lineage_affinity: Dictionary = _get_mutation_lineage_affinity(mutation_def)
+	if lineage_affinity.has(current_lineage_id):
+		return float(lineage_affinity.get(current_lineage_id, WEIGHT_DEFAULT_SAME_LINEAGE_BONUS))
+
 	var lineage_tags: Array[String] = _get_mutation_lineage_tags(mutation_def)
 	if lineage_tags.has(current_lineage_id):
-		return WEIGHT_BASE + WEIGHT_SAME_LINEAGE_BONUS
-	return WEIGHT_BASE + WEIGHT_OFF_LINEAGE_BONUS
+		return WEIGHT_DEFAULT_SAME_LINEAGE_BONUS
+
+	return WEIGHT_DEFAULT_OFF_LINEAGE_BONUS
+
+func _get_mutation_lineage_affinity(mutation_def: Dictionary) -> Dictionary:
+	var affinity: Dictionary = {}
+	var affinity_variant: Variant = mutation_def.get("lineage_affinity", {})
+	if affinity_variant is Dictionary:
+		var affinity_dict: Dictionary = affinity_variant
+		for raw_key in affinity_dict.keys():
+			var lineage_key: String = String(raw_key).to_lower()
+			affinity[lineage_key] = float(affinity_dict.get(raw_key, 0.0))
+	return affinity
 
 func _get_mutation_lineage_tags(mutation_def: Dictionary) -> Array[String]:
 	var tags: Array[String] = []
