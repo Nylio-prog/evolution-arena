@@ -7,8 +7,13 @@ signal died(world_position: Vector2)
 @export var max_hp: int = 12
 @export var contact_damage: int = 10
 @export var visual_radius: float = 9.0
-@export var visual_color: Color = Color(1.0, 0.45, 0.2, 1.0)
-@export var outline_color: Color = Color(0.45, 0.12, 0.05, 1.0)
+@export var sprite_texture: Texture2D
+@export_file("*.png", "*.webp", "*.jpg", "*.jpeg", "*.svg") var default_sprite_path: String = "res://art/sprites/enemies/enemy_dasher.png"
+@export var sprite_scale: Vector2 = Vector2(0.14, 0.14)
+@export var sprite_modulate: Color = Color(1, 1, 1, 1)
+@export var hit_flash_color: Color = Color(0.7, 1, 1, 1)
+@export var hit_flash_duration: float = 0.10
+@export var hit_punch_scale_multiplier: float = 1.15
 @export var dash_interval_seconds: float = 1.45
 @export var dash_duration_seconds: float = 0.66
 @export var dash_windup_seconds: float = 0.20
@@ -20,25 +25,19 @@ var _dash_timer: float = 0.0
 var _dash_time_left: float = 0.0
 var _dash_windup_left: float = 0.0
 var _dash_direction: Vector2 = Vector2.ZERO
+var _hit_flash_time_left: float = 0.0
+var _base_sprite_modulate: Color = Color(1, 1, 1, 1)
+var _base_sprite_scale: Vector2 = Vector2.ONE
+
+@onready var visual_sprite: Sprite2D = get_node_or_null("VisualSprite")
 
 func _ready() -> void:
 	current_hp = max_hp
 	add_to_group("enemies")
+	_refresh_visual_sprite()
 	queue_redraw()
 
 func _draw() -> void:
-	draw_circle(Vector2.ZERO, visual_radius, visual_color)
-	draw_arc(Vector2.ZERO, visual_radius, 0.0, TAU, 40, outline_color, 2.0, true)
-
-	# Dasher identity mark so it reads differently from basic enemies.
-	draw_colored_polygon(
-		PackedVector2Array([
-			Vector2(0.0, -visual_radius - 2.0),
-			Vector2(3.5, -visual_radius + 4.0),
-			Vector2(-3.5, -visual_radius + 4.0)
-		]),
-		Color(1.0, 0.9, 0.6, 0.95)
-	)
 	if _dash_windup_left > 0.0:
 		draw_arc(Vector2.ZERO, visual_radius + 4.0, 0.0, TAU, 32, Color(1.0, 0.8, 0.2, 1.0), 2.0, true)
 		var windup_dir: Vector2 = _dash_direction
@@ -57,6 +56,7 @@ func _physics_process(delta: float) -> void:
 	_update_dash_state(delta)
 	move_and_slide()
 	_apply_contact_damage()
+	_update_hit_flash(delta)
 
 func _update_dash_state(delta: float) -> void:
 	if _dash_windup_left > 0.0:
@@ -104,6 +104,42 @@ func take_damage(amount: int) -> void:
 		return
 
 	current_hp = max(0, current_hp - amount)
+	if current_hp > 0:
+		_trigger_hit_flash()
 	if current_hp == 0:
 		died.emit(global_position)
 		queue_free()
+
+func _trigger_hit_flash() -> void:
+	if visual_sprite == null:
+		return
+	_hit_flash_time_left = maxf(hit_flash_duration, 0.01)
+	visual_sprite.modulate = hit_flash_color
+	visual_sprite.scale = _base_sprite_scale * maxf(1.0, hit_punch_scale_multiplier)
+
+func _update_hit_flash(delta: float) -> void:
+	if _hit_flash_time_left <= 0.0:
+		return
+	_hit_flash_time_left = maxf(0.0, _hit_flash_time_left - delta)
+	if _hit_flash_time_left == 0.0 and visual_sprite != null:
+		visual_sprite.modulate = _base_sprite_modulate
+		visual_sprite.scale = _base_sprite_scale
+
+func _refresh_visual_sprite() -> void:
+	if visual_sprite == null:
+		push_error("EnemyDasher requires a VisualSprite child node.")
+		return
+
+	var resolved_texture: Texture2D = sprite_texture
+	if resolved_texture == null and ResourceLoader.exists(default_sprite_path, "Texture2D"):
+		var loaded_resource: Resource = load(default_sprite_path)
+		resolved_texture = loaded_resource as Texture2D
+
+	visual_sprite.texture = resolved_texture
+	_base_sprite_scale = sprite_scale
+	visual_sprite.scale = _base_sprite_scale
+	_base_sprite_modulate = sprite_modulate
+	visual_sprite.modulate = _base_sprite_modulate
+	visual_sprite.visible = true
+	if resolved_texture == null:
+		push_error("EnemyDasher sprite missing. Assign sprite_texture or add file: %s" % default_sprite_path)
