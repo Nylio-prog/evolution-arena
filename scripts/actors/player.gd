@@ -1,0 +1,42 @@
+extends CharacterBody2D
+
+signal hp_changed(current_hp: int, max_hp: int)
+signal died
+
+@export var move_speed: float = 260.0
+@export var max_hp: int = 100
+@export var invulnerability_seconds: float = 0.5
+@export var visual_radius: float = 12.0
+@export var visual_color: Color = Color(1, 1, 1, 1)
+
+var current_hp: int
+var _invulnerable_until_ms: int = 0
+
+func _ready() -> void:
+	current_hp = max_hp
+	add_to_group("player")
+	hp_changed.emit(current_hp, max_hp)
+	queue_redraw()
+
+func _draw() -> void:
+	draw_circle(Vector2.ZERO, visual_radius, visual_color)
+
+func _physics_process(_delta: float) -> void:
+	var input_vector := Input.get_vector("move_left", "move_right", "move_up", "move_down")
+	velocity = input_vector * move_speed
+	move_and_slide()
+
+func take_damage(amount: int) -> void:
+	if amount <= 0:
+		return
+
+	var now_ms := Time.get_ticks_msec()
+	if now_ms < _invulnerable_until_ms:
+		return
+
+	_invulnerable_until_ms = now_ms + int(invulnerability_seconds * 1000.0)
+	current_hp = max(0, current_hp - amount)
+	hp_changed.emit(current_hp, max_hp)
+
+	if current_hp == 0:
+		died.emit()
