@@ -16,7 +16,8 @@ const DEFAULT_STREAM_PATHS: Dictionary = {
 const SFX_EVENT_COOLDOWN_SEC: Dictionary = {
 	"ui_click": 0.04,
 	"pickup": 0.05,
-	"player_hit": 0.12
+	"player_hit": 0.12,
+	"enemy_death": 0.09
 }
 
 @export var default_sfx_volume_db: float = -6.0
