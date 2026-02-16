@@ -1,0 +1,9 @@
+# Godot 4.1+ official ignores
+.godot/
+*.translation
+
+# Optional platform build folder
+/android/
+
+# Local planning docs (keep out of remote repo)
+/plan/
