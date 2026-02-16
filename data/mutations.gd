@@ -36,6 +36,42 @@ const MUTATIONS: Dictionary = {
 			2: {"short": "-30% dmg", "description": "Reduce incoming damage by 30%."},
 			3: {"short": "-45% dmg", "description": "Reduce incoming damage by 45%."}
 		}
+	},
+	"pulse_nova": {
+		"id": "pulse_nova",
+		"name": "Pulse Nova",
+		"description": "Emit periodic shockwaves that hit nearby enemies.",
+		"lineages": ["predator", "swarm"],
+		"max_level": 3,
+		"levels": {
+			1: {"short": "small pulse", "description": "Emit a weak short-range pulse."},
+			2: {"short": "bigger radius", "description": "Pulse radius increases noticeably."},
+			3: {"short": "faster pulses", "description": "Pulse interval is reduced for more pressure."}
+		}
+	},
+	"acid_trail": {
+		"id": "acid_trail",
+		"name": "Acid Trail",
+		"description": "Leave corrosive residue while moving.",
+		"lineages": ["predator", "swarm"],
+		"max_level": 3,
+		"levels": {
+			1: {"short": "trail unlock", "description": "Start leaving a short acid trail."},
+			2: {"short": "longer trail", "description": "Trail lasts longer and covers more space."},
+			3: {"short": "stronger acid", "description": "Trail damage increases."}
+		}
+	},
+	"metabolism": {
+		"id": "metabolism",
+		"name": "Metabolism",
+		"description": "Adapt internal systems for sustain and tempo.",
+		"lineages": ["bulwark", "swarm"],
+		"max_level": 3,
+		"levels": {
+			1: {"short": "+regen", "description": "Gain light passive health regeneration."},
+			2: {"short": "+regen+", "description": "Regeneration rate increases."},
+			3: {"short": "surge", "description": "Strong sustain while under pressure."}
+		}
 	}
 }
 
