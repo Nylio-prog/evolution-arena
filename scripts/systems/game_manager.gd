@@ -29,6 +29,8 @@ var spike_ring_instance: Node2D
 var orbiters_level: int = 0
 var orbiter_instance: Node2D
 var debug_log_drops: bool = false
+@export_range(0, 3) var starting_spikes_level: int = 1
+@export_range(0, 3) var starting_orbiters_level: int = 0
 
 func _ready() -> void:
 	if player != null and player.has_signal("hp_changed"):
@@ -78,6 +80,8 @@ func _ready() -> void:
 		levelup_choice_2.connect("pressed", Callable(self, "_on_levelup_choice_pressed").bind("orbiters"))
 	if levelup_choice_3 != null:
 		levelup_choice_3.connect("pressed", Callable(self, "_on_levelup_choice_pressed").bind("spikes"))
+
+	_apply_starting_modules()
 
 func _process(delta: float) -> void:
 	if run_ended:
@@ -266,6 +270,12 @@ func _refresh_levelup_choice_text() -> void:
 		levelup_choice_2.text = orbiters_label_text
 	if levelup_choice_3 != null:
 		levelup_choice_3.text = spikes_label_text
+
+func _apply_starting_modules() -> void:
+	for _i in range(clampi(starting_spikes_level, 0, SPIKES_MAX_LEVEL)):
+		_apply_spike_upgrade()
+	for _i in range(clampi(starting_orbiters_level, 0, ORBITERS_MAX_LEVEL)):
+		_apply_orbiter_upgrade()
 
 func _apply_spike_upgrade() -> void:
 	if spikes_level >= SPIKES_MAX_LEVEL:
