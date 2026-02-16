@@ -24,6 +24,9 @@ const BIOMASS_PICKUP_SCENE: PackedScene = preload("res://scenes/systems/biomass_
 @onready var lineage_choice_1: Button = get_node_or_null("UiLevelup/Root/Layout/LineageChoicesColumn/LineageButton1")
 @onready var lineage_choice_2: Button = get_node_or_null("UiLevelup/Root/Layout/LineageChoicesColumn/LineageButton2")
 @onready var lineage_choice_3: Button = get_node_or_null("UiLevelup/Root/Layout/LineageChoicesColumn/LineageButton3")
+@onready var lineage_choice_1_text: RichTextLabel = get_node_or_null("UiLevelup/Root/Layout/LineageChoicesColumn/LineageButton1/LineageText")
+@onready var lineage_choice_2_text: RichTextLabel = get_node_or_null("UiLevelup/Root/Layout/LineageChoicesColumn/LineageButton2/LineageText")
+@onready var lineage_choice_3_text: RichTextLabel = get_node_or_null("UiLevelup/Root/Layout/LineageChoicesColumn/LineageButton3/LineageText")
 @onready var game_over_ui: CanvasLayer = get_node_or_null("GameOver")
 @onready var game_over_stats_label: Label = get_node_or_null("GameOver/Root/StatsLabel")
 @onready var game_over_restart_button: Button = get_node_or_null("GameOver/Root/RestartButton")
@@ -401,12 +404,21 @@ func _set_lineage_choice_button_texts() -> void:
 	_set_levelup_mode(true)
 	if levelup_lineage_prompt_label != null:
 		levelup_lineage_prompt_label.text = "Choose your lineage"
-	if lineage_choice_1 != null:
-		lineage_choice_1.text = "Predator\nAggressive close-range pressure"
-	if lineage_choice_2 != null:
-		lineage_choice_2.text = "Swarm\nOrbit and area control growth"
-	if lineage_choice_3 != null:
-		lineage_choice_3.text = "Bulwark\nDefensive sustain and spacing"
+	_set_lineage_choice_text(lineage_choice_1, lineage_choice_1_text, "Predator", "Aggressive close-range pressure")
+	_set_lineage_choice_text(lineage_choice_2, lineage_choice_2_text, "Swarm", "Orbit and area control growth")
+	_set_lineage_choice_text(lineage_choice_3, lineage_choice_3_text, "Bulwark", "Defensive sustain and spacing")
+
+func _set_lineage_choice_text(button: Button, rich_text: RichTextLabel, title_text: String, description_text: String) -> void:
+	if button == null:
+		return
+	if rich_text == null:
+		button.text = "%s\n%s" % [title_text, description_text]
+		return
+	button.text = ""
+	rich_text.text = _format_lineage_choice_bbcode(title_text, description_text)
+
+func _format_lineage_choice_bbcode(title_text: String, description_text: String) -> String:
+	return "[center][b]%s[/b]\n%s[/center]" % [title_text, description_text]
 
 func _apply_lineage_choice(choice_index: int) -> bool:
 	if mutation_system == null:

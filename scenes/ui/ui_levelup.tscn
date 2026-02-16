@@ -1,4 +1,8 @@
-[gd_scene format=3 uid="uid://btqxqlyulj1ii"]
+[gd_scene load_steps=4 format=3 uid="uid://btqxqlyulj1ii"]
+
+[ext_resource type="FontFile" path="res://art/fonts/Rajdhani-Regular.ttf" id="1_q8x2f"]
+[ext_resource type="FontFile" path="res://art/fonts/Rajdhani-SemiBold.ttf" id="2_3nq6d"]
+[ext_resource type="FontFile" path="res://art/fonts/Rajdhani-Bold.ttf" id="3_q1p9k"]
 
 [node name="UiLevelup" type="CanvasLayer" unique_id=1975498355]
 
@@ -28,16 +32,22 @@ alignment = 1
 
 [node name="TitleLabel" type="Label" parent="Root/Layout" unique_id=1542619791]
 layout_mode = 2
+theme_override_fonts/font = ExtResource("3_q1p9k")
+theme_override_font_sizes/font_size = 34
 text = "EVOLVE"
 horizontal_alignment = 1
 
 [node name="LineagePromptLabel" type="Label" parent="Root/Layout" unique_id=242926227]
 layout_mode = 2
+theme_override_fonts/font = ExtResource("3_q1p9k")
+theme_override_font_sizes/font_size = 22
 text = "Choose your lineage"
 horizontal_alignment = 1
 
 [node name="HelpLabel" type="Label" parent="Root/Layout" unique_id=1889439289]
 layout_mode = 2
+theme_override_fonts/font = ExtResource("1_q8x2f")
+theme_override_font_sizes/font_size = 18
 text = "Choose once. It biases future mutations."
 horizontal_alignment = 1
 
@@ -48,6 +58,7 @@ theme_override_constants/separation = 10
 [node name="ChoiceButton1" type="Button" parent="Root/Layout/ChoicesRow" unique_id=60842756]
 custom_minimum_size = Vector2(224, 84)
 layout_mode = 2
+theme_override_fonts/font = ExtResource("2_3nq6d")
 
 [node name="MutationText" type="RichTextLabel" parent="Root/Layout/ChoicesRow/ChoiceButton1" unique_id=2031412416]
 layout_mode = 1
@@ -59,6 +70,7 @@ offset_bottom = -8.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
+theme_override_fonts/normal_font = ExtResource("1_q8x2f")
 bbcode_enabled = true
 text = "[center][b]Mutation 1[/b][/center]"
 fit_content = true
@@ -67,6 +79,7 @@ scroll_active = false
 [node name="ChoiceButton2" type="Button" parent="Root/Layout/ChoicesRow" unique_id=1121768704]
 custom_minimum_size = Vector2(224, 84)
 layout_mode = 2
+theme_override_fonts/font = ExtResource("2_3nq6d")
 
 [node name="MutationText" type="RichTextLabel" parent="Root/Layout/ChoicesRow/ChoiceButton2" unique_id=162651388]
 layout_mode = 1
@@ -78,6 +91,7 @@ offset_bottom = -8.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
+theme_override_fonts/normal_font = ExtResource("1_q8x2f")
 bbcode_enabled = true
 text = "[center][b]Mutation 2[/b][/center]"
 fit_content = true
@@ -86,6 +100,7 @@ scroll_active = false
 [node name="ChoiceButton3" type="Button" parent="Root/Layout/ChoicesRow" unique_id=1457214829]
 custom_minimum_size = Vector2(224, 84)
 layout_mode = 2
+theme_override_fonts/font = ExtResource("2_3nq6d")
 
 [node name="MutationText" type="RichTextLabel" parent="Root/Layout/ChoicesRow/ChoiceButton3" unique_id=1926433652]
 layout_mode = 1
@@ -97,6 +112,7 @@ offset_bottom = -8.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
+theme_override_fonts/normal_font = ExtResource("1_q8x2f")
 bbcode_enabled = true
 text = "[center][b]Mutation 3[/b][/center]"
 fit_content = true
@@ -109,14 +125,71 @@ layout_mode = 2
 [node name="LineageButton1" type="Button" parent="Root/Layout/LineageChoicesColumn" unique_id=143338590]
 custom_minimum_size = Vector2(668, 64)
 layout_mode = 2
+theme_override_fonts/font = ExtResource("2_3nq6d")
+theme_override_font_sizes/font_size = 24
 text = "Predator"
+
+[node name="LineageText" type="RichTextLabel" parent="Root/Layout/LineageChoicesColumn/LineageButton1"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = 8.0
+offset_bottom = -8.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_fonts/normal_font = ExtResource("1_q8x2f")
+theme_override_fonts/bold_font = ExtResource("3_q1p9k")
+bbcode_enabled = true
+text = "[center][b]Predator[/b]\nAggressive close-range pressure[/center]"
+fit_content = true
+scroll_active = false
 
 [node name="LineageButton2" type="Button" parent="Root/Layout/LineageChoicesColumn" unique_id=1126261879]
 custom_minimum_size = Vector2(668, 64)
 layout_mode = 2
+theme_override_fonts/font = ExtResource("2_3nq6d")
+theme_override_font_sizes/font_size = 24
 text = "Swarm"
+
+[node name="LineageText" type="RichTextLabel" parent="Root/Layout/LineageChoicesColumn/LineageButton2"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = 8.0
+offset_bottom = -8.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_fonts/normal_font = ExtResource("1_q8x2f")
+theme_override_fonts/bold_font = ExtResource("3_q1p9k")
+bbcode_enabled = true
+text = "[center][b]Swarm[/b]\nOrbit and area control growth[/center]"
+fit_content = true
+scroll_active = false
 
 [node name="LineageButton3" type="Button" parent="Root/Layout/LineageChoicesColumn" unique_id=515158070]
 custom_minimum_size = Vector2(668, 64)
 layout_mode = 2
+theme_override_fonts/font = ExtResource("2_3nq6d")
+theme_override_font_sizes/font_size = 24
 text = "Bulwark"
+
+[node name="LineageText" type="RichTextLabel" parent="Root/Layout/LineageChoicesColumn/LineageButton3"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = 8.0
+offset_bottom = -8.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_fonts/normal_font = ExtResource("1_q8x2f")
+theme_override_fonts/bold_font = ExtResource("3_q1p9k")
+bbcode_enabled = true
+text = "[center][b]Bulwark[/b]\nDefensive sustain and spacing[/center]"
+fit_content = true
+scroll_active = false

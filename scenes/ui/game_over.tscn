@@ -1,4 +1,8 @@
-[gd_scene format=3 uid="uid://chcru5d2lttfj"]
+[gd_scene load_steps=4 format=3 uid="uid://chcru5d2lttfj"]
+
+[ext_resource type="FontFile" path="res://art/fonts/Rajdhani-Regular.ttf" id="1_jwdxw"]
+[ext_resource type="FontFile" path="res://art/fonts/Rajdhani-SemiBold.ttf" id="2_8m91a"]
+[ext_resource type="FontFile" path="res://art/fonts/Rajdhani-Bold.ttf" id="3_2yv4w"]
 
 [node name="GameOver" type="CanvasLayer" unique_id=1682334316]
 
@@ -32,6 +36,8 @@ offset_right = 220.0
 offset_bottom = -84.0
 grow_horizontal = 2
 grow_vertical = 2
+theme_override_fonts/font = ExtResource("3_2yv4w")
+theme_override_font_sizes/font_size = 36
 text = "You were consumed. "
 horizontal_alignment = 1
 
@@ -48,6 +54,8 @@ offset_right = 220.0
 offset_bottom = 12.0
 grow_horizontal = 2
 grow_vertical = 2
+theme_override_fonts/font = ExtResource("1_jwdxw")
+theme_override_font_sizes/font_size = 22
 text = "Time: 0s | Level: 1 "
 horizontal_alignment = 1
 
@@ -64,4 +72,6 @@ offset_right = 80.0
 offset_bottom = 94.0
 grow_horizontal = 2
 grow_vertical = 2
+theme_override_fonts/font = ExtResource("2_8m91a")
+theme_override_font_sizes/font_size = 24
 text = "Restart"
