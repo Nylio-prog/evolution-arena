@@ -7,8 +7,9 @@ const ENEMY_DASHER_SCENE: PackedScene = preload("res://scenes/actors/enemy_dashe
 @export var min_wait_time: float = 0.25
 @export var ramp_duration_seconds: float = 120.0
 @export var spawn_distance: float = 480.0
-@export var dasher_initial_ratio: float = 0.05
-@export var dasher_max_ratio: float = 0.30
+@export var dasher_initial_ratio: float = 0.02
+@export var dasher_max_ratio: float = 0.18
+@export var dasher_ramp_start_seconds: float = 25.0
 @export var debug_log_spawn: bool = false
 
 @onready var spawn_timer: Timer = get_node_or_null("SpawnTimer")
@@ -56,7 +57,8 @@ func _on_spawn_timer_timeout() -> void:
 		print("Spawned enemy at ", enemy_instance.global_position)
 
 func _select_enemy_scene() -> PackedScene:
-	var ramp_ratio: float = clampf(_elapsed_seconds / ramp_duration_seconds, 0.0, 1.0)
+	var active_ramp_duration: float = maxf(1.0, ramp_duration_seconds - dasher_ramp_start_seconds)
+	var ramp_ratio: float = clampf((_elapsed_seconds - dasher_ramp_start_seconds) / active_ramp_duration, 0.0, 1.0)
 	var current_dasher_ratio: float = lerpf(dasher_initial_ratio, dasher_max_ratio, ramp_ratio)
 	if randf() < current_dasher_ratio:
 		return ENEMY_DASHER_SCENE

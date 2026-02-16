@@ -5,12 +5,12 @@ signal died(world_position: Vector2)
 @export var move_speed: float = 60.0
 @export var dash_speed: float = 220.0
 @export var max_hp: int = 12
-@export var contact_damage: int = 12
+@export var contact_damage: int = 10
 @export var visual_radius: float = 9.0
 @export var visual_color: Color = Color(1.0, 0.45, 0.2, 1.0)
-@export var dash_interval_seconds: float = 1.25
+@export var dash_interval_seconds: float = 1.45
 @export var dash_duration_seconds: float = 0.66
-@export var dash_windup_seconds: float = 0.14
+@export var dash_windup_seconds: float = 0.20
 @export var debug_log_dash: bool = false
 
 var current_hp: int
