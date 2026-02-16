@@ -14,6 +14,7 @@ const MUTATION_ICON_BY_ID: Dictionary = {
 @onready var xp_system: Node = get_node_or_null("XpSystem")
 @onready var mutation_system: Node = get_node_or_null("MutationSystem")
 @onready var hp_label: Label = get_node_or_null("UiHud/HPLabel")
+@onready var metabolism_label: Label = get_node_or_null("UiHud/MetabolismLabel")
 @onready var xp_bar: ProgressBar = get_node_or_null("UiHud/XPBar")
 @onready var level_label: Label = get_node_or_null("UiHud/LevelLabel")
 @onready var timer_label: Label = get_node_or_null("UiHud/TimerLabel")
@@ -78,6 +79,8 @@ func _ready() -> void:
 		mutation_system.call("setup", player)
 	if mutation_system != null and mutation_system.has_signal("lineage_changed"):
 		mutation_system.connect("lineage_changed", Callable(self, "_on_lineage_changed"))
+	if mutation_system != null and mutation_system.has_signal("mutation_applied"):
+		mutation_system.connect("mutation_applied", Callable(self, "_on_mutation_applied"))
 
 	if player != null:
 		var current_hp_value = player.get("current_hp")
@@ -94,6 +97,7 @@ func _ready() -> void:
 			_on_level_changed(int(current_level_value))
 	_update_timer_label()
 	_refresh_lineage_labels()
+	_refresh_metabolism_hud()
 	_setup_audio_controls()
 	_play_music("bgm_main")
 
@@ -187,6 +191,10 @@ func _on_level_changed(current_level: int) -> void:
 
 func _on_lineage_changed(_lineage_id: String, _lineage_name: String) -> void:
 	_refresh_lineage_labels()
+	_refresh_metabolism_hud()
+
+func _on_mutation_applied(_mutation_id: String, _new_level: int) -> void:
+	_refresh_metabolism_hud()
 
 func _refresh_lineage_labels() -> void:
 	var current_lineage_name: String = _get_current_lineage_name()
@@ -205,6 +213,28 @@ func _refresh_lineage_labels() -> void:
 			levelup_help_label.text = "Choose once. It biases future mutations."
 		else:
 			levelup_help_label.text = "Tip: * marks options favored by your lineage."
+
+func _refresh_metabolism_hud() -> void:
+	if metabolism_label == null:
+		return
+	if mutation_system == null:
+		metabolism_label.visible = false
+		return
+	if not mutation_system.has_method("get_mutation_level"):
+		metabolism_label.visible = false
+		return
+
+	var metabolism_level: int = int(mutation_system.call("get_mutation_level", "metabolism"))
+	if metabolism_level <= 0:
+		metabolism_label.visible = false
+		return
+
+	var regen_per_second: float = 0.0
+	if mutation_system.has_method("get_metabolism_regen_per_second"):
+		regen_per_second = float(mutation_system.call("get_metabolism_regen_per_second"))
+
+	metabolism_label.visible = true
+	metabolism_label.text = "Regen: +%.1f/s (L%d)" % [regen_per_second, metabolism_level]
 
 func _on_tree_node_added(node: Node) -> void:
 	_connect_enemy_death(node)

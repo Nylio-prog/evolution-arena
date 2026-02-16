@@ -66,6 +66,18 @@ func take_damage(amount: int) -> void:
 	if current_hp == 0:
 		died.emit()
 
+func heal(amount: int) -> void:
+	if amount <= 0:
+		return
+	if current_hp <= 0:
+		return
+
+	var previous_hp: int = current_hp
+	current_hp = mini(max_hp, current_hp + amount)
+	if current_hp == previous_hp:
+		return
+	hp_changed.emit(current_hp, max_hp)
+
 func set_incoming_damage_multiplier(multiplier: float) -> void:
 	incoming_damage_multiplier = clampf(multiplier, 0.05, 1.0)
 

@@ -1,0 +1,6 @@
+[gd_scene format=3 uid="uid://dth3gl6nnupxr"]
+
+[ext_resource type="Script" path="res://scripts/modules/metabolism.gd" id="1_famgx"]
+
+[node name="Metabolism" type="Node2D" unique_id=212976632]
+script = ExtResource("1_famgx")

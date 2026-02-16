@@ -6,6 +6,7 @@ const ORBITER_SCENE: PackedScene = preload("res://scenes/modules/orbiter.tscn")
 const MEMBRANE_SCENE: PackedScene = preload("res://scenes/modules/membrane.tscn")
 const PULSE_NOVA_SCENE: PackedScene = preload("res://scenes/modules/pulse_nova.tscn")
 const ACID_TRAIL_SCENE: PackedScene = preload("res://scenes/modules/acid_trail.tscn")
+const METABOLISM_SCENE: PackedScene = preload("res://scenes/modules/metabolism.tscn")
 const LINEAGES: Dictionary = {
 	"predator": "Predator",
 	"swarm": "Swarm",
@@ -18,7 +19,8 @@ const LINEAGE_VISUALS: Dictionary = {
 		"orbiter_color": Color(1.0, 0.45, 0.35, 1.0),
 		"membrane_color": Color(1.0, 0.50, 0.30, 0.85),
 		"pulse_color": Color(1.0, 0.58, 0.42, 1.0),
-		"acid_color": Color(1.0, 0.57, 0.32, 0.55)
+		"acid_color": Color(1.0, 0.57, 0.32, 0.55),
+		"metabolism_color": Color(1.0, 0.67, 0.40, 0.95)
 	},
 	"swarm": {
 		"player_accent": Color(0.35, 1.0, 0.85, 0.95),
@@ -26,7 +28,8 @@ const LINEAGE_VISUALS: Dictionary = {
 		"orbiter_color": Color(0.40, 1.0, 0.85, 1.0),
 		"membrane_color": Color(0.45, 1.0, 0.90, 0.85),
 		"pulse_color": Color(0.38, 1.0, 0.88, 1.0),
-		"acid_color": Color(0.42, 1.0, 0.86, 0.55)
+		"acid_color": Color(0.42, 1.0, 0.86, 0.55),
+		"metabolism_color": Color(0.48, 1.0, 0.84, 0.95)
 	},
 	"bulwark": {
 		"player_accent": Color(1.0, 0.85, 0.35, 0.95),
@@ -34,7 +37,8 @@ const LINEAGE_VISUALS: Dictionary = {
 		"orbiter_color": Color(1.0, 0.85, 0.55, 1.0),
 		"membrane_color": Color(1.0, 0.90, 0.55, 0.88),
 		"pulse_color": Color(1.0, 0.90, 0.58, 1.0),
-		"acid_color": Color(0.95, 0.92, 0.52, 0.55)
+		"acid_color": Color(0.95, 0.92, 0.52, 0.55),
+		"metabolism_color": Color(1.0, 0.94, 0.62, 0.95)
 	}
 }
 const DEFAULT_PLAYER_ACCENT: Color = Color(1.0, 1.0, 1.0, 0.0)
@@ -43,6 +47,7 @@ const DEFAULT_ORBITER_COLOR: Color = Color(0.85, 0.95, 1.0, 1.0)
 const DEFAULT_MEMBRANE_COLOR: Color = Color(0.75, 0.95, 1.0, 0.8)
 const DEFAULT_PULSE_COLOR: Color = Color(0.75, 0.95, 1.0, 0.95)
 const DEFAULT_ACID_COLOR: Color = Color(0.42, 1.0, 0.86, 0.50)
+const DEFAULT_METABOLISM_COLOR: Color = Color(0.75, 1.0, 0.78, 0.95)
 const WEIGHT_BASE: float = 1.0
 const WEIGHT_SAME_LINEAGE_BONUS: float = 2.0
 const WEIGHT_OFF_LINEAGE_BONUS: float = 0.2
@@ -55,6 +60,7 @@ signal lineage_changed(lineage_id: String, lineage_name: String)
 @export_range(0, 3) var starting_membrane_level: int = 0
 @export_range(0, 3) var starting_pulse_nova_level: int = 0
 @export_range(0, 3) var starting_acid_trail_level: int = 0
+@export_range(0, 3) var starting_metabolism_level: int = 0
 @export var debug_log_weighted_rolls: bool = false
 
 var player: Node2D
@@ -68,6 +74,7 @@ var orbiter_instance: Node2D
 var membrane_instance: Node2D
 var pulse_nova_instance: Node2D
 var acid_trail_instance: Node2D
+var metabolism_instance: Node2D
 
 func _ready() -> void:
 	mutation_defs = MUTATIONS_DATA.get_all()
@@ -183,6 +190,8 @@ func _apply_starting_loadout() -> void:
 		apply_mutation("pulse_nova")
 	for _i in range(clampi(starting_acid_trail_level, 0, _get_mutation_max_level("acid_trail"))):
 		apply_mutation("acid_trail")
+	for _i in range(clampi(starting_metabolism_level, 0, _get_mutation_max_level("metabolism"))):
+		apply_mutation("metabolism")
 
 func _get_available_mutation_ids() -> Array[String]:
 	var ids: Array[String] = []
@@ -303,6 +312,10 @@ func _apply_mutation_effect(mutation_id: String, new_level: int) -> void:
 			_ensure_acid_trail()
 			if acid_trail_instance != null and acid_trail_instance.has_method("set_level"):
 				acid_trail_instance.call("set_level", new_level)
+		"metabolism":
+			_ensure_metabolism()
+			if metabolism_instance != null and metabolism_instance.has_method("set_level"):
+				metabolism_instance.call("set_level", new_level)
 	_apply_lineage_visuals()
 
 func _ensure_spike_ring() -> void:
@@ -360,6 +373,27 @@ func _ensure_acid_trail() -> void:
 		player.add_child(acid_trail_instance)
 		_apply_lineage_visuals()
 
+func _ensure_metabolism() -> void:
+	if metabolism_instance != null:
+		return
+	if player == null:
+		return
+
+	metabolism_instance = METABOLISM_SCENE.instantiate() as Node2D
+	if metabolism_instance != null:
+		player.add_child(metabolism_instance)
+		_apply_lineage_visuals()
+
+func get_mutation_level(mutation_id: String) -> int:
+	return int(mutation_levels.get(mutation_id, 0))
+
+func get_metabolism_regen_per_second() -> float:
+	if metabolism_instance == null:
+		return 0.0
+	if not metabolism_instance.has_method("get_regen_per_second"):
+		return 0.0
+	return float(metabolism_instance.call("get_regen_per_second"))
+
 func _get_mutation_max_level(mutation_id: String) -> int:
 	var mutation_def: Dictionary = mutation_defs.get(mutation_id, {})
 	return int(mutation_def.get("max_level", 0))
@@ -375,6 +409,7 @@ func _apply_lineage_visuals() -> void:
 	var membrane_color: Color = Color(style.get("membrane_color", DEFAULT_MEMBRANE_COLOR))
 	var pulse_color: Color = Color(style.get("pulse_color", DEFAULT_PULSE_COLOR))
 	var acid_color: Color = Color(style.get("acid_color", DEFAULT_ACID_COLOR))
+	var metabolism_color: Color = Color(style.get("metabolism_color", DEFAULT_METABOLISM_COLOR))
 
 	if player != null and player.has_method("set_lineage_accent"):
 		player.call("set_lineage_accent", player_accent)
@@ -388,3 +423,5 @@ func _apply_lineage_visuals() -> void:
 		pulse_nova_instance.call("set_lineage_color", pulse_color)
 	if acid_trail_instance != null and acid_trail_instance.has_method("set_lineage_color"):
 		acid_trail_instance.call("set_lineage_color", acid_color)
+	if metabolism_instance != null and metabolism_instance.has_method("set_lineage_color"):
+		metabolism_instance.call("set_lineage_color", metabolism_color)
