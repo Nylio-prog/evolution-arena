@@ -2,7 +2,7 @@ extends Area2D
 
 signal collected(amount: int)
 
-@export var xp_value: int = 1
+@export var xp_value: int = 10
 @export var debug_log_collect: bool = true
 
 func _ready() -> void:
