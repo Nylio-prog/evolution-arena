@@ -52,3 +52,22 @@ text = "Mutation 2"
 custom_minimum_size = Vector2(220, 56)
 layout_mode = 2
 text = "Mutation 3"
+
+[node name="LineageChoicesColumn" type="VBoxContainer" parent="Root/Layout"]
+visible = false
+layout_mode = 2
+
+[node name="LineageButton1" type="Button" parent="Root/Layout/LineageChoicesColumn"]
+custom_minimum_size = Vector2(668, 64)
+layout_mode = 2
+text = "Predator"
+
+[node name="LineageButton2" type="Button" parent="Root/Layout/LineageChoicesColumn"]
+custom_minimum_size = Vector2(668, 64)
+layout_mode = 2
+text = "Swarm"
+
+[node name="LineageButton3" type="Button" parent="Root/Layout/LineageChoicesColumn"]
+custom_minimum_size = Vector2(668, 64)
+layout_mode = 2
+text = "Bulwark"

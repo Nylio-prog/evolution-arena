@@ -12,9 +12,14 @@ const BIOMASS_PICKUP_SCENE: PackedScene = preload("res://scenes/systems/biomass_
 @onready var lineage_label: Label = get_node_or_null("UiHud/LineageLabel")
 @onready var levelup_ui: CanvasLayer = get_node_or_null("UiLevelup")
 @onready var levelup_lineage_prompt_label: Label = get_node_or_null("UiLevelup/Root/Layout/LineagePromptLabel")
+@onready var levelup_choices_row: HBoxContainer = get_node_or_null("UiLevelup/Root/Layout/ChoicesRow")
 @onready var levelup_choice_1: Button = get_node_or_null("UiLevelup/Root/Layout/ChoicesRow/ChoiceButton1")
 @onready var levelup_choice_2: Button = get_node_or_null("UiLevelup/Root/Layout/ChoicesRow/ChoiceButton2")
 @onready var levelup_choice_3: Button = get_node_or_null("UiLevelup/Root/Layout/ChoicesRow/ChoiceButton3")
+@onready var lineage_choices_column: VBoxContainer = get_node_or_null("UiLevelup/Root/Layout/LineageChoicesColumn")
+@onready var lineage_choice_1: Button = get_node_or_null("UiLevelup/Root/Layout/LineageChoicesColumn/LineageButton1")
+@onready var lineage_choice_2: Button = get_node_or_null("UiLevelup/Root/Layout/LineageChoicesColumn/LineageButton2")
+@onready var lineage_choice_3: Button = get_node_or_null("UiLevelup/Root/Layout/LineageChoicesColumn/LineageButton3")
 @onready var game_over_ui: CanvasLayer = get_node_or_null("GameOver")
 @onready var game_over_stats_label: Label = get_node_or_null("GameOver/Root/StatsLabel")
 @onready var game_over_restart_button: Button = get_node_or_null("GameOver/Root/RestartButton")
@@ -25,6 +30,9 @@ var run_ended: bool = false
 var run_paused_for_levelup: bool = false
 var debug_log_drops: bool = false
 var levelup_options: Array = []
+var lineage_selection_active: bool = false
+
+const LINEAGE_CHOICES: Array[String] = ["predator", "swarm", "bulwark"]
 
 func _ready() -> void:
 	if player != null and player.has_signal("hp_changed"):
@@ -79,6 +87,13 @@ func _ready() -> void:
 		levelup_choice_2.connect("pressed", Callable(self, "_on_levelup_choice_pressed").bind(1))
 	if levelup_choice_3 != null:
 		levelup_choice_3.connect("pressed", Callable(self, "_on_levelup_choice_pressed").bind(2))
+	if lineage_choice_1 != null:
+		lineage_choice_1.connect("pressed", Callable(self, "_on_levelup_choice_pressed").bind(0))
+	if lineage_choice_2 != null:
+		lineage_choice_2.connect("pressed", Callable(self, "_on_levelup_choice_pressed").bind(1))
+	if lineage_choice_3 != null:
+		lineage_choice_3.connect("pressed", Callable(self, "_on_levelup_choice_pressed").bind(2))
+	_set_levelup_mode(false)
 
 func _process(delta: float) -> void:
 	if run_ended:
@@ -144,10 +159,10 @@ func _refresh_lineage_labels() -> void:
 		lineage_label.text = "Lineage: %s" % current_lineage_name
 
 	if levelup_lineage_prompt_label != null:
-		if current_lineage_name == "None":
+		if lineage_selection_active:
 			levelup_lineage_prompt_label.text = "Choose your lineage"
 		else:
-			levelup_lineage_prompt_label.text = "Lineage: %s" % current_lineage_name
+			levelup_lineage_prompt_label.text = "Choose your mutation"
 
 func _on_tree_node_added(node: Node) -> void:
 	_connect_enemy_death(node)
@@ -245,9 +260,15 @@ func _update_timer_label() -> void:
 func _on_player_leveled_up(_new_level: int) -> void:
 	if run_ended:
 		return
-	levelup_options = _refresh_levelup_choice_text()
-	if levelup_options.is_empty():
-		return
+
+	if _should_prompt_lineage_now():
+		lineage_selection_active = true
+		_set_lineage_choice_button_texts()
+	else:
+		lineage_selection_active = false
+		levelup_options = _refresh_levelup_choice_text()
+		if levelup_options.is_empty():
+			return
 
 	run_paused_for_levelup = true
 	_set_gameplay_active(false)
@@ -258,8 +279,14 @@ func _on_levelup_choice_pressed(choice_index: int) -> void:
 	if run_ended:
 		return
 
-	if mutation_system != null and mutation_system.has_method("apply_option_index"):
-		mutation_system.call("apply_option_index", choice_index)
+	if lineage_selection_active:
+		var lineage_applied: bool = _apply_lineage_choice(choice_index)
+		if not lineage_applied:
+			return
+		_refresh_lineage_labels()
+	else:
+		if mutation_system != null and mutation_system.has_method("apply_option_index"):
+			mutation_system.call("apply_option_index", choice_index)
 
 	if levelup_ui != null:
 		levelup_ui.visible = false
@@ -271,6 +298,8 @@ func _on_restart_pressed() -> void:
 
 func _refresh_levelup_choice_text() -> Array:
 	var options: Array = []
+	_set_levelup_mode(false)
+	_refresh_lineage_labels()
 	if mutation_system != null and mutation_system.has_method("get_levelup_options"):
 		var options_variant: Variant = mutation_system.call("get_levelup_options", 3)
 		if options_variant is Array:
@@ -302,3 +331,47 @@ func _format_mutation_option_text(option: Dictionary) -> String:
 	if short_text.is_empty():
 		return "%s L%d" % [mutation_name, next_level]
 	return "%s L%d - %s" % [mutation_name, next_level, short_text]
+
+func _should_prompt_lineage_now() -> bool:
+	if level_reached < 2:
+		return false
+	if mutation_system == null:
+		return false
+	if not mutation_system.has_method("get_current_lineage_id"):
+		return false
+
+	var lineage_id_variant: Variant = mutation_system.call("get_current_lineage_id")
+	var current_lineage_id: String = String(lineage_id_variant)
+	return current_lineage_id.is_empty()
+
+func _set_lineage_choice_button_texts() -> void:
+	_set_levelup_mode(true)
+	if levelup_lineage_prompt_label != null:
+		levelup_lineage_prompt_label.text = "Choose your lineage"
+	if lineage_choice_1 != null:
+		lineage_choice_1.text = "Predator\nAggressive close-range pressure"
+	if lineage_choice_2 != null:
+		lineage_choice_2.text = "Swarm\nOrbit and area control growth"
+	if lineage_choice_3 != null:
+		lineage_choice_3.text = "Bulwark\nDefensive sustain and spacing"
+
+func _apply_lineage_choice(choice_index: int) -> bool:
+	if mutation_system == null:
+		return false
+	if not mutation_system.has_method("choose_lineage"):
+		return false
+	if choice_index < 0 or choice_index >= LINEAGE_CHOICES.size():
+		return false
+
+	var lineage_id: String = LINEAGE_CHOICES[choice_index]
+	var applied: bool = bool(mutation_system.call("choose_lineage", lineage_id))
+	if not applied:
+		return false
+	lineage_selection_active = false
+	return true
+
+func _set_levelup_mode(lineage_mode: bool) -> void:
+	if levelup_choices_row != null:
+		levelup_choices_row.visible = not lineage_mode
+	if lineage_choices_column != null:
+		lineage_choices_column.visible = lineage_mode
