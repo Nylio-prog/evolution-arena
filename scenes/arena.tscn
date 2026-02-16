@@ -12,6 +12,7 @@
 [node name="Arena" type="Node2D" unique_id=1478589997]
 position = Vector2(578, 302)
 script = ExtResource("4_6g2vy")
+debug_allow_grant_xp = false
 
 [node name="Player" parent="." unique_id=1353408687 instance=ExtResource("1_e05a3")]
 
