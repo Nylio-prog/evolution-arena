@@ -29,6 +29,10 @@ func set_level(new_level: int) -> void:
 	_rebuild_spike_areas()
 	queue_redraw()
 
+func set_lineage_color(color: Color) -> void:
+	spike_color = color
+	queue_redraw()
+
 func _rebuild_spike_areas() -> void:
 	for child in get_children():
 		child.queue_free()

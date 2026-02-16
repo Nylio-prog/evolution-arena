@@ -34,6 +34,10 @@ func set_level(new_level: int) -> void:
 	_update_orbiter_positions()
 	queue_redraw()
 
+func set_lineage_color(color: Color) -> void:
+	orbiter_color = color
+	queue_redraw()
+
 func _configure_level_stats() -> void:
 	_current_orbit_radius = base_orbit_radius
 	_current_orbit_speed_rps = base_orbit_speed_rps

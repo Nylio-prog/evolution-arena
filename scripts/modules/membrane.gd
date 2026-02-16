@@ -16,6 +16,10 @@ func set_level(new_level: int) -> void:
 	_apply_to_player()
 	queue_redraw()
 
+func set_lineage_color(color: Color) -> void:
+	membrane_color = color
+	queue_redraw()
+
 func _apply_to_player() -> void:
 	var owner_player := get_parent() as Node
 	if owner_player == null:

@@ -9,6 +9,30 @@ const LINEAGES: Dictionary = {
 	"swarm": "Swarm",
 	"bulwark": "Bulwark"
 }
+const LINEAGE_VISUALS: Dictionary = {
+	"predator": {
+		"player_accent": Color(1.0, 0.45, 0.25, 0.95),
+		"spike_color": Color(1.0, 0.55, 0.35, 1.0),
+		"orbiter_color": Color(1.0, 0.45, 0.35, 1.0),
+		"membrane_color": Color(1.0, 0.50, 0.30, 0.85)
+	},
+	"swarm": {
+		"player_accent": Color(0.35, 1.0, 0.85, 0.95),
+		"spike_color": Color(0.55, 1.0, 0.90, 1.0),
+		"orbiter_color": Color(0.40, 1.0, 0.85, 1.0),
+		"membrane_color": Color(0.45, 1.0, 0.90, 0.85)
+	},
+	"bulwark": {
+		"player_accent": Color(1.0, 0.85, 0.35, 0.95),
+		"spike_color": Color(1.0, 0.90, 0.45, 1.0),
+		"orbiter_color": Color(1.0, 0.85, 0.55, 1.0),
+		"membrane_color": Color(1.0, 0.90, 0.55, 0.88)
+	}
+}
+const DEFAULT_PLAYER_ACCENT: Color = Color(1.0, 1.0, 1.0, 0.0)
+const DEFAULT_SPIKE_COLOR: Color = Color(0.95, 0.95, 0.95, 1.0)
+const DEFAULT_ORBITER_COLOR: Color = Color(0.85, 0.95, 1.0, 1.0)
+const DEFAULT_MEMBRANE_COLOR: Color = Color(0.75, 0.95, 1.0, 0.8)
 const WEIGHT_BASE: float = 1.0
 const WEIGHT_SAME_LINEAGE_BONUS: float = 2.0
 const WEIGHT_OFF_LINEAGE_BONUS: float = 0.2
@@ -37,6 +61,7 @@ func _ready() -> void:
 func setup(player_node: Node) -> void:
 	player = player_node as Node2D
 	_apply_starting_loadout()
+	_apply_lineage_visuals()
 
 func get_levelup_options(count: int = 3) -> Array[Dictionary]:
 	var available_ids: Array[String] = _get_available_mutation_ids()
@@ -99,6 +124,7 @@ func choose_lineage(lineage_id: String) -> bool:
 		return false
 
 	current_lineage_id = normalized_id
+	_apply_lineage_visuals()
 	lineage_changed.emit(current_lineage_id, get_current_lineage_name())
 	return true
 
@@ -215,6 +241,7 @@ func _apply_mutation_effect(mutation_id: String, new_level: int) -> void:
 			_ensure_membrane()
 			if membrane_instance != null and membrane_instance.has_method("set_level"):
 				membrane_instance.call("set_level", new_level)
+	_apply_lineage_visuals()
 
 func _ensure_spike_ring() -> void:
 	if spike_ring_instance != null:
@@ -225,6 +252,7 @@ func _ensure_spike_ring() -> void:
 	spike_ring_instance = SPIKE_RING_SCENE.instantiate() as Node2D
 	if spike_ring_instance != null:
 		player.add_child(spike_ring_instance)
+		_apply_lineage_visuals()
 
 func _ensure_orbiter() -> void:
 	if orbiter_instance != null:
@@ -235,6 +263,7 @@ func _ensure_orbiter() -> void:
 	orbiter_instance = ORBITER_SCENE.instantiate() as Node2D
 	if orbiter_instance != null:
 		player.add_child(orbiter_instance)
+		_apply_lineage_visuals()
 
 func _ensure_membrane() -> void:
 	if membrane_instance != null:
@@ -245,7 +274,27 @@ func _ensure_membrane() -> void:
 	membrane_instance = MEMBRANE_SCENE.instantiate() as Node2D
 	if membrane_instance != null:
 		player.add_child(membrane_instance)
+		_apply_lineage_visuals()
 
 func _get_mutation_max_level(mutation_id: String) -> int:
 	var mutation_def: Dictionary = mutation_defs.get(mutation_id, {})
 	return int(mutation_def.get("max_level", 0))
+
+func _apply_lineage_visuals() -> void:
+	var style: Dictionary = {}
+	if LINEAGE_VISUALS.has(current_lineage_id):
+		style = LINEAGE_VISUALS.get(current_lineage_id, {})
+
+	var player_accent: Color = Color(style.get("player_accent", DEFAULT_PLAYER_ACCENT))
+	var spike_color: Color = Color(style.get("spike_color", DEFAULT_SPIKE_COLOR))
+	var orbiter_color: Color = Color(style.get("orbiter_color", DEFAULT_ORBITER_COLOR))
+	var membrane_color: Color = Color(style.get("membrane_color", DEFAULT_MEMBRANE_COLOR))
+
+	if player != null and player.has_method("set_lineage_accent"):
+		player.call("set_lineage_accent", player_accent)
+	if spike_ring_instance != null and spike_ring_instance.has_method("set_lineage_color"):
+		spike_ring_instance.call("set_lineage_color", spike_color)
+	if orbiter_instance != null and orbiter_instance.has_method("set_lineage_color"):
+		orbiter_instance.call("set_lineage_color", orbiter_color)
+	if membrane_instance != null and membrane_instance.has_method("set_lineage_color"):
+		membrane_instance.call("set_lineage_color", membrane_color)

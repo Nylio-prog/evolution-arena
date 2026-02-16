@@ -8,6 +8,8 @@ signal died
 @export var invulnerability_seconds: float = 0.5
 @export var visual_radius: float = 12.0
 @export var visual_color: Color = Color(1, 1, 1, 1)
+@export var lineage_accent_color: Color = Color(1, 1, 1, 0)
+@export var lineage_accent_width: float = 2.0
 @export var debug_log_damage: bool = false
 
 var current_hp: int
@@ -22,6 +24,8 @@ func _ready() -> void:
 
 func _draw() -> void:
 	draw_circle(Vector2.ZERO, visual_radius, visual_color)
+	if lineage_accent_color.a > 0.01:
+		draw_arc(Vector2.ZERO, visual_radius + 4.0, 0.0, TAU, 48, lineage_accent_color, lineage_accent_width, true)
 
 func _physics_process(_delta: float) -> void:
 	var input_vector := Input.get_vector("move_left", "move_right", "move_up", "move_down")
@@ -59,3 +63,7 @@ func take_damage(amount: int) -> void:
 
 func set_incoming_damage_multiplier(multiplier: float) -> void:
 	incoming_damage_multiplier = clampf(multiplier, 0.05, 1.0)
+
+func set_lineage_accent(color: Color) -> void:
+	lineage_accent_color = color
+	queue_redraw()
