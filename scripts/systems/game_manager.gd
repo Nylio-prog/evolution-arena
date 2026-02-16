@@ -42,6 +42,7 @@ const MUTATION_ICON_BY_ID: Dictionary = {
 @onready var game_over_ui: CanvasLayer = get_node_or_null("GameOver")
 @onready var game_over_stats_label: Label = get_node_or_null("GameOver/Root/StatsLabel")
 @onready var game_over_restart_button: Button = get_node_or_null("GameOver/Root/RestartButton")
+@onready var audio_manager: Node = get_node_or_null("/root/AudioManager")
 
 var elapsed_seconds: float = 0.0
 var level_reached: int = 1
@@ -50,6 +51,7 @@ var run_paused_for_levelup: bool = false
 var debug_log_drops: bool = false
 var levelup_options: Array = []
 var lineage_selection_active: bool = false
+var _last_player_hp: int = -1
 @export var debug_allow_grant_xp: bool = false
 @export var debug_grant_xp_amount: int = 20
 
@@ -86,6 +88,7 @@ func _ready() -> void:
 			_on_level_changed(int(current_level_value))
 	_update_timer_label()
 	_refresh_lineage_labels()
+	_play_music("bgm_main")
 
 	for node in get_tree().get_nodes_in_group("biomass_pickups"):
 		_connect_biomass_pickup(node as Node)
@@ -157,8 +160,12 @@ func _unhandled_input(event: InputEvent) -> void:
 
 func _on_player_hp_changed(current_hp: int, max_hp: int) -> void:
 	if hp_label == null:
-		return
-	hp_label.text = "HP: %d/%d" % [current_hp, max_hp]
+		pass
+	else:
+		hp_label.text = "HP: %d/%d" % [current_hp, max_hp]
+	if _last_player_hp >= 0 and current_hp < _last_player_hp:
+		_play_sfx("player_hit")
+	_last_player_hp = current_hp
 
 func _on_xp_changed(current_xp: int, xp_to_next_level: int) -> void:
 	if xp_bar == null:
@@ -230,10 +237,12 @@ func _on_biomass_collected(amount: int) -> void:
 	if not xp_system.has_method("add_xp"):
 		return
 	xp_system.call("add_xp", amount)
+	_play_sfx("pickup")
 
 func _on_enemy_died(world_position: Vector2) -> void:
 	if debug_log_drops:
 		print("Enemy died at ", world_position, " -> spawning biomass")
+	_play_sfx("enemy_death")
 	call_deferred("_spawn_biomass_pickup", world_position)
 
 func _spawn_biomass_pickup(world_position: Vector2) -> void:
@@ -248,6 +257,8 @@ func _spawn_biomass_pickup(world_position: Vector2) -> void:
 
 func _on_player_died() -> void:
 	run_ended = true
+	_play_sfx("player_death")
+	_stop_music()
 	_set_gameplay_active(false)
 	_show_game_over()
 
@@ -305,6 +316,7 @@ func _on_player_leveled_up(_new_level: int) -> void:
 			return
 
 	run_paused_for_levelup = true
+	_play_sfx("levelup")
 	_set_gameplay_active(false)
 	if levelup_ui != null:
 		levelup_ui.visible = true
@@ -312,6 +324,7 @@ func _on_player_leveled_up(_new_level: int) -> void:
 func _on_levelup_choice_pressed(choice_index: int) -> void:
 	if run_ended:
 		return
+	_play_sfx("ui_click")
 
 	if lineage_selection_active:
 		var lineage_applied: bool = _apply_lineage_choice(choice_index)
@@ -328,6 +341,7 @@ func _on_levelup_choice_pressed(choice_index: int) -> void:
 	_set_gameplay_active(true)
 
 func _on_restart_pressed() -> void:
+	_play_sfx("ui_click")
 	get_tree().reload_current_scene()
 
 func _refresh_levelup_choice_text() -> Array:
@@ -493,3 +507,24 @@ func _debug_grant_xp() -> void:
 
 	xp_system.call("add_xp", debug_grant_xp_amount)
 	print("Debug XP granted: +", debug_grant_xp_amount)
+
+func _play_sfx(event_id: String) -> void:
+	if audio_manager == null:
+		return
+	if not audio_manager.has_method("play_sfx"):
+		return
+	audio_manager.call("play_sfx", event_id)
+
+func _play_music(track_id: String = "bgm_main") -> void:
+	if audio_manager == null:
+		return
+	if not audio_manager.has_method("play_music"):
+		return
+	audio_manager.call("play_music", track_id)
+
+func _stop_music() -> void:
+	if audio_manager == null:
+		return
+	if not audio_manager.has_method("stop_music"):
+		return
+	audio_manager.call("stop_music")
