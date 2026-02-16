@@ -8,6 +8,7 @@ signal died
 @export var invulnerability_seconds: float = 0.5
 @export var visual_radius: float = 12.0
 @export var visual_color: Color = Color(1, 1, 1, 1)
+@export var debug_log_damage: bool = true
 
 var current_hp: int
 var _invulnerable_until_ms: int = 0
@@ -36,6 +37,8 @@ func take_damage(amount: int) -> void:
 
 	_invulnerable_until_ms = now_ms + int(invulnerability_seconds * 1000.0)
 	current_hp = max(0, current_hp - amount)
+	if debug_log_damage:
+		print("Player took ", amount, " damage. HP: ", current_hp, "/", max_hp)
 	hp_changed.emit(current_hp, max_hp)
 
 	if current_hp == 0:
