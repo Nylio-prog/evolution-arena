@@ -335,6 +335,11 @@ When acting as the coding agent:
 - Keep planning docs local unless explicitly requested for sharing.
 - `plan/` is considered local planning space and should not be pushed by default.
 
+### 17.1.1 Godot Resource Metadata Policy
+- Track Godot-generated `.uid` files in Git (including script `.gd.uid` files).
+- Include related `.uid` files in the same micro-task commit as their scene/script changes.
+- Treat `.uid` files as engine-managed metadata; do not hand-edit unless there is a specific repair reason.
+
 ### 17.2 Communication & Explanation Rules (Required)
 - After any AI code edit, explain in beginner-friendly language:
   - what files changed
