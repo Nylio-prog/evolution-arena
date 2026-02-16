@@ -35,6 +35,8 @@ var run_paused_for_levelup: bool = false
 var debug_log_drops: bool = false
 var levelup_options: Array = []
 var lineage_selection_active: bool = false
+@export var debug_allow_grant_xp: bool = false
+@export var debug_grant_xp_amount: int = 20
 
 const LINEAGE_CHOICES: Array[String] = ["predator", "swarm", "bulwark"]
 
@@ -108,12 +110,18 @@ func _process(delta: float) -> void:
 	_update_timer_label()
 
 func _unhandled_input(event: InputEvent) -> void:
+	var key_event := event as InputEventKey
+	if key_event != null and key_event.pressed and not key_event.echo:
+		if key_event.keycode == KEY_G and OS.is_debug_build():
+			_debug_grant_xp()
+			get_viewport().set_input_as_handled()
+			return
+
 	if not run_paused_for_levelup:
 		return
 	if run_ended:
 		return
 
-	var key_event := event as InputEventKey
 	if key_event == null:
 		return
 	if not key_event.pressed:
@@ -426,3 +434,16 @@ func _get_current_lineage_name() -> String:
 		var lineage_name_variant: Variant = mutation_system.call("get_current_lineage_name")
 		return String(lineage_name_variant)
 	return "None"
+
+func _debug_grant_xp() -> void:
+	if not OS.is_debug_build():
+		return
+	if not debug_allow_grant_xp:
+		return
+	if xp_system == null:
+		return
+	if not xp_system.has_method("add_xp"):
+		return
+
+	xp_system.call("add_xp", debug_grant_xp_amount)
+	print("Debug XP granted: +", debug_grant_xp_amount)
