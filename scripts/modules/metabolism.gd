@@ -1,6 +1,6 @@
 extends Node2D
 
-@export var base_regen_per_second: float = 1.5
+@export var base_regen_per_second: float = 1.8
 @export var regen_tick_cap_per_frame: int = 8
 @export var aura_color: Color = Color(0.75, 1.0, 0.78, 0.9)
 @export var aura_radius: float = 20.0
@@ -59,7 +59,7 @@ func _configure_regen() -> void:
 		2:
 			_regen_per_second = base_regen_per_second * 2.0
 		3:
-			_regen_per_second = base_regen_per_second * 3.5
+			_regen_per_second = base_regen_per_second * 3.2
 		_:
 			_regen_per_second = 0.0
 

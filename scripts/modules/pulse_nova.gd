@@ -1,8 +1,8 @@
 extends Node2D
 
-@export var base_pulse_damage: int = 10
-@export var base_pulse_radius: float = 72.0
-@export var base_pulse_interval_seconds: float = 1.6
+@export var base_pulse_damage: int = 8
+@export var base_pulse_radius: float = 68.0
+@export var base_pulse_interval_seconds: float = 1.85
 @export var pulse_visual_duration_seconds: float = 0.22
 @export var pulse_color: Color = Color(0.75, 0.95, 1.0, 0.95)
 @export var pulse_outline_color: Color = Color(0.12, 0.2, 0.26, 1.0)
@@ -50,13 +50,13 @@ func _configure_level_stats() -> void:
 			_pulse_radius = base_pulse_radius
 			_pulse_interval_seconds = base_pulse_interval_seconds
 		2:
-			_pulse_damage = int(round(float(base_pulse_damage) * 1.4))
-			_pulse_radius = base_pulse_radius + 20.0
-			_pulse_interval_seconds = maxf(0.35, base_pulse_interval_seconds * 0.82)
+			_pulse_damage = int(round(float(base_pulse_damage) * 1.35))
+			_pulse_radius = base_pulse_radius + 16.0
+			_pulse_interval_seconds = maxf(0.40, base_pulse_interval_seconds * 0.86)
 		3:
-			_pulse_damage = int(round(float(base_pulse_damage) * 1.8))
-			_pulse_radius = base_pulse_radius + 40.0
-			_pulse_interval_seconds = maxf(0.30, base_pulse_interval_seconds * 0.68)
+			_pulse_damage = int(round(float(base_pulse_damage) * 1.75))
+			_pulse_radius = base_pulse_radius + 30.0
+			_pulse_interval_seconds = maxf(0.34, base_pulse_interval_seconds * 0.74)
 		_:
 			_pulse_damage = 0
 			_pulse_radius = 0.0

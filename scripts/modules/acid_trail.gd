@@ -8,11 +8,11 @@ class TrailSegment:
 	var age_seconds: float = 0.0
 	var active: bool = false
 
-@export var base_damage_per_tick: int = 5
-@export var base_radius: float = 18.0
-@export var base_spawn_interval_seconds: float = 0.24
-@export var base_lifetime_seconds: float = 2.4
-@export var base_damage_tick_interval_seconds: float = 0.26
+@export var base_damage_per_tick: int = 3
+@export var base_radius: float = 17.0
+@export var base_spawn_interval_seconds: float = 0.30
+@export var base_lifetime_seconds: float = 2.1
+@export var base_damage_tick_interval_seconds: float = 0.45
 @export var min_spawn_distance: float = 10.0
 @export var max_segment_pool_size: int = 28
 @export var trail_color: Color = Color(0.42, 1.0, 0.86, 0.50)
@@ -94,17 +94,17 @@ func _configure_level_stats() -> void:
 			_trail_lifetime_seconds = base_lifetime_seconds
 			_damage_tick_interval_seconds = base_damage_tick_interval_seconds
 		2:
-			_damage_per_tick = int(round(float(base_damage_per_tick) * 1.25))
-			_trail_radius = base_radius + 3.0
-			_spawn_interval_seconds = maxf(0.14, base_spawn_interval_seconds * 0.84)
-			_trail_lifetime_seconds = base_lifetime_seconds + 0.8
-			_damage_tick_interval_seconds = maxf(0.16, base_damage_tick_interval_seconds * 0.85)
+			_damage_per_tick = int(round(float(base_damage_per_tick) * 1.33))
+			_trail_radius = base_radius + 2.0
+			_spawn_interval_seconds = maxf(0.16, base_spawn_interval_seconds * 0.88)
+			_trail_lifetime_seconds = base_lifetime_seconds + 0.7
+			_damage_tick_interval_seconds = maxf(0.20, base_damage_tick_interval_seconds * 0.84)
 		3:
 			_damage_per_tick = int(round(float(base_damage_per_tick) * 1.65))
-			_trail_radius = base_radius + 6.0
-			_spawn_interval_seconds = maxf(0.11, base_spawn_interval_seconds * 0.70)
-			_trail_lifetime_seconds = base_lifetime_seconds + 1.4
-			_damage_tick_interval_seconds = maxf(0.12, base_damage_tick_interval_seconds * 0.70)
+			_trail_radius = base_radius + 4.5
+			_spawn_interval_seconds = maxf(0.13, base_spawn_interval_seconds * 0.76)
+			_trail_lifetime_seconds = base_lifetime_seconds + 1.2
+			_damage_tick_interval_seconds = maxf(0.18, base_damage_tick_interval_seconds * 0.72)
 		_:
 			_damage_per_tick = 0
 			_trail_radius = 0.0
