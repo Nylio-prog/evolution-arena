@@ -1,0 +1,6 @@
+[gd_scene format=3 uid="uid://dvbjy80vft3vw"]
+
+[ext_resource type="Script" path="res://scripts/modules/pulse_nova.gd" id="1_y4f8x"]
+
+[node name="PulseNova" type="Node2D" unique_id=1469085221]
+script = ExtResource("1_y4f8x")

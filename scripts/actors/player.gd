@@ -7,23 +7,28 @@ signal died
 @export var max_hp: int = 100
 @export var invulnerability_seconds: float = 0.5
 @export var visual_radius: float = 12.0
-@export var visual_color: Color = Color(1, 1, 1, 1)
 @export var lineage_accent_color: Color = Color(1, 1, 1, 0)
 @export var lineage_accent_width: float = 2.0
+@export var sprite_texture: Texture2D
+@export_file("*.png", "*.webp", "*.jpg", "*.jpeg", "*.svg") var default_sprite_path: String = "res://art/sprites/player/player_idle.png"
+@export var sprite_scale: Vector2 = Vector2(0.18, 0.18)
+@export var sprite_modulate: Color = Color(1, 1, 1, 1)
 @export var debug_log_damage: bool = false
 
 var current_hp: int
 var _invulnerable_until_ms: int = 0
 var incoming_damage_multiplier: float = 1.0
 
+@onready var visual_sprite: Sprite2D = get_node_or_null("VisualSprite")
+
 func _ready() -> void:
 	current_hp = max_hp
 	add_to_group("player")
 	hp_changed.emit(current_hp, max_hp)
+	_refresh_visual_sprite()
 	queue_redraw()
 
 func _draw() -> void:
-	draw_circle(Vector2.ZERO, visual_radius, visual_color)
 	if lineage_accent_color.a > 0.01:
 		draw_arc(Vector2.ZERO, visual_radius + 4.0, 0.0, TAU, 48, lineage_accent_color, lineage_accent_width, true)
 
@@ -67,3 +72,20 @@ func set_incoming_damage_multiplier(multiplier: float) -> void:
 func set_lineage_accent(color: Color) -> void:
 	lineage_accent_color = color
 	queue_redraw()
+
+func _refresh_visual_sprite() -> void:
+	if visual_sprite == null:
+		push_error("Player requires a VisualSprite child node.")
+		return
+
+	var resolved_texture: Texture2D = sprite_texture
+	if resolved_texture == null and ResourceLoader.exists(default_sprite_path, "Texture2D"):
+		var loaded_resource: Resource = load(default_sprite_path)
+		resolved_texture = loaded_resource as Texture2D
+
+	visual_sprite.texture = resolved_texture
+	visual_sprite.scale = sprite_scale
+	visual_sprite.modulate = sprite_modulate
+	visual_sprite.visible = true
+	if resolved_texture == null:
+		push_error("Player sprite missing. Assign sprite_texture or add file: %s" % default_sprite_path)

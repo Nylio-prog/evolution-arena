@@ -1,6 +1,7 @@
 [gd_scene format=3 uid="uid://b8q3qd56dv6ge"]
 
-[ext_resource type="Script" path="res://scripts/actors/player.gd" id="1_85r0r"]
+[ext_resource type="Script" uid="uid://b04ppigthhlce" path="res://scripts/actors/player.gd" id="1_85r0r"]
+[ext_resource type="Texture2D" uid="uid://e5bg5som6mx0" path="res://art/sprites/player/player_idle.png" id="2_ru62r"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_15tap"]
 radius = 12.0
@@ -10,3 +11,8 @@ script = ExtResource("1_85r0r")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1951705139]
 shape = SubResource("CircleShape2D_15tap")
+
+[node name="VisualSprite" type="Sprite2D" parent="." unique_id=852361392]
+position = Vector2(0, 0.99999994)
+scale = Vector2(0.2, 0.2)
+texture = ExtResource("2_ru62r")

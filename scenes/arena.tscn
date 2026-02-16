@@ -1,6 +1,7 @@
 [gd_scene format=3 uid="uid://dtiv6dfiwc8k0"]
 
 [ext_resource type="PackedScene" uid="uid://b8q3qd56dv6ge" path="res://scenes/actors/player.tscn" id="1_e05a3"]
+[ext_resource type="Texture2D" uid="uid://bbyg3nj3n2nuw" path="res://art/sprites/backgrounds/arena_bg.png" id="2_naajo"]
 [ext_resource type="PackedScene" uid="uid://chajohnv7utp" path="res://scenes/ui/ui_hud.tscn" id="3_rbtd0"]
 [ext_resource type="Script" uid="uid://d106i6a2grg7p" path="res://scripts/systems/game_manager.gd" id="4_6g2vy"]
 [ext_resource type="PackedScene" uid="uid://chcru5d2lttfj" path="res://scenes/ui/game_over.tscn" id="5_p3n4s"]
@@ -10,11 +11,22 @@
 [ext_resource type="Script" uid="uid://bkpmxrcd71u3k" path="res://scripts/systems/mutation_system.gd" id="10_6wsqv"]
 
 [node name="Arena" type="Node2D" unique_id=1478589997]
-position = Vector2(578, 302)
 script = ExtResource("4_6g2vy")
-debug_allow_grant_xp = false
+
+[node name="ColorRect" type="ColorRect" parent="." unique_id=1178337492]
+z_index = -99
+offset_right = 1920.0
+offset_bottom = 1080.0
+mouse_filter = 2
+color = Color(0, 0.40392157, 0.5647059, 0.22)
+
+[node name="Sprite2D" type="Sprite2D" parent="." unique_id=1260749749]
+z_index = -100
+texture = ExtResource("2_naajo")
+centered = false
 
 [node name="Player" parent="." unique_id=1353408687 instance=ExtResource("1_e05a3")]
+position = Vector2(972, 487)
 
 [node name="XpSystem" type="Node" parent="." unique_id=364193305]
 script = ExtResource("7_x7sj1")

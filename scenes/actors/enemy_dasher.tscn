@@ -1,12 +1,19 @@
 [gd_scene format=3 uid="uid://dlnwi6cw6810v"]
 
-[ext_resource type="Script" path="res://scripts/actors/enemy_dasher.gd" id="1_rc5w7"]
+[ext_resource type="Script" uid="uid://cpamvok4io0v2" path="res://scripts/actors/enemy_dasher.gd" id="1_rc5w7"]
+[ext_resource type="Texture2D" uid="uid://bruk0wd0ey0ip" path="res://art/sprites/enemies/enemy_dasher.png" id="2_b42ur"]
 
-[sub_resource type="CircleShape2D" id="CircleShape2D_hmvlp"]
-radius = 9.0
+[sub_resource type="CapsuleShape2D" id="CapsuleShape2D_5ghbf"]
+radius = 6.3639555
 
 [node name="EnemyDasher" type="CharacterBody2D" unique_id=1038364088]
 script = ExtResource("1_rc5w7")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1024176435]
-shape = SubResource("CircleShape2D_hmvlp")
+rotation = 0.7854061
+shape = SubResource("CapsuleShape2D_5ghbf")
+
+[node name="VisualSprite" type="Sprite2D" parent="." unique_id=1552552308]
+modulate = Color(1, 0.55, 0.3, 1)
+scale = Vector2(0.15, 0.15)
+texture = ExtResource("2_b42ur")
