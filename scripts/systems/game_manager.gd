@@ -9,7 +9,9 @@ const BIOMASS_PICKUP_SCENE: PackedScene = preload("res://scenes/systems/biomass_
 @onready var xp_bar: ProgressBar = get_node_or_null("UiHud/XPBar")
 @onready var level_label: Label = get_node_or_null("UiHud/LevelLabel")
 @onready var timer_label: Label = get_node_or_null("UiHud/TimerLabel")
+@onready var lineage_label: Label = get_node_or_null("UiHud/LineageLabel")
 @onready var levelup_ui: CanvasLayer = get_node_or_null("UiLevelup")
+@onready var levelup_lineage_prompt_label: Label = get_node_or_null("UiLevelup/Root/Layout/LineagePromptLabel")
 @onready var levelup_choice_1: Button = get_node_or_null("UiLevelup/Root/Layout/ChoicesRow/ChoiceButton1")
 @onready var levelup_choice_2: Button = get_node_or_null("UiLevelup/Root/Layout/ChoicesRow/ChoiceButton2")
 @onready var levelup_choice_3: Button = get_node_or_null("UiLevelup/Root/Layout/ChoicesRow/ChoiceButton3")
@@ -37,6 +39,8 @@ func _ready() -> void:
 		xp_system.connect("leveled_up", Callable(self, "_on_player_leveled_up"))
 	if mutation_system != null and mutation_system.has_method("setup"):
 		mutation_system.call("setup", player)
+	if mutation_system != null and mutation_system.has_signal("lineage_changed"):
+		mutation_system.connect("lineage_changed", Callable(self, "_on_lineage_changed"))
 
 	if player != null:
 		var current_hp_value = player.get("current_hp")
@@ -52,6 +56,7 @@ func _ready() -> void:
 		if current_level_value != null:
 			_on_level_changed(int(current_level_value))
 	_update_timer_label()
+	_refresh_lineage_labels()
 
 	for node in get_tree().get_nodes_in_group("biomass_pickups"):
 		_connect_biomass_pickup(node as Node)
@@ -125,6 +130,24 @@ func _on_level_changed(current_level: int) -> void:
 	if level_label == null:
 		return
 	level_label.text = "Level: %d" % current_level
+
+func _on_lineage_changed(_lineage_id: String, _lineage_name: String) -> void:
+	_refresh_lineage_labels()
+
+func _refresh_lineage_labels() -> void:
+	var current_lineage_name: String = "None"
+	if mutation_system != null and mutation_system.has_method("get_current_lineage_name"):
+		var lineage_name_variant: Variant = mutation_system.call("get_current_lineage_name")
+		current_lineage_name = String(lineage_name_variant)
+
+	if lineage_label != null:
+		lineage_label.text = "Lineage: %s" % current_lineage_name
+
+	if levelup_lineage_prompt_label != null:
+		if current_lineage_name == "None":
+			levelup_lineage_prompt_label.text = "Choose your lineage"
+		else:
+			levelup_lineage_prompt_label.text = "Lineage: %s" % current_lineage_name
 
 func _on_tree_node_added(node: Node) -> void:
 	_connect_enemy_death(node)

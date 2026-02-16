@@ -3,8 +3,14 @@ extends Node
 const MUTATIONS_DATA = preload("res://data/mutations.gd")
 const SPIKE_RING_SCENE: PackedScene = preload("res://scenes/modules/spike_ring.tscn")
 const ORBITER_SCENE: PackedScene = preload("res://scenes/modules/orbiter.tscn")
+const LINEAGES: Dictionary = {
+	"predator": "Predator",
+	"swarm": "Swarm",
+	"bulwark": "Bulwark"
+}
 
 signal mutation_applied(mutation_id: String, new_level: int)
+signal lineage_changed(lineage_id: String, lineage_name: String)
 
 @export_range(0, 3) var starting_spikes_level: int = 1
 @export_range(0, 3) var starting_orbiters_level: int = 0
@@ -13,6 +19,7 @@ var player: Node2D
 var mutation_defs: Dictionary = {}
 var mutation_levels: Dictionary = {}
 var current_levelup_options: Array[Dictionary] = []
+var current_lineage_id: String = ""
 
 var spike_ring_instance: Node2D
 var orbiter_instance: Node2D
@@ -73,6 +80,25 @@ func apply_mutation(mutation_id: String) -> bool:
 	_apply_mutation_effect(mutation_id, new_level)
 	mutation_applied.emit(mutation_id, new_level)
 	return true
+
+func choose_lineage(lineage_id: String) -> bool:
+	var normalized_id: String = lineage_id.strip_edges().to_lower()
+	if not LINEAGES.has(normalized_id):
+		return false
+	if not current_lineage_id.is_empty() and current_lineage_id != normalized_id:
+		return false
+
+	current_lineage_id = normalized_id
+	lineage_changed.emit(current_lineage_id, get_current_lineage_name())
+	return true
+
+func get_current_lineage_id() -> String:
+	return current_lineage_id
+
+func get_current_lineage_name() -> String:
+	if current_lineage_id.is_empty():
+		return "None"
+	return String(LINEAGES.get(current_lineage_id, current_lineage_id.capitalize()))
 
 func _initialize_levels() -> void:
 	mutation_levels.clear()
