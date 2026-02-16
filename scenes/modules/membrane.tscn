@@ -1,0 +1,6 @@
+[gd_scene format=3 uid="uid://dcn2ftt3jr4v6"]
+
+[ext_resource type="Script" path="res://scripts/modules/membrane.gd" id="1_8lh6i"]
+
+[node name="Membrane" type="Node2D" unique_id=1956651230]
+script = ExtResource("1_8lh6i")

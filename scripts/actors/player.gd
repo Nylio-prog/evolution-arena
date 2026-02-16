@@ -12,6 +12,7 @@ signal died
 
 var current_hp: int
 var _invulnerable_until_ms: int = 0
+var incoming_damage_multiplier: float = 1.0
 
 func _ready() -> void:
 	current_hp = max_hp
@@ -35,11 +36,26 @@ func take_damage(amount: int) -> void:
 	if now_ms < _invulnerable_until_ms:
 		return
 
+	var final_amount: int = max(1, int(round(float(amount) * incoming_damage_multiplier)))
 	_invulnerable_until_ms = now_ms + int(invulnerability_seconds * 1000.0)
-	current_hp = max(0, current_hp - amount)
+	current_hp = max(0, current_hp - final_amount)
 	if debug_log_damage:
-		print("Player took ", amount, " damage. HP: ", current_hp, "/", max_hp)
+		print(
+			"Player took ",
+			final_amount,
+			" damage (raw ",
+			amount,
+			", x",
+			incoming_damage_multiplier,
+			"). HP: ",
+			current_hp,
+			"/",
+			max_hp
+		)
 	hp_changed.emit(current_hp, max_hp)
 
 	if current_hp == 0:
 		died.emit()
+
+func set_incoming_damage_multiplier(multiplier: float) -> void:
+	incoming_damage_multiplier = clampf(multiplier, 0.05, 1.0)

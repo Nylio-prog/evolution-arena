@@ -24,6 +24,18 @@ const MUTATIONS: Dictionary = {
 			2: {"short": "2 cells", "description": "Increase to 2 orbiting cells."},
 			3: {"short": "faster", "description": "Orbiters rotate faster."}
 		}
+	},
+	"membrane": {
+		"id": "membrane",
+		"name": "Membrane",
+		"description": "Grow a protective layer to reduce incoming damage.",
+		"lineages": ["bulwark"],
+		"max_level": 3,
+		"levels": {
+			1: {"short": "-15% dmg", "description": "Reduce incoming damage by 15%."},
+			2: {"short": "-30% dmg", "description": "Reduce incoming damage by 30%."},
+			3: {"short": "-45% dmg", "description": "Reduce incoming damage by 45%."}
+		}
 	}
 }
 

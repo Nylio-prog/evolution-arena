@@ -3,6 +3,7 @@ extends Node
 const MUTATIONS_DATA = preload("res://data/mutations.gd")
 const SPIKE_RING_SCENE: PackedScene = preload("res://scenes/modules/spike_ring.tscn")
 const ORBITER_SCENE: PackedScene = preload("res://scenes/modules/orbiter.tscn")
+const MEMBRANE_SCENE: PackedScene = preload("res://scenes/modules/membrane.tscn")
 const LINEAGES: Dictionary = {
 	"predator": "Predator",
 	"swarm": "Swarm",
@@ -17,6 +18,7 @@ signal lineage_changed(lineage_id: String, lineage_name: String)
 
 @export_range(0, 3) var starting_spikes_level: int = 1
 @export_range(0, 3) var starting_orbiters_level: int = 0
+@export_range(0, 3) var starting_membrane_level: int = 0
 
 var player: Node2D
 var mutation_defs: Dictionary = {}
@@ -26,6 +28,7 @@ var current_lineage_id: String = ""
 
 var spike_ring_instance: Node2D
 var orbiter_instance: Node2D
+var membrane_instance: Node2D
 
 func _ready() -> void:
 	mutation_defs = MUTATIONS_DATA.get_all()
@@ -121,6 +124,8 @@ func _apply_starting_loadout() -> void:
 		apply_mutation("spikes")
 	for _i in range(clampi(starting_orbiters_level, 0, _get_mutation_max_level("orbiters"))):
 		apply_mutation("orbiters")
+	for _i in range(clampi(starting_membrane_level, 0, _get_mutation_max_level("membrane"))):
+		apply_mutation("membrane")
 
 func _get_available_mutation_ids() -> Array[String]:
 	var ids: Array[String] = []
@@ -206,6 +211,10 @@ func _apply_mutation_effect(mutation_id: String, new_level: int) -> void:
 			_ensure_orbiter()
 			if orbiter_instance != null and orbiter_instance.has_method("set_level"):
 				orbiter_instance.call("set_level", new_level)
+		"membrane":
+			_ensure_membrane()
+			if membrane_instance != null and membrane_instance.has_method("set_level"):
+				membrane_instance.call("set_level", new_level)
 
 func _ensure_spike_ring() -> void:
 	if spike_ring_instance != null:
@@ -226,6 +235,16 @@ func _ensure_orbiter() -> void:
 	orbiter_instance = ORBITER_SCENE.instantiate() as Node2D
 	if orbiter_instance != null:
 		player.add_child(orbiter_instance)
+
+func _ensure_membrane() -> void:
+	if membrane_instance != null:
+		return
+	if player == null:
+		return
+
+	membrane_instance = MEMBRANE_SCENE.instantiate() as Node2D
+	if membrane_instance != null:
+		player.add_child(membrane_instance)
 
 func _get_mutation_max_level(mutation_id: String) -> int:
 	var mutation_def: Dictionary = mutation_defs.get(mutation_id, {})
