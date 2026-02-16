@@ -43,6 +43,7 @@ signal lineage_changed(lineage_id: String, lineage_name: String)
 @export_range(0, 3) var starting_spikes_level: int = 1
 @export_range(0, 3) var starting_orbiters_level: int = 0
 @export_range(0, 3) var starting_membrane_level: int = 0
+@export var debug_log_weighted_rolls: bool = false
 
 var player: Node2D
 var mutation_defs: Dictionary = {}
@@ -69,28 +70,40 @@ func get_levelup_options(count: int = 3) -> Array[Dictionary]:
 		current_levelup_options = []
 		return current_levelup_options
 
+	if debug_log_weighted_rolls:
+		_debug_print_roll_candidates(available_ids)
+
 	var selected_ids: Array[String] = []
-	var first_pass_pool: Array[String] = []
-	first_pass_pool.append_array(available_ids)
+	if current_lineage_id.is_empty():
+		var first_pass_pool: Array[String] = []
+		first_pass_pool.append_array(available_ids)
 
-	while selected_ids.size() < count and not first_pass_pool.is_empty():
-		var selected_id: String = _pick_weighted_mutation_id(first_pass_pool)
-		if selected_id.is_empty():
-			break
-		selected_ids.append(selected_id)
-		first_pass_pool.erase(selected_id)
+		while selected_ids.size() < count and not first_pass_pool.is_empty():
+			var selected_id: String = _pick_weighted_mutation_id(first_pass_pool)
+			if selected_id.is_empty():
+				break
+			selected_ids.append(selected_id)
+			first_pass_pool.erase(selected_id)
 
-	while selected_ids.size() < count and not available_ids.is_empty():
-		var filler_id: String = _pick_weighted_mutation_id(available_ids)
-		if filler_id.is_empty():
-			break
-		selected_ids.append(filler_id)
+		while selected_ids.size() < count and not available_ids.is_empty():
+			var filler_id: String = _pick_weighted_mutation_id(available_ids)
+			if filler_id.is_empty():
+				break
+			selected_ids.append(filler_id)
+	else:
+		while selected_ids.size() < count and not available_ids.is_empty():
+			var selected_id_with_replacement: String = _pick_weighted_mutation_id(available_ids)
+			if selected_id_with_replacement.is_empty():
+				break
+			selected_ids.append(selected_id_with_replacement)
 
 	var options: Array[Dictionary] = []
 	for mutation_id in selected_ids:
 		options.append(_build_option(mutation_id))
 
 	current_levelup_options = options
+	if debug_log_weighted_rolls:
+		_debug_print_selected_options(selected_ids)
 	return current_levelup_options
 
 func apply_option_index(index: int) -> bool:
@@ -223,6 +236,25 @@ func _get_mutation_lineage_tags(mutation_def: Dictionary) -> Array[String]:
 	if not single_lineage.is_empty():
 		tags.append(single_lineage)
 	return tags
+
+func _debug_print_roll_candidates(candidate_ids: Array[String]) -> void:
+	var lineage_label: String = get_current_lineage_name()
+	var parts: Array[String] = []
+	for mutation_id in candidate_ids:
+		var weight: float = _get_mutation_weight(mutation_id)
+		parts.append("%s=%.2f" % [mutation_id, weight])
+	print("Roll candidates (lineage=", lineage_label, "): ", _join_string_array(parts))
+
+func _debug_print_selected_options(selected_ids: Array[String]) -> void:
+	print("Roll selected: ", _join_string_array(selected_ids))
+
+func _join_string_array(values: Array[String]) -> String:
+	var result: String = ""
+	for i in range(values.size()):
+		if i > 0:
+			result += ", "
+		result += values[i]
+	return result
 
 func _apply_mutation_effect(mutation_id: String, new_level: int) -> void:
 	if player == null:
