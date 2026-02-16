@@ -340,6 +340,9 @@ func _format_mutation_option_text(option: Dictionary) -> String:
 	var mutation_name: String = String(option.get("name", "Mutation"))
 	var next_level: int = int(option.get("next_level", 1))
 	var summary_text: String = String(option.get("short", ""))
+	var favored: bool = bool(option.get("is_favored", false))
+	if favored:
+		mutation_name = "★ " + mutation_name
 	if summary_text.is_empty():
 		summary_text = String(option.get("description", ""))
 
@@ -351,12 +354,21 @@ func _format_mutation_option_bbcode(option: Dictionary) -> String:
 	var mutation_name: String = String(option.get("name", "Mutation"))
 	var next_level: int = int(option.get("next_level", 1))
 	var summary_text: String = String(option.get("short", ""))
+	var favored: bool = bool(option.get("is_favored", false))
+	var title_text: String = "%s L%d" % [mutation_name, next_level]
+	if favored:
+		title_text = "★ " + title_text
 	if summary_text.is_empty():
 		summary_text = String(option.get("description", ""))
 
 	if summary_text.is_empty():
-		return "[center][b]%s L%d[/b][/center]" % [mutation_name, next_level]
-	return "[center][b]%s L%d[/b]\n%s[/center]" % [mutation_name, next_level, summary_text]
+		if favored:
+			return "[center][b][color=#ffd966]%s[/color][/b][/center]" % [title_text]
+		return "[center][b]%s[/b][/center]" % [title_text]
+
+	if favored:
+		return "[center][b][color=#ffd966]%s[/color][/b]\n%s[/center]" % [title_text, summary_text]
+	return "[center][b]%s[/b]\n%s[/center]" % [title_text, summary_text]
 
 func _should_prompt_lineage_now() -> bool:
 	if level_reached < 2:

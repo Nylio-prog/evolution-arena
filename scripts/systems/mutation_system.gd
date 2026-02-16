@@ -181,13 +181,17 @@ func _build_option(mutation_id: String) -> Dictionary:
 	var next_level: int = current_level + 1
 	var levels: Dictionary = mutation_def.get("levels", {})
 	var level_data: Dictionary = levels.get(next_level, {})
+	var lineage_tags: Array[String] = _get_mutation_lineage_tags(mutation_def)
+	var favored: bool = (not current_lineage_id.is_empty()) and lineage_tags.has(current_lineage_id)
 
 	var option: Dictionary = {
 		"id": mutation_id,
 		"name": String(mutation_def.get("name", mutation_id.capitalize())),
 		"next_level": next_level,
 		"short": String(level_data.get("short", "")),
-		"description": String(level_data.get("description", mutation_def.get("description", "")))
+		"description": String(level_data.get("description", mutation_def.get("description", ""))),
+		"lineages": lineage_tags,
+		"is_favored": favored
 	}
 	return option
 
