@@ -1,4 +1,4 @@
-extends Node2D
+﻿extends Node2D
 
 const BIOMASS_PICKUP_SCENE: PackedScene = preload("res://scenes/systems/biomass_pickup.tscn")
 
@@ -12,6 +12,7 @@ const BIOMASS_PICKUP_SCENE: PackedScene = preload("res://scenes/systems/biomass_
 @onready var lineage_label: Label = get_node_or_null("UiHud/LineageLabel")
 @onready var levelup_ui: CanvasLayer = get_node_or_null("UiLevelup")
 @onready var levelup_lineage_prompt_label: Label = get_node_or_null("UiLevelup/Root/Layout/LineagePromptLabel")
+@onready var levelup_help_label: Label = get_node_or_null("UiLevelup/Root/Layout/HelpLabel")
 @onready var levelup_choices_row: HBoxContainer = get_node_or_null("UiLevelup/Root/Layout/ChoicesRow")
 @onready var levelup_choice_1: Button = get_node_or_null("UiLevelup/Root/Layout/ChoicesRow/ChoiceButton1")
 @onready var levelup_choice_2: Button = get_node_or_null("UiLevelup/Root/Layout/ChoicesRow/ChoiceButton2")
@@ -163,6 +164,12 @@ func _refresh_lineage_labels() -> void:
 			levelup_lineage_prompt_label.text = "Choose your lineage"
 		else:
 			levelup_lineage_prompt_label.text = "Choose your mutation"
+
+	if levelup_help_label != null:
+		if lineage_selection_active:
+			levelup_help_label.text = "Choose once. It biases future mutations."
+		else:
+			levelup_help_label.text = "Tip: * marks options favored by your lineage."
 
 func _on_tree_node_added(node: Node) -> void:
 	_connect_enemy_death(node)
@@ -342,7 +349,7 @@ func _format_mutation_option_text(option: Dictionary) -> String:
 	var summary_text: String = String(option.get("short", ""))
 	var favored: bool = bool(option.get("is_favored", false))
 	if favored:
-		mutation_name = "★ " + mutation_name
+		mutation_name = "* " + mutation_name
 	if summary_text.is_empty():
 		summary_text = String(option.get("description", ""))
 
@@ -357,7 +364,7 @@ func _format_mutation_option_bbcode(option: Dictionary) -> String:
 	var favored: bool = bool(option.get("is_favored", false))
 	var title_text: String = "%s L%d" % [mutation_name, next_level]
 	if favored:
-		title_text = "★ " + title_text
+		title_text = "* " + title_text
 	if summary_text.is_empty():
 		summary_text = String(option.get("description", ""))
 

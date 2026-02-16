@@ -36,6 +36,11 @@ layout_mode = 2
 text = "Choose your lineage"
 horizontal_alignment = 1
 
+[node name="HelpLabel" type="Label" parent="Root/Layout" unique_id=1889439289]
+layout_mode = 2
+text = "Choose once. It biases future mutations."
+horizontal_alignment = 1
+
 [node name="ChoicesRow" type="HBoxContainer" parent="Root/Layout" unique_id=286693580]
 layout_mode = 2
 theme_override_constants/separation = 10
