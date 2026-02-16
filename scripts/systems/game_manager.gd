@@ -1,13 +1,10 @@
 extends Node2D
 
-const SPIKE_RING_SCENE: PackedScene = preload("res://scenes/modules/spike_ring.tscn")
-const ORBITER_SCENE: PackedScene = preload("res://scenes/modules/orbiter.tscn")
 const BIOMASS_PICKUP_SCENE: PackedScene = preload("res://scenes/systems/biomass_pickup.tscn")
-const SPIKES_MAX_LEVEL: int = 3
-const ORBITERS_MAX_LEVEL: int = 3
 
 @onready var player: Node = get_node_or_null("Player")
 @onready var xp_system: Node = get_node_or_null("XpSystem")
+@onready var mutation_system: Node = get_node_or_null("MutationSystem")
 @onready var hp_label: Label = get_node_or_null("UiHud/HPLabel")
 @onready var xp_bar: ProgressBar = get_node_or_null("UiHud/XPBar")
 @onready var level_label: Label = get_node_or_null("UiHud/LevelLabel")
@@ -24,13 +21,8 @@ var elapsed_seconds: float = 0.0
 var level_reached: int = 1
 var run_ended: bool = false
 var run_paused_for_levelup: bool = false
-var spikes_level: int = 0
-var spike_ring_instance: Node2D
-var orbiters_level: int = 0
-var orbiter_instance: Node2D
 var debug_log_drops: bool = false
-@export_range(0, 3) var starting_spikes_level: int = 1
-@export_range(0, 3) var starting_orbiters_level: int = 0
+var levelup_options: Array = []
 
 func _ready() -> void:
 	if player != null and player.has_signal("hp_changed"):
@@ -43,6 +35,8 @@ func _ready() -> void:
 		xp_system.connect("level_changed", Callable(self, "_on_level_changed"))
 	if xp_system != null and xp_system.has_signal("leveled_up"):
 		xp_system.connect("leveled_up", Callable(self, "_on_player_leveled_up"))
+	if mutation_system != null and mutation_system.has_method("setup"):
+		mutation_system.call("setup", player)
 
 	if player != null:
 		var current_hp_value = player.get("current_hp")
@@ -75,13 +69,11 @@ func _ready() -> void:
 		levelup_ui.visible = false
 
 	if levelup_choice_1 != null:
-		levelup_choice_1.connect("pressed", Callable(self, "_on_levelup_choice_pressed").bind("spikes"))
+		levelup_choice_1.connect("pressed", Callable(self, "_on_levelup_choice_pressed").bind(0))
 	if levelup_choice_2 != null:
-		levelup_choice_2.connect("pressed", Callable(self, "_on_levelup_choice_pressed").bind("orbiters"))
+		levelup_choice_2.connect("pressed", Callable(self, "_on_levelup_choice_pressed").bind(1))
 	if levelup_choice_3 != null:
-		levelup_choice_3.connect("pressed", Callable(self, "_on_levelup_choice_pressed").bind("spikes"))
-
-	_apply_starting_modules()
+		levelup_choice_3.connect("pressed", Callable(self, "_on_levelup_choice_pressed").bind(2))
 
 func _process(delta: float) -> void:
 	if run_ended:
@@ -107,13 +99,13 @@ func _unhandled_input(event: InputEvent) -> void:
 
 	match key_event.keycode:
 		KEY_1, KEY_KP_1:
-			_on_levelup_choice_pressed("spikes")
+			_on_levelup_choice_pressed(0)
 			get_viewport().set_input_as_handled()
 		KEY_2, KEY_KP_2:
-			_on_levelup_choice_pressed("orbiters")
+			_on_levelup_choice_pressed(1)
 			get_viewport().set_input_as_handled()
 		KEY_3, KEY_KP_3:
-			_on_levelup_choice_pressed("spikes")
+			_on_levelup_choice_pressed(2)
 			get_viewport().set_input_as_handled()
 
 func _on_player_hp_changed(current_hp: int, max_hp: int) -> void:
@@ -230,20 +222,21 @@ func _update_timer_label() -> void:
 func _on_player_leveled_up(_new_level: int) -> void:
 	if run_ended:
 		return
-	_refresh_levelup_choice_text()
+	levelup_options = _refresh_levelup_choice_text()
+	if levelup_options.is_empty():
+		return
+
 	run_paused_for_levelup = true
 	_set_gameplay_active(false)
 	if levelup_ui != null:
 		levelup_ui.visible = true
 
-func _on_levelup_choice_pressed(choice_id: String) -> void:
+func _on_levelup_choice_pressed(choice_index: int) -> void:
 	if run_ended:
 		return
-	match choice_id:
-		"spikes":
-			_apply_spike_upgrade()
-		"orbiters":
-			_apply_orbiter_upgrade()
+
+	if mutation_system != null and mutation_system.has_method("apply_option_index"):
+		mutation_system.call("apply_option_index", choice_index)
 
 	if levelup_ui != null:
 		levelup_ui.visible = false
@@ -253,72 +246,36 @@ func _on_levelup_choice_pressed(choice_id: String) -> void:
 func _on_restart_pressed() -> void:
 	get_tree().reload_current_scene()
 
-func _refresh_levelup_choice_text() -> void:
-	var next_spike_level: int = mini(spikes_level + 1, SPIKES_MAX_LEVEL)
-	var spikes_label_text: String = "Spikes L%d - %d spikes" % [next_spike_level, _spike_count_for_level(next_spike_level)]
-	if spikes_level >= SPIKES_MAX_LEVEL:
-		spikes_label_text = "Spikes MAX"
+func _refresh_levelup_choice_text() -> Array:
+	var options: Array = []
+	if mutation_system != null and mutation_system.has_method("get_levelup_options"):
+		var options_variant: Variant = mutation_system.call("get_levelup_options", 3)
+		if options_variant is Array:
+			options = options_variant
 
-	var next_orbiter_level: int = mini(orbiters_level + 1, ORBITERS_MAX_LEVEL)
-	var orbiters_label_text: String = "Orbiters L%d - %d cells" % [next_orbiter_level, _orbiter_count_for_level(next_orbiter_level)]
-	if orbiters_level >= ORBITERS_MAX_LEVEL:
-		orbiters_label_text = "Orbiters MAX"
+	_set_choice_button_text(levelup_choice_1, options, 0)
+	_set_choice_button_text(levelup_choice_2, options, 1)
+	_set_choice_button_text(levelup_choice_3, options, 2)
+	return options
 
-	if levelup_choice_1 != null:
-		levelup_choice_1.text = spikes_label_text
-	if levelup_choice_2 != null:
-		levelup_choice_2.text = orbiters_label_text
-	if levelup_choice_3 != null:
-		levelup_choice_3.text = spikes_label_text
-
-func _apply_starting_modules() -> void:
-	for _i in range(clampi(starting_spikes_level, 0, SPIKES_MAX_LEVEL)):
-		_apply_spike_upgrade()
-	for _i in range(clampi(starting_orbiters_level, 0, ORBITERS_MAX_LEVEL)):
-		_apply_orbiter_upgrade()
-
-func _apply_spike_upgrade() -> void:
-	if spikes_level >= SPIKES_MAX_LEVEL:
+func _set_choice_button_text(button: Button, options: Array, index: int) -> void:
+	if button == null:
+		return
+	if index >= options.size():
+		button.text = "No Mutation"
 		return
 
-	spikes_level += 1
-	if spike_ring_instance == null and player != null:
-		spike_ring_instance = SPIKE_RING_SCENE.instantiate() as Node2D
-		if spike_ring_instance != null:
-			player.add_child(spike_ring_instance)
-
-	if spike_ring_instance != null and spike_ring_instance.has_method("set_level"):
-		spike_ring_instance.call("set_level", spikes_level)
-
-func _apply_orbiter_upgrade() -> void:
-	if orbiters_level >= ORBITERS_MAX_LEVEL:
+	if not (options[index] is Dictionary):
+		button.text = "No Mutation"
 		return
 
-	orbiters_level += 1
-	if orbiter_instance == null and player != null:
-		orbiter_instance = ORBITER_SCENE.instantiate() as Node2D
-		if orbiter_instance != null:
-			player.add_child(orbiter_instance)
+	var option: Dictionary = options[index]
+	button.text = _format_mutation_option_text(option)
 
-	if orbiter_instance != null and orbiter_instance.has_method("set_level"):
-		orbiter_instance.call("set_level", orbiters_level)
-
-func _spike_count_for_level(level: int) -> int:
-	match level:
-		1:
-			return 4
-		2:
-			return 6
-		3:
-			return 8
-		_:
-			return 0
-
-func _orbiter_count_for_level(level: int) -> int:
-	match level:
-		1:
-			return 1
-		2, 3:
-			return 2
-		_:
-			return 0
+func _format_mutation_option_text(option: Dictionary) -> String:
+	var mutation_name: String = String(option.get("name", "Mutation"))
+	var next_level: int = int(option.get("next_level", 1))
+	var short_text: String = String(option.get("short", ""))
+	if short_text.is_empty():
+		return "%s L%d" % [mutation_name, next_level]
+	return "%s L%d - %s" % [mutation_name, next_level, short_text]
