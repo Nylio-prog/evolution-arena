@@ -40,6 +40,8 @@ func _physics_process(_delta: float) -> void:
 func take_damage(amount: int) -> void:
 	if amount <= 0:
 		return
+	if current_hp <= 0:
+		return
 
 	var now_ms := Time.get_ticks_msec()
 	if now_ms < _invulnerable_until_ms:

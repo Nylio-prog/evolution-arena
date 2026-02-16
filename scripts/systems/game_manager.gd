@@ -55,9 +55,11 @@ var elapsed_seconds: float = 0.0
 var level_reached: int = 1
 var run_ended: bool = false
 var run_paused_for_levelup: bool = false
+var pending_levelup_count: int = 0
 var debug_log_drops: bool = false
 var levelup_options: Array = []
 var lineage_selection_active: bool = false
+var restart_requested: bool = false
 var _last_player_hp: int = -1
 @export var debug_allow_grant_xp: bool = false
 @export var debug_grant_xp_amount: int = 20
@@ -111,6 +113,7 @@ func _ready() -> void:
 		game_over_ui.visible = false
 
 	if game_over_restart_button != null:
+		game_over_restart_button.disabled = false
 		game_over_restart_button.connect("pressed", Callable(self, "_on_restart_pressed"))
 
 	if levelup_ui != null:
@@ -291,6 +294,13 @@ func _spawn_biomass_pickup(world_position: Vector2) -> void:
 		print("Biomass spawned at ", pickup.global_position)
 
 func _on_player_died() -> void:
+	if run_ended:
+		return
+
+	pending_levelup_count = 0
+	run_paused_for_levelup = false
+	if levelup_ui != null:
+		levelup_ui.visible = false
 	run_ended = true
 	_play_sfx("player_death")
 	_stop_music()
@@ -340,21 +350,11 @@ func _update_timer_label() -> void:
 func _on_player_leveled_up(_new_level: int) -> void:
 	if run_ended:
 		return
+	if run_paused_for_levelup:
+		pending_levelup_count += 1
+		return
 
-	if _should_prompt_lineage_now():
-		lineage_selection_active = true
-		_set_lineage_choice_button_texts()
-	else:
-		lineage_selection_active = false
-		levelup_options = _refresh_levelup_choice_text()
-		if levelup_options.is_empty():
-			return
-
-	run_paused_for_levelup = true
-	_play_sfx("levelup")
-	_set_gameplay_active(false)
-	if levelup_ui != null:
-		levelup_ui.visible = true
+	_open_levelup_prompt()
 
 func _on_levelup_choice_pressed(choice_index: int) -> void:
 	if run_ended:
@@ -370,14 +370,23 @@ func _on_levelup_choice_pressed(choice_index: int) -> void:
 		if mutation_system != null and mutation_system.has_method("apply_option_index"):
 			mutation_system.call("apply_option_index", choice_index)
 
-	if levelup_ui != null:
-		levelup_ui.visible = false
-	run_paused_for_levelup = false
-	_set_gameplay_active(true)
+	if pending_levelup_count > 0:
+		pending_levelup_count -= 1
+		var did_open_prompt: bool = _open_levelup_prompt(false)
+		if did_open_prompt:
+			return
+		pending_levelup_count = 0
+
+	_close_levelup_prompt()
 
 func _on_restart_pressed() -> void:
+	if restart_requested:
+		return
+	restart_requested = true
+	if game_over_restart_button != null:
+		game_over_restart_button.disabled = true
 	_play_sfx("ui_click")
-	get_tree().reload_current_scene()
+	call_deferred("_reload_current_scene_deferred")
 
 func _refresh_levelup_choice_text() -> Array:
 	var options: Array = []
@@ -637,3 +646,30 @@ func _stop_music() -> void:
 	if not audio_manager.has_method("stop_music"):
 		return
 	audio_manager.call("stop_music")
+
+func _open_levelup_prompt(play_sound: bool = true) -> bool:
+	if _should_prompt_lineage_now():
+		lineage_selection_active = true
+		_set_lineage_choice_button_texts()
+	else:
+		lineage_selection_active = false
+		levelup_options = _refresh_levelup_choice_text()
+		if levelup_options.is_empty():
+			return false
+
+	run_paused_for_levelup = true
+	if play_sound:
+		_play_sfx("levelup")
+	_set_gameplay_active(false)
+	if levelup_ui != null:
+		levelup_ui.visible = true
+	return true
+
+func _close_levelup_prompt() -> void:
+	if levelup_ui != null:
+		levelup_ui.visible = false
+	run_paused_for_levelup = false
+	_set_gameplay_active(true)
+
+func _reload_current_scene_deferred() -> void:
+	get_tree().reload_current_scene()
