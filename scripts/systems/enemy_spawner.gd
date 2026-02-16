@@ -7,9 +7,9 @@ const ENEMY_DASHER_SCENE: PackedScene = preload("res://scenes/actors/enemy_dashe
 @export var min_wait_time: float = 0.25
 @export var ramp_duration_seconds: float = 120.0
 @export var spawn_distance: float = 480.0
-@export var dasher_initial_ratio: float = 0.02
-@export var dasher_max_ratio: float = 0.18
-@export var dasher_ramp_start_seconds: float = 25.0
+@export var dasher_initial_ratio: float = 0.35
+@export var dasher_max_ratio: float = 0.60
+@export var dasher_ramp_start_seconds: float = 0.0
 @export var debug_log_spawn: bool = false
 
 @onready var spawn_timer: Timer = get_node_or_null("SpawnTimer")
