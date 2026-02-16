@@ -12,6 +12,11 @@ const LINEAGES: Dictionary = {
 	"swarm": "Swarm",
 	"bulwark": "Bulwark"
 }
+const LINEAGE_STARTER_MUTATION: Dictionary = {
+	"predator": "pulse_nova",
+	"swarm": "orbiters",
+	"bulwark": "membrane"
+}
 const LINEAGE_VISUALS: Dictionary = {
 	"predator": {
 		"player_accent": Color(1.0, 0.45, 0.25, 0.95),
@@ -158,6 +163,7 @@ func choose_lineage(lineage_id: String) -> bool:
 		return false
 
 	current_lineage_id = normalized_id
+	_grant_lineage_starter_mutation(current_lineage_id)
 	_apply_lineage_visuals()
 	lineage_changed.emit(current_lineage_id, get_current_lineage_name())
 	return true
@@ -426,6 +432,20 @@ func get_metabolism_regen_per_second() -> float:
 	if not metabolism_instance.has_method("get_regen_per_second"):
 		return 0.0
 	return float(metabolism_instance.call("get_regen_per_second"))
+
+func _grant_lineage_starter_mutation(lineage_id: String) -> void:
+	if not LINEAGE_STARTER_MUTATION.has(lineage_id):
+		return
+
+	var starter_mutation_id: String = String(LINEAGE_STARTER_MUTATION.get(lineage_id, ""))
+	if starter_mutation_id.is_empty():
+		return
+	if not mutation_defs.has(starter_mutation_id):
+		return
+	if get_mutation_level(starter_mutation_id) > 0:
+		return
+
+	apply_mutation(starter_mutation_id)
 
 func _get_mutation_max_level(mutation_id: String) -> int:
 	var mutation_def: Dictionary = mutation_defs.get(mutation_id, {})

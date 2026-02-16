@@ -213,7 +213,7 @@ func _refresh_lineage_labels() -> void:
 
 	if levelup_help_label != null:
 		if lineage_selection_active:
-			levelup_help_label.text = "Choose once. It biases future mutations."
+			levelup_help_label.text = "Choose once. It grants a core mutation and biases future options."
 		else:
 			levelup_help_label.text = "Tip: * marks options favored by your lineage."
 
