@@ -142,6 +142,13 @@ func _set_gameplay_active(active: bool) -> void:
 			continue
 		module_node.set_process(active)
 
+	for spawner_node_raw in get_tree().get_nodes_in_group("enemy_spawners"):
+		var spawner_node := spawner_node_raw as Node
+		if spawner_node == null:
+			continue
+		if spawner_node.has_method("set_spawning_enabled"):
+			spawner_node.call("set_spawning_enabled", active)
+
 func _show_game_over() -> void:
 	if game_over_stats_label != null:
 		game_over_stats_label.text = "Time: %ds | Level: %d" % [int(elapsed_seconds), level_reached]
