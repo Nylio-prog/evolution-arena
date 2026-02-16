@@ -6,7 +6,7 @@ extends Node2D
 @export var orbiter_collision_radius: float = 9.0
 @export var orbiter_color: Color = Color(0.85, 0.95, 1.0, 1.0)
 @export var damage_interval_seconds: float = 0.2
-@export var debug_log_hits: bool = true
+@export var debug_log_hits: bool = false
 
 var orbiter_level: int = 0
 var _elapsed_seconds: float = 0.0

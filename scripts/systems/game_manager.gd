@@ -28,7 +28,7 @@ var spikes_level: int = 0
 var spike_ring_instance: Node2D
 var orbiters_level: int = 0
 var orbiter_instance: Node2D
-var debug_log_drops: bool = true
+var debug_log_drops: bool = false
 
 func _ready() -> void:
 	if player != null and player.has_signal("hp_changed"):

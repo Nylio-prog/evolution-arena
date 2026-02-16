@@ -3,7 +3,7 @@ extends Area2D
 signal collected(amount: int)
 
 @export var xp_value: int = 10
-@export var debug_log_collect: bool = true
+@export var debug_log_collect: bool = false
 
 func _ready() -> void:
 	add_to_group("biomass_pickups")

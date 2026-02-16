@@ -4,7 +4,7 @@ signal xp_changed(current_xp: int, xp_to_next_level: int)
 signal level_changed(current_level: int)
 signal leveled_up(new_level: int)
 
-@export var debug_log_xp: bool = true
+@export var debug_log_xp: bool = false
 
 var current_level: int = 1
 var current_xp: int = 0

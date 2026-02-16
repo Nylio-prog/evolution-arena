@@ -8,7 +8,7 @@ signal died
 @export var invulnerability_seconds: float = 0.5
 @export var visual_radius: float = 12.0
 @export var visual_color: Color = Color(1, 1, 1, 1)
-@export var debug_log_damage: bool = true
+@export var debug_log_damage: bool = false
 
 var current_hp: int
 var _invulnerable_until_ms: int = 0
