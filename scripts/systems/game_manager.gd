@@ -10,6 +10,7 @@ const ORBITERS_MAX_LEVEL: int = 3
 @onready var hp_label: Label = get_node_or_null("UiHud/HPLabel")
 @onready var xp_bar: ProgressBar = get_node_or_null("UiHud/XPBar")
 @onready var level_label: Label = get_node_or_null("UiHud/LevelLabel")
+@onready var timer_label: Label = get_node_or_null("UiHud/TimerLabel")
 @onready var levelup_ui: CanvasLayer = get_node_or_null("UiLevelup")
 @onready var levelup_choice_1: Button = get_node_or_null("UiLevelup/Root/Layout/ChoicesRow/ChoiceButton1")
 @onready var levelup_choice_2: Button = get_node_or_null("UiLevelup/Root/Layout/ChoicesRow/ChoiceButton2")
@@ -52,6 +53,7 @@ func _ready() -> void:
 			_on_xp_changed(int(current_xp_value), int(xp_to_next_level_value))
 		if current_level_value != null:
 			_on_level_changed(int(current_level_value))
+	_update_timer_label()
 
 	for node in get_tree().get_nodes_in_group("biomass_pickups"):
 		_connect_biomass_pickup(node as Node)
@@ -79,6 +81,7 @@ func _process(delta: float) -> void:
 	if run_paused_for_levelup:
 		return
 	elapsed_seconds += delta
+	_update_timer_label()
 
 func _unhandled_input(event: InputEvent) -> void:
 	if not run_paused_for_levelup:
@@ -181,6 +184,11 @@ func _show_game_over() -> void:
 
 	if game_over_ui != null:
 		game_over_ui.visible = true
+
+func _update_timer_label() -> void:
+	if timer_label == null:
+		return
+	timer_label.text = "Time: %ds" % int(elapsed_seconds)
 
 func _on_player_leveled_up(_new_level: int) -> void:
 	if run_ended:
