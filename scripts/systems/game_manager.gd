@@ -153,10 +153,7 @@ func _on_lineage_changed(_lineage_id: String, _lineage_name: String) -> void:
 	_refresh_lineage_labels()
 
 func _refresh_lineage_labels() -> void:
-	var current_lineage_name: String = "None"
-	if mutation_system != null and mutation_system.has_method("get_current_lineage_name"):
-		var lineage_name_variant: Variant = mutation_system.call("get_current_lineage_name")
-		current_lineage_name = String(lineage_name_variant)
+	var current_lineage_name: String = _get_current_lineage_name()
 
 	if lineage_label != null:
 		lineage_label.text = "Lineage: %s" % current_lineage_name
@@ -250,7 +247,11 @@ func _set_gameplay_active(active: bool) -> void:
 
 func _show_game_over() -> void:
 	if game_over_stats_label != null:
-		game_over_stats_label.text = "Time: %ds | Level: %d" % [int(elapsed_seconds), level_reached]
+		game_over_stats_label.text = "Time: %ds | Level: %d | Lineage: %s" % [
+			int(elapsed_seconds),
+			level_reached,
+			_get_current_lineage_name()
+		]
 
 	if game_over_ui != null:
 		game_over_ui.visible = true
@@ -400,3 +401,9 @@ func _set_levelup_mode(lineage_mode: bool) -> void:
 		levelup_choices_row.visible = not lineage_mode
 	if lineage_choices_column != null:
 		lineage_choices_column.visible = lineage_mode
+
+func _get_current_lineage_name() -> String:
+	if mutation_system != null and mutation_system.has_method("get_current_lineage_name"):
+		var lineage_name_variant: Variant = mutation_system.call("get_current_lineage_name")
+		return String(lineage_name_variant)
+	return "None"
