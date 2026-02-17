@@ -13,12 +13,22 @@ extends Control
 @onready var close_options_button: Button = get_node_or_null("OptionsPanel/OptionsContent/CloseOptionsButton")
 @onready var audio_manager: Node = get_node_or_null("/root/AudioManager")
 
+var _arena_preload_started: bool = false
+var _arena_preload_ready: bool = false
+var _arena_preload_failed: bool = false
+var _arena_scene_cache: PackedScene
+var _play_requested_while_loading: bool = false
+
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	_connect_ui()
 	_set_options_visible(false)
 	_setup_audio_controls()
 	_play_music("bgm_main")
+	_begin_arena_preload()
+
+func _process(_delta: float) -> void:
+	_poll_arena_preload()
 
 func _unhandled_input(event: InputEvent) -> void:
 	var key_event := event as InputEventKey
@@ -54,10 +64,21 @@ func _connect_ui() -> void:
 
 func _on_play_pressed() -> void:
 	_play_sfx("ui_click")
-	if not ResourceLoader.exists(arena_scene_path, "PackedScene"):
-		push_error("MainMenu missing arena scene at: %s" % arena_scene_path)
+	if _arena_preload_ready and _arena_scene_cache != null:
+		get_tree().change_scene_to_packed(_arena_scene_cache)
 		return
-	get_tree().change_scene_to_file(arena_scene_path)
+	if _arena_preload_failed:
+		if not ResourceLoader.exists(arena_scene_path, "PackedScene"):
+			push_error("MainMenu missing arena scene at: %s" % arena_scene_path)
+			return
+		get_tree().change_scene_to_file(arena_scene_path)
+		return
+
+	_begin_arena_preload()
+	_play_requested_while_loading = true
+	if play_button != null:
+		play_button.disabled = true
+		play_button.text = "Loading..."
 
 func _on_options_pressed() -> void:
 	_play_sfx("ui_click")
@@ -162,3 +183,57 @@ func _play_music(track_id: String) -> void:
 	if not audio_manager.has_method("play_music"):
 		return
 	audio_manager.call("play_music", track_id)
+
+func _begin_arena_preload() -> void:
+	if _arena_preload_started:
+		return
+	if arena_scene_path.is_empty():
+		_arena_preload_failed = true
+		return
+	if not ResourceLoader.exists(arena_scene_path, "PackedScene"):
+		_arena_preload_failed = true
+		return
+
+	var request_error: int = ResourceLoader.load_threaded_request(arena_scene_path, "PackedScene", true)
+	if request_error != OK:
+		_arena_preload_failed = true
+		return
+	_arena_preload_started = true
+	set_process(true)
+
+func _poll_arena_preload() -> void:
+	if not _arena_preload_started:
+		return
+	if _arena_preload_ready:
+		return
+	if _arena_preload_failed:
+		return
+
+	var progress: Array = []
+	var status: int = ResourceLoader.load_threaded_get_status(arena_scene_path, progress)
+	if status == ResourceLoader.THREAD_LOAD_FAILED:
+		_arena_preload_failed = true
+		_restore_play_button_after_loading()
+		return
+	if status != ResourceLoader.THREAD_LOAD_LOADED:
+		return
+
+	var loaded_resource_variant: Variant = ResourceLoader.load_threaded_get(arena_scene_path)
+	var loaded_scene: PackedScene = loaded_resource_variant as PackedScene
+	if loaded_scene == null:
+		_arena_preload_failed = true
+		_restore_play_button_after_loading()
+		return
+
+	_arena_scene_cache = loaded_scene
+	_arena_preload_ready = true
+	_restore_play_button_after_loading()
+	if _play_requested_while_loading:
+		_play_requested_while_loading = false
+		get_tree().change_scene_to_packed(_arena_scene_cache)
+
+func _restore_play_button_after_loading() -> void:
+	if play_button == null:
+		return
+	play_button.disabled = false
+	play_button.text = "Play"

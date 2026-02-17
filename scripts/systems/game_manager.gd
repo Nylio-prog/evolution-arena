@@ -2,6 +2,7 @@
 
 const BIOMASS_PICKUP_SCENE: PackedScene = preload("res://scenes/systems/biomass_pickup.tscn")
 const CONTAINMENT_SWEEP_SCENE: PackedScene = preload("res://scenes/systems/containment_sweep_hazard.tscn")
+const BIOHAZARD_LEAK_ZONE_SCENE: PackedScene = preload("res://scenes/systems/biohazard_leak_zone.tscn")
 const STRAIN_BLOOM_ELITE_SCENE: PackedScene = preload("res://scenes/actors/enemy_dasher.tscn")
 const MUTATION_ICON_SPIKES: Texture2D = preload("res://art/sprites/ui/mutation_spikes.png")
 const MUTATION_ICON_ORBITERS: Texture2D = preload("res://art/sprites/ui/mutation_orbiters.png")
@@ -83,6 +84,12 @@ var game_over_main_menu_requested: bool = false
 var _last_player_hp: int = -1
 var _syncing_audio_controls: bool = false
 var _active_containment_sweeps: Array[Node2D] = []
+var _active_biohazard_leaks: Array[Node2D] = []
+var _biohazard_leak_spawner_active: bool = false
+var _biohazard_leak_spawn_accumulator: float = 0.0
+var _biohazard_leak_position_sample_accumulator: float = 0.0
+var _biohazard_leak_elapsed_seconds: float = 0.0
+var _biohazard_recent_player_positions: Array = []
 var _strain_bloom_elite_target: Node2D
 var _strain_bloom_active: bool = false
 var _strain_bloom_elite_killed: bool = false
@@ -94,6 +101,24 @@ var _strain_bloom_elite_killed: bool = false
 @export var crisis_spawn_wait_multiplier_active: float = 1.6
 @export var containment_sweep_concurrent_count: int = 2
 @export var containment_sweep_spacing: float = 220.0
+@export var biohazard_leak_initial_spawn_count: int = 0
+@export var biohazard_leak_spawn_interval_seconds: float = 1.0
+@export var biohazard_leak_player_position_sample_interval_seconds: float = 0.20
+@export var biohazard_leak_player_position_history_seconds: float = 10.0
+@export var biohazard_leak_player_position_min_age_seconds: float = 1.2
+@export var biohazard_leak_max_active_zones: int = 32
+@export var biohazard_leak_min_distance_between_zones: float = 165.0
+@export var biohazard_leak_spawn_resolve_attempts: int = 10
+@export var biohazard_leak_prediction_strength: float = 0.70
+@export var biohazard_leak_prediction_extra_lead_seconds: float = 0.25
+@export var biohazard_leak_prediction_window_seconds: float = 2.4
+@export var biohazard_leak_prediction_path_factor: float = 0.80
+@export var biohazard_leak_target_attraction_weight: float = 0.22
+@export var biohazard_leak_collision_radius: float = 94.0
+@export var biohazard_leak_zone_damage_per_second_min: float = 20.0
+@export var biohazard_leak_zone_damage_per_second_max: float = 28.0
+@export var biohazard_leak_telegraph_duration_min: float = 0.45
+@export var biohazard_leak_telegraph_duration_max: float = 0.95
 @export var strain_bloom_elite_spawn_radius_min: float = 180.0
 @export var strain_bloom_elite_spawn_radius_max: float = 280.0
 @export var strain_bloom_elite_speed_multiplier: float = 1.45
@@ -209,6 +234,7 @@ func _reset_runtime_state() -> void:
 	game_over_main_menu_requested = false
 	_last_player_hp = -1
 	_clear_containment_sweep()
+	_clear_biohazard_leaks()
 	_clear_strain_bloom_state()
 	if crisis_director != null and crisis_director.has_method("reset_runtime_state"):
 		crisis_director.call("reset_runtime_state")
@@ -255,6 +281,8 @@ func _on_crisis_phase_changed(new_phase: String, crisis_id: String) -> void:
 		_clear_strain_bloom_state()
 	if new_phase != "active" or crisis_id != "containment_sweep":
 		_clear_containment_sweep()
+	if new_phase != "active" or crisis_id != "biohazard_leak":
+		_clear_biohazard_leaks()
 	_update_crisis_debug_banner()
 
 	if not debug_log_crisis_timeline:
@@ -437,6 +465,297 @@ func _on_containment_sweep_finished(sweep_node: Node2D) -> void:
 	if sweep_node != null:
 		_active_containment_sweeps.erase(sweep_node)
 
+func _spawn_biohazard_leaks(_active_duration_seconds: float) -> void:
+	_clear_biohazard_leaks()
+	_biohazard_leak_elapsed_seconds = 0.0
+	_set_biohazard_leak_spawner_active(true)
+
+	var player_node: Node2D = _get_biohazard_player_node()
+	if player_node != null:
+		_record_biohazard_player_position(player_node.global_position)
+
+	var initial_spawn_count: int = maxi(0, biohazard_leak_initial_spawn_count)
+	for _spawn_index in range(initial_spawn_count):
+		_spawn_one_biohazard_leak()
+
+	if debug_log_crisis_timeline:
+		print("[GameManager] Biohazard leak spawner started")
+
+func _set_biohazard_leak_spawner_active(active: bool) -> void:
+	_biohazard_leak_spawner_active = active
+	if not active:
+		_biohazard_leak_spawn_accumulator = 0.0
+		_biohazard_leak_position_sample_accumulator = 0.0
+		_biohazard_leak_elapsed_seconds = 0.0
+		_biohazard_recent_player_positions.clear()
+
+func _tick_biohazard_leak_spawner(delta: float) -> void:
+	if not _biohazard_leak_spawner_active:
+		return
+	if delta <= 0.0:
+		return
+
+	var player_node: Node2D = _get_biohazard_player_node()
+	if player_node == null:
+		return
+
+	_biohazard_leak_elapsed_seconds += delta
+	_biohazard_leak_position_sample_accumulator += delta
+	var sample_interval: float = maxf(0.05, biohazard_leak_player_position_sample_interval_seconds)
+	while _biohazard_leak_position_sample_accumulator >= sample_interval:
+		_biohazard_leak_position_sample_accumulator -= sample_interval
+		_record_biohazard_player_position(player_node.global_position)
+	_prune_biohazard_position_history()
+
+	var max_active_zones: int = maxi(1, biohazard_leak_max_active_zones)
+	if _active_biohazard_leaks.size() >= max_active_zones:
+		return
+
+	_biohazard_leak_spawn_accumulator += delta
+	var spawn_interval: float = maxf(0.05, biohazard_leak_spawn_interval_seconds)
+	while _biohazard_leak_spawn_accumulator >= spawn_interval:
+		_biohazard_leak_spawn_accumulator -= spawn_interval
+		if _active_biohazard_leaks.size() >= max_active_zones:
+			break
+		_spawn_one_biohazard_leak(player_node)
+
+func _get_biohazard_player_node() -> Node2D:
+	var player_node: Node2D = player as Node2D
+	if player_node == null:
+		player_node = get_tree().get_first_node_in_group("player") as Node2D
+	return player_node
+
+func _record_biohazard_player_position(position: Vector2) -> void:
+	_biohazard_recent_player_positions.append({
+		"position": position,
+		"time": _biohazard_leak_elapsed_seconds
+	})
+
+func _prune_biohazard_position_history() -> void:
+	var max_age_seconds: float = maxf(2.0, biohazard_leak_player_position_history_seconds)
+	for index in range(_biohazard_recent_player_positions.size() - 1, -1, -1):
+		var entry_variant: Variant = _biohazard_recent_player_positions[index]
+		if not (entry_variant is Dictionary):
+			_biohazard_recent_player_positions.remove_at(index)
+			continue
+		var entry: Dictionary = entry_variant
+		var sample_time: float = float(entry.get("time", -1.0))
+		var age_seconds: float = _biohazard_leak_elapsed_seconds - sample_time
+		if age_seconds > max_age_seconds:
+			_biohazard_recent_player_positions.remove_at(index)
+
+func _spawn_one_biohazard_leak(optional_player_node: Node2D = null) -> void:
+	var player_node: Node2D = optional_player_node
+	if player_node == null:
+		player_node = _get_biohazard_player_node()
+	if player_node == null:
+		return
+
+	var min_damage_per_second: float = maxf(1.0, biohazard_leak_zone_damage_per_second_min)
+	var max_damage_per_second: float = maxf(min_damage_per_second, biohazard_leak_zone_damage_per_second_max)
+	var min_telegraph_duration: float = maxf(0.05, biohazard_leak_telegraph_duration_min)
+	var max_telegraph_duration: float = maxf(min_telegraph_duration, biohazard_leak_telegraph_duration_max)
+
+	var damage_per_second: float = randf_range(min_damage_per_second, max_damage_per_second)
+	var telegraph_duration: float = randf_range(min_telegraph_duration, max_telegraph_duration)
+	var leak_center: Vector2 = _select_biohazard_spawn_position(player_node, telegraph_duration)
+
+	var leak_zone := BIOHAZARD_LEAK_ZONE_SCENE.instantiate() as Node2D
+	if leak_zone == null:
+		return
+	add_child(leak_zone)
+	_active_biohazard_leaks.append(leak_zone)
+
+	leak_zone.set("collision_radius", maxf(8.0, biohazard_leak_collision_radius))
+	leak_zone.set("damage_per_second", damage_per_second)
+	leak_zone.set("telegraph_duration_seconds", telegraph_duration)
+
+	if leak_zone.has_method("begin_leak"):
+		leak_zone.call("begin_leak", leak_center)
+	else:
+		leak_zone.global_position = leak_center
+
+	var leak_finished_callable := Callable(self, "_on_biohazard_leak_finished").bind(leak_zone)
+	if leak_zone.has_signal("leak_finished") and not leak_zone.is_connected("leak_finished", leak_finished_callable):
+		leak_zone.connect("leak_finished", leak_finished_callable)
+
+func _select_biohazard_spawn_position(player_node: Node2D, telegraph_duration_seconds: float) -> Vector2:
+	var lead_seconds: float = maxf(0.0, telegraph_duration_seconds + biohazard_leak_prediction_extra_lead_seconds)
+	var trend_velocity: Vector2 = _get_biohazard_trend_velocity(player_node)
+	var predicted_player_position: Vector2 = _predict_player_position(player_node, lead_seconds)
+	var candidate_positions: Array[Vector2] = []
+	var min_age_seconds: float = maxf(0.0, biohazard_leak_player_position_min_age_seconds)
+	var path_factor: float = clampf(biohazard_leak_prediction_path_factor, 0.0, 1.5)
+	var projection_offset: Vector2 = trend_velocity * lead_seconds * path_factor
+
+	for entry_variant in _biohazard_recent_player_positions:
+		if not (entry_variant is Dictionary):
+			continue
+		var entry: Dictionary = entry_variant
+		var sample_time: float = float(entry.get("time", -1.0))
+		if sample_time < 0.0:
+			continue
+		var age_seconds: float = _biohazard_leak_elapsed_seconds - sample_time
+		if age_seconds < min_age_seconds:
+			continue
+		var position_variant: Variant = entry.get("position", null)
+		if not (position_variant is Vector2):
+			continue
+		var sample_position: Vector2 = position_variant
+		candidate_positions.append(sample_position)
+		candidate_positions.append(sample_position + projection_offset)
+
+	if candidate_positions.is_empty():
+		for entry_variant in _biohazard_recent_player_positions:
+			if not (entry_variant is Dictionary):
+				continue
+			var entry: Dictionary = entry_variant
+			var position_variant: Variant = entry.get("position", null)
+			if not (position_variant is Vector2):
+				continue
+			var sample_position: Vector2 = position_variant
+			candidate_positions.append(sample_position)
+			candidate_positions.append(sample_position + projection_offset)
+
+	if candidate_positions.is_empty():
+		return predicted_player_position
+
+	var best_position: Vector2 = candidate_positions[0]
+	var best_score: float = -INF
+	var prediction_strength: float = clampf(biohazard_leak_prediction_strength, 0.0, 1.0)
+	var attraction_weight: float = clampf(biohazard_leak_target_attraction_weight, 0.0, 1.0)
+	for candidate_position in candidate_positions:
+		var candidate_position_vec: Vector2 = candidate_position
+		var leak_distance: float = _get_biohazard_min_distance_to_existing(candidate_position_vec)
+		var predicted_distance: float = candidate_position_vec.distance_to(predicted_player_position)
+		var candidate_score: float = leak_distance
+		candidate_score -= predicted_distance * prediction_strength
+		candidate_score -= predicted_distance * attraction_weight
+		candidate_score += randf_range(0.0, 10.0)
+		if candidate_score > best_score:
+			best_score = candidate_score
+			best_position = candidate_position_vec
+
+	var min_separation: float = maxf(24.0, biohazard_leak_min_distance_between_zones)
+	return _resolve_biohazard_spawn_position(best_position, predicted_player_position, min_separation, attraction_weight)
+
+func _resolve_biohazard_spawn_position(
+	base_position: Vector2,
+	target_position: Vector2,
+	min_separation: float,
+	attraction_weight: float
+) -> Vector2:
+	var resolved_position: Vector2 = base_position
+	var best_score: float = _get_biohazard_min_distance_to_existing(base_position)
+	best_score -= base_position.distance_to(target_position) * attraction_weight
+
+	if _get_biohazard_min_distance_to_existing(base_position) >= min_separation:
+		return base_position
+
+	var attempts: int = maxi(1, biohazard_leak_spawn_resolve_attempts)
+	for _attempt_index in range(attempts):
+		var angle: float = randf() * TAU
+		var offset_distance: float = randf_range(min_separation * 0.45, min_separation * 1.2)
+		var candidate_position: Vector2 = base_position + Vector2.RIGHT.rotated(angle) * offset_distance
+		var leak_distance: float = _get_biohazard_min_distance_to_existing(candidate_position)
+		var candidate_score: float = leak_distance - (candidate_position.distance_to(target_position) * attraction_weight)
+		if candidate_score > best_score:
+			best_score = candidate_score
+			resolved_position = candidate_position
+			if leak_distance >= min_separation:
+				break
+
+	return resolved_position
+
+func _predict_player_position(player_node: Node2D, lead_seconds: float) -> Vector2:
+	if player_node == null:
+		return Vector2.ZERO
+	var current_position: Vector2 = player_node.global_position
+	var trend_velocity: Vector2 = _get_biohazard_trend_velocity(player_node)
+	if trend_velocity.length_squared() > 0.0001:
+		return current_position + trend_velocity * maxf(0.0, lead_seconds)
+	return current_position
+
+func _get_biohazard_trend_velocity(player_node: Node2D) -> Vector2:
+	if player_node == null:
+		return Vector2.ZERO
+
+	var fallback_velocity: Vector2 = Vector2.ZERO
+	var velocity_variant: Variant = player_node.get("velocity")
+	if velocity_variant is Vector2:
+		fallback_velocity = velocity_variant
+
+	var prediction_window: float = maxf(0.25, biohazard_leak_prediction_window_seconds)
+	var weighted_velocity: Vector2 = Vector2.ZERO
+	var total_weight: float = 0.0
+
+	for index in range(1, _biohazard_recent_player_positions.size()):
+		var previous_variant: Variant = _biohazard_recent_player_positions[index - 1]
+		var current_variant: Variant = _biohazard_recent_player_positions[index]
+		if not (previous_variant is Dictionary) or not (current_variant is Dictionary):
+			continue
+
+		var previous_entry: Dictionary = previous_variant
+		var current_entry: Dictionary = current_variant
+		var previous_time: float = float(previous_entry.get("time", -1.0))
+		var current_time: float = float(current_entry.get("time", -1.0))
+		if previous_time < 0.0 or current_time < 0.0:
+			continue
+		var delta_time: float = current_time - previous_time
+		if delta_time <= 0.0001:
+			continue
+
+		var segment_age: float = _biohazard_leak_elapsed_seconds - current_time
+		if segment_age > prediction_window:
+			continue
+
+		var previous_position_variant: Variant = previous_entry.get("position", null)
+		var current_position_variant: Variant = current_entry.get("position", null)
+		if not (previous_position_variant is Vector2) or not (current_position_variant is Vector2):
+			continue
+
+		var previous_position: Vector2 = previous_position_variant
+		var current_position: Vector2 = current_position_variant
+		var segment_velocity: Vector2 = (current_position - previous_position) / delta_time
+		var recency_weight: float = clampf(1.0 - (segment_age / prediction_window), 0.12, 1.0)
+		weighted_velocity += segment_velocity * recency_weight
+		total_weight += recency_weight
+
+	var trend_velocity: Vector2 = fallback_velocity
+	if total_weight > 0.0:
+		trend_velocity = weighted_velocity / total_weight
+		if fallback_velocity.length_squared() > 0.0001:
+			trend_velocity = trend_velocity.lerp(fallback_velocity, 0.25)
+
+	return trend_velocity
+
+func _get_biohazard_min_distance_to_existing(target_position: Vector2) -> float:
+	var min_distance: float = INF
+	for leak_zone in _active_biohazard_leaks:
+		if leak_zone == null:
+			continue
+		if not is_instance_valid(leak_zone):
+			continue
+		var candidate_distance: float = target_position.distance_to(leak_zone.global_position)
+		min_distance = minf(min_distance, candidate_distance)
+	if min_distance == INF:
+		return 999999.0
+	return min_distance
+
+func _clear_biohazard_leaks() -> void:
+	_set_biohazard_leak_spawner_active(false)
+	for leak_zone in _active_biohazard_leaks:
+		if leak_zone == null:
+			continue
+		if not is_instance_valid(leak_zone):
+			continue
+		leak_zone.queue_free()
+	_active_biohazard_leaks.clear()
+
+func _on_biohazard_leak_finished(leak_zone: Node2D) -> void:
+	if leak_zone != null:
+		_active_biohazard_leaks.erase(leak_zone)
+
 func _on_containment_sweep_player_contacted(_player_node: Node) -> void:
 	_fail_run_immediately("Containment sweep contact")
 
@@ -525,6 +844,8 @@ func _get_crisis_objective_text(phase_name: String, crisis_id: String) -> String
 func _on_crisis_started(crisis_id: String, is_final: bool, duration_seconds: float) -> void:
 	if not is_final and crisis_id == "containment_sweep":
 		_spawn_containment_sweep(duration_seconds)
+	if not is_final and crisis_id == "biohazard_leak":
+		_spawn_biohazard_leaks(duration_seconds)
 	if not is_final and crisis_id == "strain_bloom":
 		_spawn_strain_bloom_elite()
 
@@ -542,6 +863,7 @@ func _on_crisis_reward_started(crisis_id: String, duration_seconds: float) -> vo
 
 func _on_final_crisis_completed() -> void:
 	_clear_containment_sweep()
+	_clear_biohazard_leaks()
 	_clear_strain_bloom_state()
 	if not debug_log_crisis_timeline:
 		return
@@ -564,6 +886,7 @@ func _process(delta: float) -> void:
 	elapsed_seconds += delta
 	_update_timer_label()
 	_tick_crisis_director(delta)
+	_tick_biohazard_leak_spawner(delta)
 	_update_crisis_debug_banner()
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -575,6 +898,10 @@ func _unhandled_input(event: InputEvent) -> void:
 			return
 		if key_event.keycode == KEY_T and _can_use_debug_xp_cheat():
 			_debug_fast_forward_time()
+			get_viewport().set_input_as_handled()
+			return
+		if key_event.keycode == KEY_N and _can_use_debug_xp_cheat():
+			_debug_force_next_crisis()
 			get_viewport().set_input_as_handled()
 			return
 		if key_event.keycode == KEY_ESCAPE and not run_ended and not run_paused_for_levelup:
@@ -743,6 +1070,7 @@ func _on_player_died() -> void:
 	if crisis_debug_label != null:
 		crisis_debug_label.visible = false
 	_clear_containment_sweep()
+	_clear_biohazard_leaks()
 	_clear_strain_bloom_state()
 	run_ended = true
 	_play_sfx("player_death")
@@ -1105,6 +1433,7 @@ func _debug_fast_forward_time() -> void:
 	elapsed_seconds += seconds_to_skip
 	_update_timer_label()
 	_tick_crisis_director(seconds_to_skip)
+	_tick_biohazard_leak_spawner(seconds_to_skip)
 
 	for spawner_variant in get_tree().get_nodes_in_group("enemy_spawners"):
 		var spawner_node := spawner_variant as Node
@@ -1115,6 +1444,23 @@ func _debug_fast_forward_time() -> void:
 		spawner_node.call("debug_advance_time", seconds_to_skip)
 
 	print("Debug fast-forward: +%.1fs (run time now %.1fs)" % [seconds_to_skip, elapsed_seconds])
+
+func _debug_force_next_crisis() -> void:
+	if not _can_use_debug_xp_cheat():
+		return
+	if run_ended:
+		return
+	if run_paused_for_levelup or run_paused_for_menu:
+		return
+	if crisis_director == null:
+		return
+	if not crisis_director.has_method("debug_force_next_active_crisis"):
+		return
+
+	var jumped: bool = bool(crisis_director.call("debug_force_next_active_crisis", elapsed_seconds))
+	if jumped:
+		_update_crisis_debug_banner()
+		print("Debug crisis jump: moved to next active crisis")
 
 func _can_use_debug_xp_cheat() -> bool:
 	if not debug_allow_grant_xp:

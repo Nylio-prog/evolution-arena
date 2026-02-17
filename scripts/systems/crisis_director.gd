@@ -86,6 +86,29 @@ func get_time_until_next_crisis(run_elapsed_seconds: float) -> float:
 		return minf(time_until_regular, time_until_final)
 	return time_until_final
 
+func debug_force_next_active_crisis(run_elapsed_seconds: float) -> bool:
+	if _final_crisis_completed:
+		return false
+	if _phase == "final" or _phase == "victory":
+		return false
+
+	# Force-exit any non-idle regular phase without running full objective/reward timing.
+	if _phase == "active" or _phase == "reward":
+		_phase = "idle"
+		_phase_elapsed_seconds = 0.0
+		_active_crisis_id = ""
+		_is_final_crisis = false
+		_emit_phase_changed("idle", "")
+
+	if run_elapsed_seconds >= final_crisis_start_seconds:
+		_start_crisis("purge_protocol", true)
+		return true
+
+	var crisis_id: String = _get_next_regular_crisis_id()
+	_start_crisis(crisis_id, false)
+	_next_regular_crisis_start_seconds = maxf(_next_regular_crisis_start_seconds, run_elapsed_seconds + crisis_interval_seconds)
+	return true
+
 func complete_active_crisis_early(expected_crisis_id: String = "") -> bool:
 	if _phase != "active":
 		return false
