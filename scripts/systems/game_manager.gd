@@ -24,6 +24,7 @@ const MUTATION_ICON_BY_ID: Dictionary = {
 @onready var xp_bar: ProgressBar = get_node_or_null("UiHud/XPBar")
 @onready var level_label: Label = get_node_or_null("UiHud/LevelLabel")
 @onready var timer_label: Label = get_node_or_null("UiHud/TimerLabel")
+@onready var crisis_debug_label: Label = get_node_or_null("UiHud/CrisisDebugLabel")
 @onready var lineage_label: Label = get_node_or_null("UiHud/LineageLabel")
 @onready var audio_button: Button = get_node_or_null("UiHud/AudioButton")
 @onready var audio_panel: Control = get_node_or_null("UiHud/AudioPanel")
@@ -83,6 +84,7 @@ var _syncing_audio_controls: bool = false
 @export var debug_grant_xp_amount: int = 20
 @export var debug_fast_forward_seconds: float = 10.0
 @export var debug_log_crisis_timeline: bool = true
+@export var debug_show_crisis_banner: bool = true
 @export var crisis_spawn_wait_multiplier_active: float = 1.6
 
 const LINEAGE_CHOICES: Array[String] = ["predator", "swarm", "bulwark"]
@@ -127,6 +129,7 @@ func _ready() -> void:
 	_refresh_lineage_labels()
 	_refresh_metabolism_hud()
 	_setup_crisis_director()
+	_update_crisis_debug_banner()
 	_setup_audio_controls()
 	_play_music("bgm_main")
 
@@ -229,6 +232,7 @@ func _tick_crisis_director(delta: float) -> void:
 func _on_crisis_phase_changed(new_phase: String, crisis_id: String) -> void:
 	var crisis_active: bool = (new_phase == "active" or new_phase == "final")
 	_set_crisis_spawn_throttle(crisis_active)
+	_update_crisis_debug_banner()
 
 	if not debug_log_crisis_timeline:
 		return
@@ -249,6 +253,68 @@ func _set_crisis_spawn_throttle(active: bool) -> void:
 		if not spawner_node.has_method("set_crisis_spawn_wait_multiplier"):
 			continue
 		spawner_node.call("set_crisis_spawn_wait_multiplier", target_multiplier)
+
+func _update_crisis_debug_banner() -> void:
+	if crisis_debug_label == null:
+		return
+	if not debug_show_crisis_banner:
+		crisis_debug_label.visible = false
+		return
+	if crisis_director == null:
+		crisis_debug_label.visible = false
+		return
+	if not crisis_director.has_method("get_phase"):
+		crisis_debug_label.visible = false
+		return
+
+	var phase_name: String = String(crisis_director.call("get_phase"))
+	var crisis_id: String = ""
+	var phase_seconds_remaining: float = 0.0
+	var next_crisis_seconds: float = 0.0
+
+	if crisis_director.has_method("get_active_crisis_id"):
+		crisis_id = String(crisis_director.call("get_active_crisis_id"))
+	if crisis_director.has_method("get_phase_time_remaining"):
+		phase_seconds_remaining = float(crisis_director.call("get_phase_time_remaining"))
+	if crisis_director.has_method("get_time_until_next_crisis"):
+		next_crisis_seconds = float(crisis_director.call("get_time_until_next_crisis", elapsed_seconds))
+
+	var timer_text: String = ""
+	if phase_name == "idle":
+		timer_text = "Next in %.1fs" % next_crisis_seconds
+	else:
+		timer_text = "T-%.1fs" % phase_seconds_remaining
+
+	var objective_text: String = _get_crisis_objective_text(phase_name, crisis_id)
+	crisis_debug_label.visible = true
+	crisis_debug_label.text = "CRISIS: %s | %s\nObjective: %s" % [
+		phase_name.to_upper(),
+		timer_text,
+		objective_text
+	]
+
+func _get_crisis_objective_text(phase_name: String, crisis_id: String) -> String:
+	match phase_name:
+		"idle":
+			return "Prepare for incoming containment event"
+		"active":
+			match crisis_id:
+				"containment_sweep":
+					return "Evade containment sweep"
+				"strain_bloom":
+					return "Eliminate elite strain"
+				"biohazard_leak":
+					return "Survive contamination leak"
+				_:
+					return "Survive active crisis"
+		"reward":
+			return "Choose crisis reward"
+		"final":
+			return "Survive purge protocol"
+		"victory":
+			return "Run clear - outbreak ascendant"
+		_:
+			return "--"
 
 func _on_crisis_started(crisis_id: String, is_final: bool, duration_seconds: float) -> void:
 	if not debug_log_crisis_timeline:
@@ -278,6 +344,7 @@ func _process(delta: float) -> void:
 	elapsed_seconds += delta
 	_update_timer_label()
 	_tick_crisis_director(delta)
+	_update_crisis_debug_banner()
 
 func _unhandled_input(event: InputEvent) -> void:
 	var key_event := event as InputEventKey
@@ -453,6 +520,8 @@ func _on_player_died() -> void:
 		levelup_ui.visible = false
 	if pause_menu_ui != null:
 		pause_menu_ui.visible = false
+	if crisis_debug_label != null:
+		crisis_debug_label.visible = false
 	run_ended = true
 	_play_sfx("player_death")
 	_stop_music()

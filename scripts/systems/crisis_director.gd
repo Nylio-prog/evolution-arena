@@ -74,6 +74,18 @@ func get_phase_time_remaining() -> float:
 		_:
 			return 0.0
 
+func get_time_until_next_crisis(run_elapsed_seconds: float) -> float:
+	if _phase != "idle":
+		return 0.0
+	if _final_crisis_completed:
+		return 0.0
+
+	var time_until_final: float = maxf(0.0, final_crisis_start_seconds - run_elapsed_seconds)
+	var time_until_regular: float = maxf(0.0, _next_regular_crisis_start_seconds - run_elapsed_seconds)
+	if _next_regular_crisis_start_seconds < final_crisis_start_seconds:
+		return minf(time_until_regular, time_until_final)
+	return time_until_final
+
 func _process_idle(_delta: float, run_elapsed_seconds: float) -> void:
 	if run_elapsed_seconds >= final_crisis_start_seconds:
 		_start_crisis("purge_protocol", true)

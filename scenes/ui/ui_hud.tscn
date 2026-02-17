@@ -72,6 +72,22 @@ theme_override_fonts/font = ExtResource("2_7gn6w")
 text = "Time: 0s"
 horizontal_alignment = 1
 
+[node name="CrisisDebugLabel" type="Label" parent="."]
+visible = false
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -280.0
+offset_top = 40.0
+offset_right = 280.0
+offset_bottom = 88.0
+theme_override_fonts/font = ExtResource("1_xl7m1")
+theme_override_font_sizes/font_size = 18
+theme_override_colors/font_color = Color(1, 0.835294, 0.501961, 0.95)
+text = "CRISIS: idle | T-0.0s\nObjective: --"
+horizontal_alignment = 1
+vertical_alignment = 1
+
 [node name="LineageLabel" type="Label" parent="." unique_id=1321895676]
 anchors_preset = 1
 anchor_left = 1.0
