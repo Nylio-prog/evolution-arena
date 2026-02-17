@@ -83,6 +83,7 @@ var _syncing_audio_controls: bool = false
 @export var debug_grant_xp_amount: int = 20
 @export var debug_fast_forward_seconds: float = 10.0
 @export var debug_log_crisis_timeline: bool = true
+@export var crisis_spawn_wait_multiplier_active: float = 1.6
 
 const LINEAGE_CHOICES: Array[String] = ["predator", "swarm", "bulwark"]
 
@@ -216,6 +217,8 @@ func _setup_crisis_director() -> void:
 		if not crisis_director.is_connected("final_crisis_completed", final_completed_callable):
 			crisis_director.connect("final_crisis_completed", final_completed_callable)
 
+	_set_crisis_spawn_throttle(false)
+
 func _tick_crisis_director(delta: float) -> void:
 	if crisis_director == null:
 		return
@@ -224,12 +227,28 @@ func _tick_crisis_director(delta: float) -> void:
 	crisis_director.call("tick", delta, elapsed_seconds)
 
 func _on_crisis_phase_changed(new_phase: String, crisis_id: String) -> void:
+	var crisis_active: bool = (new_phase == "active" or new_phase == "final")
+	_set_crisis_spawn_throttle(crisis_active)
+
 	if not debug_log_crisis_timeline:
 		return
 	if crisis_id.is_empty():
 		print("[GameManager] Crisis phase -> %s at %.1fs" % [new_phase, elapsed_seconds])
 	else:
 		print("[GameManager] Crisis phase -> %s (%s) at %.1fs" % [new_phase, crisis_id, elapsed_seconds])
+
+func _set_crisis_spawn_throttle(active: bool) -> void:
+	var target_multiplier: float = 1.0
+	if active:
+		target_multiplier = maxf(1.0, crisis_spawn_wait_multiplier_active)
+
+	for spawner_variant in get_tree().get_nodes_in_group("enemy_spawners"):
+		var spawner_node := spawner_variant as Node
+		if spawner_node == null:
+			continue
+		if not spawner_node.has_method("set_crisis_spawn_wait_multiplier"):
+			continue
+		spawner_node.call("set_crisis_spawn_wait_multiplier", target_multiplier)
 
 func _on_crisis_started(crisis_id: String, is_final: bool, duration_seconds: float) -> void:
 	if not debug_log_crisis_timeline:

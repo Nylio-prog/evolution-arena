@@ -3,12 +3,12 @@ extends Node2D
 const SPIKE_SPRITE_TEXTURE: Texture2D = preload("res://art/sprites/mutations/mutation_spike.png")
 
 @export var spike_damage: int = 8
-@export var spike_distance: float = 26.0
-@export var spike_collision_radius: float = 5.0
+@export var spike_distance: float = 36.0
+@export var spike_collision_radius: float = 8.0
 @export var spike_color: Color = Color(0.95, 0.95, 0.95, 1.0)
 @export var spike_outline_color: Color = Color(0.1, 0.1, 0.1, 0.9)
 @export var spike_sprite_texture: Texture2D = SPIKE_SPRITE_TEXTURE
-@export var spike_sprite_world_size_multiplier: float = 3.4
+@export var spike_sprite_world_size_multiplier: float = 5.2
 @export var damage_interval_seconds: float = 0.2
 @export var debug_log_hits: bool = false
 

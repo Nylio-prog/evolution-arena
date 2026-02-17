@@ -3,7 +3,7 @@ extends Node2D
 const PULSE_NOVA_SPRITE_TEXTURE: Texture2D = preload("res://art/sprites/mutations/mutation_pulse_nova.png")
 
 @export var base_pulse_damage: int = 8
-@export var base_pulse_radius: float = 68.0
+@export var base_pulse_radius: float = 80.0
 @export var base_pulse_interval_seconds: float = 1.85
 @export var pulse_visual_duration_seconds: float = 0.22
 @export var pulse_color: Color = Color(0.75, 0.95, 1.0, 0.95)

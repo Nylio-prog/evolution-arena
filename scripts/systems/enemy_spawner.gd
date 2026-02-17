@@ -16,6 +16,7 @@ const ENEMY_DASHER_SCENE: PackedScene = preload("res://scenes/actors/enemy_dashe
 
 var _player: Node2D
 var _elapsed_seconds: float = 0.0
+var _crisis_spawn_wait_multiplier: float = 1.0
 
 func _ready() -> void:
 	add_to_group("enemy_spawners")
@@ -41,6 +42,10 @@ func debug_advance_time(seconds: float) -> void:
 	if seconds <= 0.0:
 		return
 	_elapsed_seconds += seconds
+	_update_spawn_wait_time()
+
+func set_crisis_spawn_wait_multiplier(multiplier: float) -> void:
+	_crisis_spawn_wait_multiplier = clampf(multiplier, 1.0, 4.0)
 	_update_spawn_wait_time()
 
 func _on_spawn_timer_timeout() -> void:
@@ -79,4 +84,4 @@ func _update_spawn_wait_time() -> void:
 
 	var ramp_ratio: float = clampf(_elapsed_seconds / ramp_duration_seconds, 0.0, 1.0)
 	var current_wait_time: float = lerpf(initial_wait_time, min_wait_time, ramp_ratio)
-	spawn_timer.wait_time = current_wait_time
+	spawn_timer.wait_time = current_wait_time * _crisis_spawn_wait_multiplier

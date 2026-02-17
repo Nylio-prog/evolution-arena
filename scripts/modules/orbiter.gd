@@ -3,7 +3,7 @@ extends Node2D
 const ORBITER_SPRITE_TEXTURE: Texture2D = preload("res://art/sprites/mutations/mutation_orbiters.png")
 
 @export var orbiter_damage: int = 6
-@export var base_orbit_radius: float = 24.0
+@export var base_orbit_radius: float = 30.0
 @export var base_orbit_speed_rps: float = 2.5
 @export var orbiter_collision_radius: float = 9.0
 @export var orbiter_color: Color = Color(0.85, 0.95, 1.0, 1.0)
@@ -15,7 +15,7 @@ const ORBITER_SPRITE_TEXTURE: Texture2D = preload("res://art/sprites/mutations/m
 
 var orbiter_level: int = 0
 var _elapsed_seconds: float = 0.0
-var _current_orbit_radius: float = 24.0
+var _current_orbit_radius: float = 30.0
 var _current_orbit_speed_rps: float = 2.5
 var _target_last_hit_time: Dictionary = {}
 
