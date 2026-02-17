@@ -296,9 +296,18 @@ func _on_containment_sweep_finished() -> void:
 	_active_containment_sweep = null
 
 func _on_containment_sweep_player_contacted(_player_node: Node) -> void:
-	if not debug_log_crisis_timeline:
+	if run_ended:
 		return
-	print("[GameManager] Containment sweep contact registered")
+	if player == null:
+		return
+
+	if player.has_method("force_die"):
+		player.call("force_die")
+		return
+
+	if player.has_method("take_damage"):
+		var max_hp_value: int = int(player.get("max_hp"))
+		player.call("take_damage", maxi(9999, max_hp_value * 10))
 
 func _update_crisis_debug_banner() -> void:
 	if crisis_debug_label == null:

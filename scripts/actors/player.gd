@@ -73,6 +73,13 @@ func take_damage(amount: int) -> void:
 	if current_hp == 0:
 		died.emit()
 
+func force_die() -> void:
+	if current_hp <= 0:
+		return
+	current_hp = 0
+	hp_changed.emit(current_hp, max_hp)
+	died.emit()
+
 func heal(amount: int) -> void:
 	if amount <= 0:
 		return
