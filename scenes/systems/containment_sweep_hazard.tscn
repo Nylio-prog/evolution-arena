@@ -1,19 +1,115 @@
-[gd_scene load_steps=3 format=3]
+[gd_scene format=3 uid="uid://bfrkyymejmfsi"]
 
 [ext_resource type="Script" uid="uid://dct7cmio7kvqa" path="res://scripts/systems/containment_sweep_hazard.gd" id="1_pyn6f"]
+[ext_resource type="Texture2D" uid="uid://ckjnv8ddr6lxl" path="res://art/sprites/crisis/containment_sweep_sheet.png" id="2_tab42"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_1"]
-size = Vector2(2800, 140)
+size = Vector2(2800, 120)
 
-[node name="ContainmentSweepHazard" type="Area2D"]
+[sub_resource type="AtlasTexture" id="AtlasTexture_s83rs"]
+atlas = ExtResource("2_tab42")
+region = Rect2(12, 78, 507, 169)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_v7nmp"]
+atlas = ExtResource("2_tab42")
+region = Rect2(519, 78, 507, 169)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_m2txv"]
+atlas = ExtResource("2_tab42")
+region = Rect2(1026, 78, 507, 169)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_76o3h"]
+atlas = ExtResource("2_tab42")
+region = Rect2(12, 324, 507, 169)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_686sf"]
+atlas = ExtResource("2_tab42")
+region = Rect2(519, 324, 507, 169)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_sr7cg"]
+atlas = ExtResource("2_tab42")
+region = Rect2(1026, 324, 507, 169)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_a8nk8"]
+atlas = ExtResource("2_tab42")
+region = Rect2(12, 570, 507, 169)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_wxn8e"]
+atlas = ExtResource("2_tab42")
+region = Rect2(519, 570, 507, 169)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_d6rjg"]
+atlas = ExtResource("2_tab42")
+region = Rect2(1026, 570, 507, 169)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_lyfdu"]
+atlas = ExtResource("2_tab42")
+region = Rect2(12, 816, 507, 169)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_42w8l"]
+atlas = ExtResource("2_tab42")
+region = Rect2(519, 816, 507, 169)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_vhvss"]
+atlas = ExtResource("2_tab42")
+region = Rect2(1026, 816, 507, 169)
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_fr3lr"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_s83rs")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_v7nmp")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_m2txv")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_76o3h")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_686sf")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_sr7cg")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_a8nk8")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_wxn8e")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_d6rjg")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_lyfdu")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_42w8l")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_vhvss")
+}],
+"loop": true,
+"name": &"sweep",
+"speed": 5.0
+}]
+
+[node name="ContainmentSweepHazard" type="Area2D" unique_id=530054146]
 collision_layer = 0
-collision_mask = 1
 monitoring = false
 monitorable = false
 script = ExtResource("1_pyn6f")
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=337710699]
+position = Vector2(0, -2)
+scale = Vector2(0.12000036, 0.7600007)
 shape = SubResource("RectangleShape2D_1")
 
-[node name="VisualPolygon" type="Polygon2D" parent="."]
-color = Color(1, 0.54, 0.26, 0.22)
+[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="." unique_id=1456155904]
+sprite_frames = SubResource("SpriteFrames_fr3lr")
+animation = &"sweep"
+frame_progress = 0.09979621

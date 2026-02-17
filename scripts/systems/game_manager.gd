@@ -81,13 +81,15 @@ var lineage_selection_active: bool = false
 var game_over_main_menu_requested: bool = false
 var _last_player_hp: int = -1
 var _syncing_audio_controls: bool = false
-var _active_containment_sweep: Node2D = null
+var _active_containment_sweeps: Array[Node2D] = []
 @export var debug_allow_grant_xp: bool = false
 @export var debug_grant_xp_amount: int = 20
 @export var debug_fast_forward_seconds: float = 10.0
 @export var debug_log_crisis_timeline: bool = true
 @export var debug_show_crisis_banner: bool = true
 @export var crisis_spawn_wait_multiplier_active: float = 1.6
+@export var containment_sweep_concurrent_count: int = 2
+@export var containment_sweep_spacing: float = 220.0
 
 const LINEAGE_CHOICES: Array[String] = ["predator", "swarm", "bulwark"]
 
@@ -262,38 +264,57 @@ func _set_crisis_spawn_throttle(active: bool) -> void:
 func _spawn_containment_sweep(active_duration_seconds: float) -> void:
 	_clear_containment_sweep()
 
-	var sweep_node := CONTAINMENT_SWEEP_SCENE.instantiate() as Node2D
-	if sweep_node == null:
-		return
-
-	add_child(sweep_node)
-	_active_containment_sweep = sweep_node
-
 	var sweep_center: Vector2 = Vector2.ZERO
 	var player_node := player as Node2D
 	if player_node != null:
 		sweep_center = player_node.global_position
+		var spawn_offset: Vector2 = Vector2.RIGHT.rotated(randf() * TAU) * randf_range(80.0, 190.0)
+		sweep_center += spawn_offset
 
-	if sweep_node.has_method("begin_sweep"):
-		sweep_node.call("begin_sweep", sweep_center, active_duration_seconds)
+	var sweep_pass_count: int = 3
+	if active_duration_seconds > 20.0:
+		sweep_pass_count = 4
+	var concurrent_count: int = maxi(1, containment_sweep_concurrent_count)
+	var spacing: float = maxf(40.0, containment_sweep_spacing)
+	var split_axis: Vector2 = Vector2.RIGHT.rotated(randf() * TAU).normalized()
 
-	var sweep_finished_callable := Callable(self, "_on_containment_sweep_finished")
-	if sweep_node.has_signal("sweep_finished") and not sweep_node.is_connected("sweep_finished", sweep_finished_callable):
-		sweep_node.connect("sweep_finished", sweep_finished_callable)
+	for i in range(concurrent_count):
+		var sweep_node := CONTAINMENT_SWEEP_SCENE.instantiate() as Node2D
+		if sweep_node == null:
+			continue
 
-	var player_contacted_callable := Callable(self, "_on_containment_sweep_player_contacted")
-	if sweep_node.has_signal("player_contacted") and not sweep_node.is_connected("player_contacted", player_contacted_callable):
-		sweep_node.connect("player_contacted", player_contacted_callable)
+		add_child(sweep_node)
+		_active_containment_sweeps.append(sweep_node)
+
+		var centered_index: float = float(i) - (float(concurrent_count - 1) * 0.5)
+		var local_center: Vector2 = sweep_center + (split_axis * centered_index * spacing)
+
+		if sweep_node.has_method("set"):
+			sweep_node.set("sweep_pass_count", sweep_pass_count)
+
+		if sweep_node.has_method("begin_sweep"):
+			sweep_node.call("begin_sweep", local_center, active_duration_seconds)
+
+		var sweep_finished_callable := Callable(self, "_on_containment_sweep_finished").bind(sweep_node)
+		if sweep_node.has_signal("sweep_finished") and not sweep_node.is_connected("sweep_finished", sweep_finished_callable):
+			sweep_node.connect("sweep_finished", sweep_finished_callable)
+
+		var player_contacted_callable := Callable(self, "_on_containment_sweep_player_contacted")
+		if sweep_node.has_signal("player_contacted") and not sweep_node.is_connected("player_contacted", player_contacted_callable):
+			sweep_node.connect("player_contacted", player_contacted_callable)
 
 func _clear_containment_sweep() -> void:
-	if _active_containment_sweep == null:
-		return
-	if is_instance_valid(_active_containment_sweep):
-		_active_containment_sweep.queue_free()
-	_active_containment_sweep = null
+	for sweep_node in _active_containment_sweeps:
+		if sweep_node == null:
+			continue
+		if not is_instance_valid(sweep_node):
+			continue
+		sweep_node.queue_free()
+	_active_containment_sweeps.clear()
 
-func _on_containment_sweep_finished() -> void:
-	_active_containment_sweep = null
+func _on_containment_sweep_finished(sweep_node: Node2D) -> void:
+	if sweep_node != null:
+		_active_containment_sweeps.erase(sweep_node)
 
 func _on_containment_sweep_player_contacted(_player_node: Node) -> void:
 	if run_ended:
