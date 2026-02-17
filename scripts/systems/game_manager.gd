@@ -59,7 +59,11 @@ const MUTATION_ICON_BY_ID: Dictionary = {
 @onready var pause_resume_button: Button = get_node_or_null("PauseMenu/Root/Content/Buttons/ResumeButton")
 @onready var pause_options_button: Button = get_node_or_null("PauseMenu/Root/Content/Buttons/OptionsButton")
 @onready var pause_main_menu_button: Button = get_node_or_null("PauseMenu/Root/Content/Buttons/MainMenuButton")
-@onready var pause_options_hint_label: Label = get_node_or_null("PauseMenu/Root/Content/OptionsHintLabel")
+@onready var pause_options_panel: PanelContainer = get_node_or_null("PauseMenu/Root/Content/OptionsPanel")
+@onready var pause_sfx_slider: HSlider = get_node_or_null("PauseMenu/Root/Content/OptionsPanel/Padding/AudioRows/SfxRow/SfxSlider")
+@onready var pause_sfx_mute_toggle: CheckButton = get_node_or_null("PauseMenu/Root/Content/OptionsPanel/Padding/AudioRows/SfxRow/SfxMuteToggle")
+@onready var pause_music_slider: HSlider = get_node_or_null("PauseMenu/Root/Content/OptionsPanel/Padding/AudioRows/MusicRow/MusicSlider")
+@onready var pause_music_mute_toggle: CheckButton = get_node_or_null("PauseMenu/Root/Content/OptionsPanel/Padding/AudioRows/MusicRow/MusicMuteToggle")
 @onready var audio_manager: Node = get_node_or_null("/root/AudioManager")
 
 var elapsed_seconds: float = 0.0
@@ -73,6 +77,7 @@ var levelup_options: Array = []
 var lineage_selection_active: bool = false
 var restart_requested: bool = false
 var _last_player_hp: int = -1
+var _syncing_audio_controls: bool = false
 @export var debug_allow_grant_xp: bool = false
 @export var debug_grant_xp_amount: int = 20
 
@@ -133,8 +138,8 @@ func _ready() -> void:
 
 	if pause_menu_ui != null:
 		pause_menu_ui.visible = false
-	if pause_options_hint_label != null:
-		pause_options_hint_label.visible = false
+	if pause_options_panel != null:
+		pause_options_panel.visible = false
 	if pause_resume_button != null:
 		var resume_callable := Callable(self, "_on_pause_resume_pressed")
 		if not pause_resume_button.pressed.is_connected(resume_callable):
@@ -439,8 +444,11 @@ func _on_pause_resume_pressed() -> void:
 	_close_pause_menu()
 
 func _on_pause_options_pressed() -> void:
-	if pause_options_hint_label != null:
-		pause_options_hint_label.visible = not pause_options_hint_label.visible
+	if pause_options_panel != null:
+		var should_show_options: bool = not pause_options_panel.visible
+		pause_options_panel.visible = should_show_options
+		if should_show_options:
+			_refresh_audio_controls_from_manager()
 	_play_sfx("ui_click")
 
 func _on_pause_main_menu_pressed() -> void:
@@ -455,8 +463,8 @@ func _open_pause_menu() -> void:
 		return
 	run_paused_for_menu = true
 	_set_gameplay_active(false)
-	if pause_options_hint_label != null:
-		pause_options_hint_label.visible = false
+	if pause_options_panel != null:
+		pause_options_panel.visible = false
 	if pause_menu_ui != null:
 		pause_menu_ui.visible = true
 	_play_sfx("ui_click")
@@ -468,8 +476,8 @@ func _close_pause_menu(play_click_sound: bool = true) -> void:
 	run_paused_for_menu = false
 	if pause_menu_ui != null:
 		pause_menu_ui.visible = false
-	if pause_options_hint_label != null:
-		pause_options_hint_label.visible = false
+	if pause_options_panel != null:
+		pause_options_panel.visible = false
 	if play_click_sound:
 		_play_sfx("ui_click")
 
@@ -698,7 +706,53 @@ func _play_sfx(event_id: String) -> void:
 func _setup_audio_controls() -> void:
 	if audio_panel != null:
 		audio_panel.visible = false
+	if pause_options_panel != null:
+		pause_options_panel.visible = false
 
+	if audio_button != null:
+		var audio_button_callable := Callable(self, "_on_audio_button_pressed")
+		if not audio_button.pressed.is_connected(audio_button_callable):
+			audio_button.pressed.connect(audio_button_callable)
+
+	if sfx_slider != null:
+		var sfx_slider_callable := Callable(self, "_on_sfx_slider_value_changed")
+		if not sfx_slider.value_changed.is_connected(sfx_slider_callable):
+			sfx_slider.value_changed.connect(sfx_slider_callable)
+	if pause_sfx_slider != null:
+		var pause_sfx_slider_callable := Callable(self, "_on_sfx_slider_value_changed")
+		if not pause_sfx_slider.value_changed.is_connected(pause_sfx_slider_callable):
+			pause_sfx_slider.value_changed.connect(pause_sfx_slider_callable)
+
+	if sfx_mute_toggle != null:
+		var sfx_mute_callable := Callable(self, "_on_sfx_mute_toggled")
+		if not sfx_mute_toggle.toggled.is_connected(sfx_mute_callable):
+			sfx_mute_toggle.toggled.connect(sfx_mute_callable)
+	if pause_sfx_mute_toggle != null:
+		var pause_sfx_mute_callable := Callable(self, "_on_sfx_mute_toggled")
+		if not pause_sfx_mute_toggle.toggled.is_connected(pause_sfx_mute_callable):
+			pause_sfx_mute_toggle.toggled.connect(pause_sfx_mute_callable)
+
+	if music_slider != null:
+		var music_slider_callable := Callable(self, "_on_music_slider_value_changed")
+		if not music_slider.value_changed.is_connected(music_slider_callable):
+			music_slider.value_changed.connect(music_slider_callable)
+	if pause_music_slider != null:
+		var pause_music_slider_callable := Callable(self, "_on_music_slider_value_changed")
+		if not pause_music_slider.value_changed.is_connected(pause_music_slider_callable):
+			pause_music_slider.value_changed.connect(pause_music_slider_callable)
+
+	if music_mute_toggle != null:
+		var music_mute_callable := Callable(self, "_on_music_mute_toggled")
+		if not music_mute_toggle.toggled.is_connected(music_mute_callable):
+			music_mute_toggle.toggled.connect(music_mute_callable)
+	if pause_music_mute_toggle != null:
+		var pause_music_mute_callable := Callable(self, "_on_music_mute_toggled")
+		if not pause_music_mute_toggle.toggled.is_connected(pause_music_mute_callable):
+			pause_music_mute_toggle.toggled.connect(pause_music_mute_callable)
+
+	_refresh_audio_controls_from_manager()
+
+func _refresh_audio_controls_from_manager() -> void:
 	var sfx_value: float = 0.5
 	var music_value: float = 0.4
 	var sfx_muted: bool = false
@@ -713,28 +767,36 @@ func _setup_audio_controls() -> void:
 		if audio_manager.has_method("get_music_muted"):
 			music_muted = bool(audio_manager.call("get_music_muted"))
 
-	if audio_button != null:
-		audio_button.connect("pressed", Callable(self, "_on_audio_button_pressed"))
+	_syncing_audio_controls = true
+	_set_sfx_slider_values(sfx_value)
+	_set_music_slider_values(music_value)
+	_set_sfx_mute_values(sfx_muted)
+	_set_music_mute_values(music_muted)
+	_syncing_audio_controls = false
 
+func _set_sfx_slider_values(value: float) -> void:
 	if sfx_slider != null:
-		sfx_slider.value = sfx_value
-		sfx_slider.connect("value_changed", Callable(self, "_on_sfx_slider_value_changed"))
-		_on_sfx_slider_value_changed(sfx_slider.value)
+		sfx_slider.value = value
+	if pause_sfx_slider != null:
+		pause_sfx_slider.value = value
 
-	if sfx_mute_toggle != null:
-		sfx_mute_toggle.button_pressed = sfx_muted
-		sfx_mute_toggle.connect("toggled", Callable(self, "_on_sfx_mute_toggled"))
-		_on_sfx_mute_toggled(sfx_mute_toggle.button_pressed)
-
+func _set_music_slider_values(value: float) -> void:
 	if music_slider != null:
-		music_slider.value = music_value
-		music_slider.connect("value_changed", Callable(self, "_on_music_slider_value_changed"))
-		_on_music_slider_value_changed(music_slider.value)
+		music_slider.value = value
+	if pause_music_slider != null:
+		pause_music_slider.value = value
 
+func _set_sfx_mute_values(value: bool) -> void:
+	if sfx_mute_toggle != null:
+		sfx_mute_toggle.button_pressed = value
+	if pause_sfx_mute_toggle != null:
+		pause_sfx_mute_toggle.button_pressed = value
+
+func _set_music_mute_values(value: bool) -> void:
 	if music_mute_toggle != null:
-		music_mute_toggle.button_pressed = music_muted
-		music_mute_toggle.connect("toggled", Callable(self, "_on_music_mute_toggled"))
-		_on_music_mute_toggled(music_mute_toggle.button_pressed)
+		music_mute_toggle.button_pressed = value
+	if pause_music_mute_toggle != null:
+		pause_music_mute_toggle.button_pressed = value
 
 func _on_audio_button_pressed() -> void:
 	if audio_panel != null:
@@ -742,32 +804,52 @@ func _on_audio_button_pressed() -> void:
 	_play_sfx("ui_click")
 
 func _on_sfx_slider_value_changed(value: float) -> void:
+	if _syncing_audio_controls:
+		return
 	if audio_manager == null:
 		return
 	if not audio_manager.has_method("set_sfx_volume_linear"):
 		return
 	audio_manager.call("set_sfx_volume_linear", value)
+	_syncing_audio_controls = true
+	_set_sfx_slider_values(value)
+	_syncing_audio_controls = false
 
 func _on_music_slider_value_changed(value: float) -> void:
+	if _syncing_audio_controls:
+		return
 	if audio_manager == null:
 		return
 	if not audio_manager.has_method("set_music_volume_linear"):
 		return
 	audio_manager.call("set_music_volume_linear", value)
+	_syncing_audio_controls = true
+	_set_music_slider_values(value)
+	_syncing_audio_controls = false
 
 func _on_sfx_mute_toggled(pressed: bool) -> void:
+	if _syncing_audio_controls:
+		return
 	if audio_manager == null:
 		return
 	if not audio_manager.has_method("set_sfx_muted"):
 		return
 	audio_manager.call("set_sfx_muted", pressed)
+	_syncing_audio_controls = true
+	_set_sfx_mute_values(pressed)
+	_syncing_audio_controls = false
 
 func _on_music_mute_toggled(pressed: bool) -> void:
+	if _syncing_audio_controls:
+		return
 	if audio_manager == null:
 		return
 	if not audio_manager.has_method("set_music_muted"):
 		return
 	audio_manager.call("set_music_muted", pressed)
+	_syncing_audio_controls = true
+	_set_music_mute_values(pressed)
+	_syncing_audio_controls = false
 
 func _play_music(track_id: String = "bgm_main") -> void:
 	if audio_manager == null:
