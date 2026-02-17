@@ -24,7 +24,7 @@ func _ready() -> void:
 	_connect_ui()
 	_set_options_visible(false)
 	_setup_audio_controls()
-	_play_music("bgm_main")
+	_stop_music()
 	_begin_arena_preload()
 
 func _process(_delta: float) -> void:
@@ -177,12 +177,12 @@ func _play_sfx(event_id: String) -> void:
 		return
 	audio_manager.call("play_sfx", event_id)
 
-func _play_music(track_id: String) -> void:
+func _stop_music() -> void:
 	if audio_manager == null:
 		return
-	if not audio_manager.has_method("play_music"):
+	if not audio_manager.has_method("stop_music"):
 		return
-	audio_manager.call("play_music", track_id)
+	audio_manager.call("stop_music")
 
 func _begin_arena_preload() -> void:
 	if _arena_preload_started:

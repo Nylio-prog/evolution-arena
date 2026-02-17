@@ -11,13 +11,23 @@ const DEFAULT_STREAM_PATHS: Dictionary = {
 	"levelup": "res://audio/sfx/levelup.wav",
 	"player_hit": "res://audio/sfx/player_hit.wav",
 	"player_death": "res://audio/sfx/player_death.wav",
+	"crisis_start": "res://audio/sfx/crisis_start.wav",
+	"crisis_success": "res://audio/sfx/crisis_success.wav",
+	"crisis_fail": "res://audio/sfx/crisis_fail.wav",
+	"final_crisis_start": "res://audio/sfx/final_crisis_start.wav",
+	"victory": "res://audio/sfx/victory.wav",
 	"bgm_main": "res://audio/music/bgm.ogg"
 }
 const SFX_EVENT_COOLDOWN_SEC: Dictionary = {
 	"ui_click": 0.04,
 	"pickup": 0.05,
 	"player_hit": 0.12,
-	"enemy_death": 0.09
+	"enemy_death": 0.09,
+	"crisis_start": 0.15,
+	"crisis_success": 0.15,
+	"crisis_fail": 0.2,
+	"final_crisis_start": 0.25,
+	"victory": 0.2
 }
 
 @export var default_sfx_volume_db: float = -6.0
@@ -27,6 +37,7 @@ const SFX_EVENT_COOLDOWN_SEC: Dictionary = {
 
 var _sfx_players: Array[AudioStreamPlayer] = []
 var _music_player: AudioStreamPlayer
+var _music_fade_tween: Tween
 var _stream_cache: Dictionary = {}
 var _sfx_volume_linear: float = 1.0
 var _music_volume_linear: float = 1.0
@@ -63,6 +74,9 @@ func play_sfx(event_id: String, volume_db_offset: float = 0.0, pitch_scale: floa
 func play_music(track_id: String = "bgm_main", restart_if_same: bool = false) -> bool:
 	if _music_player == null:
 		return false
+	if _music_fade_tween != null and is_instance_valid(_music_fade_tween):
+		_music_fade_tween.kill()
+		_music_fade_tween = null
 
 	var stream: AudioStream = _get_stream(track_id)
 	if stream == null:
@@ -92,8 +106,33 @@ func _ensure_stream_loops(stream: AudioStream) -> void:
 		wav_stream.loop_mode = AudioStreamWAV.LOOP_FORWARD
 
 func stop_music() -> void:
+	if _music_fade_tween != null and is_instance_valid(_music_fade_tween):
+		_music_fade_tween.kill()
+		_music_fade_tween = null
 	if _music_player != null:
 		_music_player.stop()
+		_music_player.volume_db = 0.0
+
+func fade_out_music(duration_seconds: float = 1.0) -> void:
+	if _music_player == null:
+		return
+	if not _music_player.playing:
+		return
+	if _music_fade_tween != null and is_instance_valid(_music_fade_tween):
+		_music_fade_tween.kill()
+		_music_fade_tween = null
+
+	var fade_duration: float = maxf(0.01, duration_seconds)
+	_music_fade_tween = create_tween()
+	_music_fade_tween.tween_property(_music_player, "volume_db", -80.0, fade_duration)
+	_music_fade_tween.tween_callback(Callable(self, "_finish_music_fade_out"))
+
+func _finish_music_fade_out() -> void:
+	if _music_player == null:
+		return
+	_music_player.stop()
+	_music_player.volume_db = 0.0
+	_music_fade_tween = null
 
 func set_sfx_volume_linear(value: float) -> void:
 	_sfx_volume_linear = clampf(value, 0.0, 1.0)

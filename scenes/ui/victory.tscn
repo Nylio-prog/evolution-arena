@@ -1,60 +1,60 @@
-[gd_scene load_steps=7 format=3 uid="uid://chcru5d2lttfj"]
+[gd_scene load_steps=7 format=3]
 
-[ext_resource type="FontFile" path="res://art/fonts/Rajdhani-Regular.ttf" id="1_jwdxw"]
-[ext_resource type="FontFile" path="res://art/fonts/Rajdhani-SemiBold.ttf" id="2_8m91a"]
-[ext_resource type="FontFile" path="res://art/fonts/Rajdhani-Bold.ttf" id="3_2yv4w"]
+[ext_resource type="FontFile" path="res://art/fonts/Rajdhani-Regular.ttf" id="1_7e3j2"]
+[ext_resource type="FontFile" path="res://art/fonts/Rajdhani-SemiBold.ttf" id="2_hy3u2"]
+[ext_resource type="FontFile" path="res://art/fonts/Rajdhani-Bold.ttf" id="3_u48g2"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel"]
-bg_color = Color(0.0431373, 0.0666667, 0.0941176, 0.94)
+bg_color = Color(0.028, 0.075, 0.093, 0.94)
 border_width_left = 1
 border_width_top = 1
 border_width_right = 1
 border_width_bottom = 1
-border_color = Color(0.286275, 0.490196, 0.603922, 0.55)
+border_color = Color(0.42, 0.88, 0.74, 0.72)
 corner_radius_top_left = 14
 corner_radius_top_right = 14
 corner_radius_bottom_right = 14
 corner_radius_bottom_left = 14
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_button_normal"]
-bg_color = Color(0.0862745, 0.152941, 0.203922, 0.98)
+bg_color = Color(0.070, 0.180, 0.205, 0.98)
 border_width_left = 1
 border_width_top = 1
 border_width_right = 1
 border_width_bottom = 1
-border_color = Color(0.427451, 0.690196, 0.831373, 0.75)
+border_color = Color(0.54, 0.95, 0.82, 0.78)
 corner_radius_top_left = 8
 corner_radius_top_right = 8
 corner_radius_bottom_right = 8
 corner_radius_bottom_left = 8
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_button_hover"]
-bg_color = Color(0.129412, 0.207843, 0.27451, 0.98)
+bg_color = Color(0.096, 0.225, 0.255, 0.98)
 border_width_left = 1
 border_width_top = 1
 border_width_right = 1
 border_width_bottom = 1
-border_color = Color(0.619608, 0.878431, 1, 0.95)
+border_color = Color(0.70, 1, 0.9, 0.95)
 corner_radius_top_left = 8
 corner_radius_top_right = 8
 corner_radius_bottom_right = 8
 corner_radius_bottom_left = 8
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_button_pressed"]
-bg_color = Color(0.14902, 0.239216, 0.313726, 0.98)
+bg_color = Color(0.114, 0.255, 0.290, 0.98)
 border_width_left = 1
 border_width_top = 1
 border_width_right = 1
 border_width_bottom = 1
-border_color = Color(0.701961, 0.921569, 1, 1)
+border_color = Color(0.79, 1, 0.95, 1)
 corner_radius_top_left = 8
 corner_radius_top_right = 8
 corner_radius_bottom_right = 8
 corner_radius_bottom_left = 8
 
-[node name="GameOver" type="CanvasLayer" unique_id=1682334316]
+[node name="Victory" type="CanvasLayer"]
 
-[node name="Root" type="Control" parent="." unique_id=1055943695]
+[node name="Root" type="Control" parent="."]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -62,14 +62,14 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 
-[node name="Backdrop" type="ColorRect" parent="Root" unique_id=124391097]
+[node name="Backdrop" type="ColorRect" parent="Root"]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-color = Color(0, 0, 0, 0.7)
+color = Color(0.0, 0.0, 0.0, 0.72)
 
 [node name="CardPanel" type="Panel" parent="Root"]
 layout_mode = 1
@@ -78,74 +78,95 @@ anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = -370.0
-offset_top = -190.0
-offset_right = 370.0
-offset_bottom = 190.0
+offset_left = -390.0
+offset_top = -205.0
+offset_right = 390.0
+offset_bottom = 205.0
 grow_horizontal = 2
 grow_vertical = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
 
-[node name="TitleLabel" type="Label" parent="Root" unique_id=791508933]
+[node name="TitleLabel" type="Label" parent="Root"]
 layout_mode = 1
 anchors_preset = 8
 anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = -320.0
-offset_top = -128.0
-offset_right = 320.0
-offset_bottom = -72.0
+offset_left = -340.0
+offset_top = -132.0
+offset_right = 340.0
+offset_bottom = -74.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_fonts/font = ExtResource("3_2yv4w")
-theme_override_font_sizes/font_size = 50
-theme_override_colors/font_color = Color(0.97, 0.98, 1, 1)
-text = "You were consumed."
+theme_override_fonts/font = ExtResource("3_u48g2")
+theme_override_font_sizes/font_size = 52
+theme_override_colors/font_color = Color(0.88, 1.0, 0.92, 1.0)
+text = "Outbreak Ascendant."
 horizontal_alignment = 1
 
-[node name="StatsLabel" type="Label" parent="Root" unique_id=1609278240]
+[node name="StatsLabel" type="Label" parent="Root"]
 layout_mode = 1
 anchors_preset = 8
 anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = -320.0
-offset_top = -20.0
-offset_right = 320.0
-offset_bottom = 40.0
+offset_left = -340.0
+offset_top = -18.0
+offset_right = 340.0
+offset_bottom = 46.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_fonts/font = ExtResource("1_jwdxw")
+theme_override_fonts/font = ExtResource("1_7e3j2")
 theme_override_font_sizes/font_size = 27
-theme_override_colors/font_color = Color(0.82, 0.9, 0.95, 0.95)
+theme_override_colors/font_color = Color(0.82, 0.98, 0.9, 0.96)
 text = "Time: 0s | Level: 1"
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="ReasonLabel" type="Label" parent="Root"]
+[node name="SummaryLabel" type="Label" parent="Root"]
 layout_mode = 1
 anchors_preset = 8
 anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = -320.0
-offset_top = 34.0
-offset_right = 320.0
-offset_bottom = 82.0
+offset_left = -340.0
+offset_top = 52.0
+offset_right = 340.0
+offset_bottom = 86.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_fonts/font = ExtResource("2_8m91a")
-theme_override_font_sizes/font_size = 24
-theme_override_colors/font_color = Color(0.98, 0.82, 0.64, 0.96)
-text = "Cause: --"
+theme_override_fonts/font = ExtResource("2_hy3u2")
+theme_override_font_sizes/font_size = 21
+theme_override_colors/font_color = Color(0.74, 0.93, 0.86, 0.95)
+text = "Mutations: 0 | Rewards: 0 | Synergies: 0"
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="MainMenuButton" type="Button" parent="Root" unique_id=956640254]
+[node name="DetailLabel" type="Label" parent="Root"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -340.0
+offset_top = 92.0
+offset_right = 340.0
+offset_bottom = 126.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_fonts/font = ExtResource("1_7e3j2")
+theme_override_font_sizes/font_size = 21
+theme_override_colors/font_color = Color(0.74, 0.93, 0.86, 0.95)
+text = "Final HP: 100/100 | Crisis Time Reached: 0s"
+text = "Final HP: 100/100"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="MainMenuButton" type="Button" parent="Root"]
 custom_minimum_size = Vector2(220, 56)
 layout_mode = 1
 anchors_preset = 8
@@ -154,12 +175,12 @@ anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
 offset_left = -110.0
-offset_top = 104.0
+offset_top = 146.0
 offset_right = 110.0
-offset_bottom = 160.0
+offset_bottom = 202.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_fonts/font = ExtResource("2_8m91a")
+theme_override_fonts/font = ExtResource("2_hy3u2")
 theme_override_font_sizes/font_size = 28
 theme_override_styles/normal = SubResource("StyleBoxFlat_button_normal")
 theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")

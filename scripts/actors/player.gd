@@ -16,6 +16,8 @@ signal died
 @export var sprite_scale: Vector2 = Vector2(0.3, 0.3)
 @export var sprite_modulate: Color = Color(1, 1, 1, 1)
 @export var debug_log_damage: bool = false
+@export var clamp_to_viewport_bounds: bool = true
+@export var movement_bounds_extra_margin: float = 0.0
 
 var current_hp: int
 var _invulnerable_until_ms: int = 0
@@ -49,6 +51,7 @@ func _physics_process(_delta: float) -> void:
 	var input_vector := Input.get_vector("move_left", "move_right", "move_up", "move_down")
 	velocity = input_vector * move_speed
 	move_and_slide()
+	_apply_viewport_bounds()
 	_update_animation_state(input_vector.length() > 0.01)
 
 func take_damage(amount: int) -> void:
@@ -212,3 +215,22 @@ func _refresh_runtime_stats() -> void:
 		else:
 			current_hp = mini(current_hp, max_hp)
 	hp_changed.emit(current_hp, max_hp)
+
+func _apply_viewport_bounds() -> void:
+	if not clamp_to_viewport_bounds:
+		return
+	var viewport_size: Vector2 = get_viewport_rect().size
+	if viewport_size.x <= 1.0 or viewport_size.y <= 1.0:
+		return
+
+	var margin: float = maxf(0.0, visual_radius + movement_bounds_extra_margin)
+	var min_x: float = margin
+	var max_x: float = maxf(min_x, viewport_size.x - margin)
+	var min_y: float = margin
+	var max_y: float = maxf(min_y, viewport_size.y - margin)
+
+	var clamped_position: Vector2 = global_position
+	clamped_position.x = clampf(clamped_position.x, min_x, max_x)
+	clamped_position.y = clampf(clamped_position.y, min_y, max_y)
+	if clamped_position != global_position:
+		global_position = clamped_position

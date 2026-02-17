@@ -1,6 +1,12 @@
 # Evolution Arena
 
-Evolution Arena is a minimalist Godot 4 survivor-like roguelite where you evolve mutation modules (spikes and orbiters) to survive escalating enemy waves.
+Evolution Arena is a dark biolab survivor-like roguelite where you become the outbreak: evolve, survive containment crises, and break the final purge in a 5-10 minute run.
+
+## Release 4 Hook
+- You are the outbreak, not the cure.
+- Crisis phases interrupt farming and force fast adaptation.
+- Each successful crisis grants a high-impact reward that reshapes the run.
+- Runs now build toward a final climax: the Purge Protocol.
 
 ## Art Direction
 Evolution Arena uses a bio-organic sci-fi style built for instant combat readability.
@@ -33,8 +39,9 @@ Evolution Arena uses a bio-organic sci-fi style built for instant combat readabi
 - Enemies drop biomass on death.
 - Biomass grants XP and levels.
 - On level-up, choose a mutation option.
-- Mutations visibly change the organism (spikes/orbiters).
-- Run ends on death, then restart from game over.
+- Mutations and crisis rewards visibly shape your build.
+- Crisis phases (Containment Sweep, Strain Bloom, Biohazard Leak) pressure your decisions.
+- Survive to the final crisis to win, or die and restart.
 
 ## Controls
 - `WASD`: Move
@@ -46,7 +53,7 @@ Evolution Arena uses a bio-organic sci-fi style built for instant combat readabi
 
 ## Run Locally
 1. Open the project in Godot.
-2. Run the main scene (`scenes/arena.tscn`) with `F5`.
+2. Run the main scene (`scenes/main_menu.tscn`) with `F5`.
 
 ## Project Structure
 - `scenes/` - Arena, actors, modules, UI, systems scenes
@@ -59,4 +66,4 @@ Evolution Arena uses a bio-organic sci-fi style built for instant combat readabi
 - Art and UI are being upgraded toward a consistent, recognizable visual identity for upcoming releases.
 
 ## Status
-Playable debug alpha loop is working end-to-end.
+Playable debug release with crisis loop, rewards/synergies, and final victory flow.

@@ -11,6 +11,7 @@
 [ext_resource type="Script" uid="uid://dfjo7orusdc6v" path="res://scripts/systems/enemy_spawner.gd" id="9_yl4i1"]
 [ext_resource type="Script" uid="uid://bkpmxrcd71u3k" path="res://scripts/systems/mutation_system.gd" id="10_6wsqv"]
 [ext_resource type="Script" path="res://scripts/systems/crisis_director.gd" id="11_oj863"]
+[ext_resource type="PackedScene" path="res://scenes/ui/victory.tscn" id="12_jbq7r"]
 
 [node name="Arena" type="Node2D" unique_id=1478589997]
 script = ExtResource("4_6g2vy")
@@ -40,6 +41,9 @@ script = ExtResource("7_x7sj1")
 visible = false
 
 [node name="GameOver" parent="." unique_id=173502092 instance=ExtResource("5_p3n4s")]
+visible = false
+
+[node name="Victory" parent="." instance=ExtResource("12_jbq7r")]
 visible = false
 
 [node name="PauseMenu" parent="." instance=ExtResource("6_3wmgv")]

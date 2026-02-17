@@ -3,9 +3,9 @@ extends Node
 const ENEMY_BASIC_SCENE: PackedScene = preload("res://scenes/actors/enemy_basic.tscn")
 const ENEMY_DASHER_SCENE: PackedScene = preload("res://scenes/actors/enemy_dasher.tscn")
 
-@export var initial_wait_time: float = 1.0
-@export var min_wait_time: float = 0.25
-@export var ramp_duration_seconds: float = 120.0
+@export var initial_wait_time: float = 0.95
+@export var min_wait_time: float = 0.23
+@export var ramp_duration_seconds: float = 130.0
 @export var spawn_distance: float = 480.0
 @export var dasher_initial_ratio: float = 0.35
 @export var dasher_max_ratio: float = 0.60

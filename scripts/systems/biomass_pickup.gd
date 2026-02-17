@@ -2,7 +2,7 @@ extends Area2D
 
 signal collected(amount: int)
 
-@export var xp_value: int = 10
+@export var xp_value: int = 6
 @export var pickup_sprite_texture: Texture2D
 @export_file("*.png", "*.webp", "*.jpg", "*.jpeg", "*.svg") var default_sprite_path: String = "res://art/sprites/ui/biomass_pickup.png"
 @export var sprite_scale: Vector2 = Vector2(0.15, 0.15)

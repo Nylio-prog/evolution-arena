@@ -12,12 +12,12 @@ const CRISIS_TYPES: Array[String] = [
 ]
 
 @export var debug_log_state: bool = true
-@export var first_crisis_delay_seconds: float = 45.0
-@export var crisis_interval_seconds: float = 50.0
-@export var crisis_duration_seconds: float = 14.0
-@export var reward_duration_seconds: float = 6.0
+@export var first_crisis_delay_seconds: float = 40.0
+@export var crisis_interval_seconds: float = 46.0
+@export var crisis_duration_seconds: float = 15.0
+@export var reward_duration_seconds: float = 5.5
 @export var final_crisis_start_seconds: float = 480.0
-@export var final_crisis_duration_seconds: float = 25.0
+@export var final_crisis_duration_seconds: float = 28.0
 
 var _phase: String = "idle"
 var _active_crisis_id: String = ""
@@ -26,6 +26,7 @@ var _phase_elapsed_seconds: float = 0.0
 var _next_regular_crisis_start_seconds: float = 0.0
 var _next_crisis_index: int = 0
 var _final_crisis_completed: bool = false
+var _final_crisis_started: bool = false
 
 func reset_runtime_state() -> void:
 	_phase = "idle"
@@ -35,11 +36,14 @@ func reset_runtime_state() -> void:
 	_next_regular_crisis_start_seconds = first_crisis_delay_seconds
 	_next_crisis_index = 0
 	_final_crisis_completed = false
+	_final_crisis_started = false
 
 func tick(delta: float, run_elapsed_seconds: float) -> void:
 	if delta <= 0.0:
 		return
 	if _final_crisis_completed:
+		return
+	if _try_start_final_crisis(run_elapsed_seconds):
 		return
 
 	if _phase == "idle":
@@ -77,7 +81,7 @@ func get_phase_time_remaining() -> float:
 func get_time_until_next_crisis(run_elapsed_seconds: float) -> float:
 	if _phase != "idle":
 		return 0.0
-	if _final_crisis_completed:
+	if _final_crisis_completed or _final_crisis_started:
 		return 0.0
 
 	var time_until_final: float = maxf(0.0, final_crisis_start_seconds - run_elapsed_seconds)
@@ -86,8 +90,13 @@ func get_time_until_next_crisis(run_elapsed_seconds: float) -> float:
 		return minf(time_until_regular, time_until_final)
 	return time_until_final
 
+func get_final_crisis_start_seconds() -> float:
+	return final_crisis_start_seconds
+
 func debug_force_next_active_crisis(run_elapsed_seconds: float) -> bool:
 	if _final_crisis_completed:
+		return false
+	if _final_crisis_started:
 		return false
 	if _phase == "final" or _phase == "victory":
 		return false
@@ -132,10 +141,6 @@ func complete_reward_phase_early() -> bool:
 	return true
 
 func _process_idle(_delta: float, run_elapsed_seconds: float) -> void:
-	if run_elapsed_seconds >= final_crisis_start_seconds:
-		_start_crisis("purge_protocol", true)
-		return
-
 	if run_elapsed_seconds < _next_regular_crisis_start_seconds:
 		return
 
@@ -166,12 +171,22 @@ func _process_final() -> void:
 		print("[CrisisDirector] Final crisis completed -> victory")
 	final_crisis_completed.emit()
 
+func _try_start_final_crisis(run_elapsed_seconds: float) -> bool:
+	if _final_crisis_completed or _final_crisis_started:
+		return false
+	if run_elapsed_seconds < final_crisis_start_seconds:
+		return false
+	_start_crisis("purge_protocol", true)
+	return true
+
 func _start_crisis(crisis_id: String, is_final: bool) -> void:
 	_phase_elapsed_seconds = 0.0
 	_active_crisis_id = crisis_id
 	_is_final_crisis = is_final
 
 	if is_final:
+		_final_crisis_started = true
+		_next_regular_crisis_start_seconds = INF
 		_phase = "final"
 		_emit_phase_changed("final", _active_crisis_id)
 		crisis_started.emit(_active_crisis_id, true, final_crisis_duration_seconds)
