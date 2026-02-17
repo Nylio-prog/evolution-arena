@@ -9,23 +9,25 @@ signal died
 @export var visual_radius: float = 12.0
 @export var lineage_accent_color: Color = Color(1, 1, 1, 0)
 @export var lineage_accent_width: float = 2.0
-@export var sprite_texture: Texture2D
-@export_file("*.png", "*.webp", "*.jpg", "*.jpeg", "*.svg") var default_sprite_path: String = "res://art/sprites/player/player_idle.png"
-@export var sprite_scale: Vector2 = Vector2(0.18, 0.18)
+@export var idle_animation_name: StringName = &"idle"
+@export var move_animation_name: StringName = &"move"
+@export var hit_animation_name: StringName = &"hit"
+@export var sprite_scale: Vector2 = Vector2(0.3, 0.3)
 @export var sprite_modulate: Color = Color(1, 1, 1, 1)
 @export var debug_log_damage: bool = false
 
 var current_hp: int
 var _invulnerable_until_ms: int = 0
 var incoming_damage_multiplier: float = 1.0
+var _is_playing_hit_animation: bool = false
 
-@onready var visual_sprite: Sprite2D = get_node_or_null("VisualSprite")
+@onready var animated_sprite: AnimatedSprite2D = get_node_or_null("AnimatedSprite2D")
 
 func _ready() -> void:
 	current_hp = max_hp
 	add_to_group("player")
 	hp_changed.emit(current_hp, max_hp)
-	_refresh_visual_sprite()
+	_setup_animated_sprite()
 	queue_redraw()
 
 func _draw() -> void:
@@ -36,6 +38,7 @@ func _physics_process(_delta: float) -> void:
 	var input_vector := Input.get_vector("move_left", "move_right", "move_up", "move_down")
 	velocity = input_vector * move_speed
 	move_and_slide()
+	_update_animation_state(input_vector.length() > 0.01)
 
 func take_damage(amount: int) -> void:
 	if amount <= 0:
@@ -50,6 +53,7 @@ func take_damage(amount: int) -> void:
 	var final_amount: int = max(1, int(round(float(amount) * incoming_damage_multiplier)))
 	_invulnerable_until_ms = now_ms + int(invulnerability_seconds * 1000.0)
 	current_hp = max(0, current_hp - final_amount)
+	_trigger_hit_animation()
 	if debug_log_damage:
 		print(
 			"Player took ",
@@ -87,19 +91,53 @@ func set_lineage_accent(color: Color) -> void:
 	lineage_accent_color = color
 	queue_redraw()
 
-func _refresh_visual_sprite() -> void:
-	if visual_sprite == null:
-		push_error("Player requires a VisualSprite child node.")
+func _setup_animated_sprite() -> void:
+	if animated_sprite == null:
+		push_error("Player requires an AnimatedSprite2D child node named AnimatedSprite2D.")
 		return
+	animated_sprite.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
+	animated_sprite.scale = sprite_scale
+	animated_sprite.modulate = sprite_modulate
+	if not animated_sprite.animation_finished.is_connected(Callable(self, "_on_animated_sprite_animation_finished")):
+		animated_sprite.animation_finished.connect(Callable(self, "_on_animated_sprite_animation_finished"))
+	_play_base_animation(false)
 
-	var resolved_texture: Texture2D = sprite_texture
-	if resolved_texture == null and ResourceLoader.exists(default_sprite_path, "Texture2D"):
-		var loaded_resource: Resource = load(default_sprite_path)
-		resolved_texture = loaded_resource as Texture2D
+func _trigger_hit_animation() -> void:
+	if animated_sprite == null:
+		return
+	if not _has_animation(hit_animation_name):
+		return
+	_is_playing_hit_animation = true
+	animated_sprite.play(hit_animation_name)
 
-	visual_sprite.texture = resolved_texture
-	visual_sprite.scale = sprite_scale
-	visual_sprite.modulate = sprite_modulate
-	visual_sprite.visible = true
-	if resolved_texture == null:
-		push_error("Player sprite missing. Assign sprite_texture or add file: %s" % default_sprite_path)
+func _update_animation_state(is_moving: bool) -> void:
+	if animated_sprite == null:
+		return
+	if _is_playing_hit_animation:
+		return
+	_play_base_animation(is_moving)
+
+func _play_base_animation(is_moving: bool) -> void:
+	if animated_sprite == null:
+		return
+	var target_animation: StringName = move_animation_name if is_moving else idle_animation_name
+	if not _has_animation(target_animation):
+		return
+	if animated_sprite.animation == target_animation and animated_sprite.is_playing():
+		return
+	animated_sprite.play(target_animation)
+
+func _has_animation(animation_name: StringName) -> bool:
+	if animated_sprite == null:
+		return false
+	if animated_sprite.sprite_frames == null:
+		return false
+	return animated_sprite.sprite_frames.has_animation(animation_name)
+
+func _on_animated_sprite_animation_finished() -> void:
+	if animated_sprite == null:
+		return
+	if animated_sprite.animation != hit_animation_name:
+		return
+	_is_playing_hit_animation = false
+	_play_base_animation(velocity.length() > 0.01)
