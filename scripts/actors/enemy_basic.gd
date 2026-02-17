@@ -10,6 +10,7 @@ signal died(world_position: Vector2)
 @export var hit_animation_name: StringName = &"hit"
 @export var orient_to_player: bool = true
 @export var orientation_rotation_offset_degrees: float = 0.0
+@export var visual_offset: Vector2 = Vector2.ZERO
 @export var sprite_scale: Vector2 = Vector2(0.15, 0.15)
 @export var sprite_modulate: Color = Color(1, 1, 1, 1)
 @export var hit_flash_color: Color = Color(0.2, 0.2, 0.2, 1)
@@ -97,6 +98,7 @@ func _setup_animated_sprite() -> void:
 		push_error("EnemyBasic requires an AnimatedSprite2D child node named AnimatedSprite2D.")
 		return
 	animated_sprite.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
+	animated_sprite.position = visual_offset
 	_base_sprite_scale = sprite_scale
 	animated_sprite.scale = _base_sprite_scale
 	_base_sprite_modulate = sprite_modulate

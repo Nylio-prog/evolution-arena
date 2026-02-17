@@ -12,6 +12,7 @@ signal died
 @export var idle_animation_name: StringName = &"idle"
 @export var move_animation_name: StringName = &"move"
 @export var hit_animation_name: StringName = &"hit"
+@export var visual_offset: Vector2 = Vector2(0.0, 1.0)
 @export var sprite_scale: Vector2 = Vector2(0.3, 0.3)
 @export var sprite_modulate: Color = Color(1, 1, 1, 1)
 @export var debug_log_damage: bool = false
@@ -96,6 +97,7 @@ func _setup_animated_sprite() -> void:
 		push_error("Player requires an AnimatedSprite2D child node named AnimatedSprite2D.")
 		return
 	animated_sprite.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
+	animated_sprite.position = visual_offset
 	animated_sprite.scale = sprite_scale
 	animated_sprite.modulate = sprite_modulate
 	if not animated_sprite.animation_finished.is_connected(Callable(self, "_on_animated_sprite_animation_finished")):

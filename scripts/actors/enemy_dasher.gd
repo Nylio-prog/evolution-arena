@@ -14,6 +14,8 @@ signal died(world_position: Vector2)
 @export var hit_animation_name: StringName = &"hit"
 @export var orient_to_player: bool = true
 @export var orientation_rotation_offset_degrees: float = -4.0
+@export var collision_rotates_with_facing: bool = true
+@export var visual_offset: Vector2 = Vector2.ZERO
 @export var sprite_scale: Vector2 = Vector2(0.14, 0.14)
 @export var sprite_modulate: Color = Color(1, 1, 1, 1)
 @export var hit_flash_color: Color = Color(0.7, 1, 1, 1)
@@ -36,8 +38,10 @@ var _hit_flash_time_left: float = 0.0
 var _base_sprite_modulate: Color = Color(1, 1, 1, 1)
 var _base_sprite_scale: Vector2 = Vector2.ONE
 var _is_playing_hit_animation: bool = false
+var _base_collision_shape_rotation: float = 0.0
 
 @onready var animated_sprite: AnimatedSprite2D = get_node_or_null("AnimatedSprite2D")
+@onready var collision_shape: CollisionShape2D = get_node_or_null("CollisionShape2D")
 
 func _ready() -> void:
 	current_hp = max_hp
@@ -142,10 +146,13 @@ func _setup_animated_sprite() -> void:
 		push_error("EnemyDasher requires an AnimatedSprite2D child node named AnimatedSprite2D.")
 		return
 	animated_sprite.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
+	animated_sprite.position = visual_offset
 	_base_sprite_scale = sprite_scale
 	animated_sprite.scale = _base_sprite_scale
 	_base_sprite_modulate = sprite_modulate
 	animated_sprite.modulate = _base_sprite_modulate
+	if collision_shape != null:
+		_base_collision_shape_rotation = collision_shape.rotation
 	if not animated_sprite.animation_finished.is_connected(Callable(self, "_on_animated_sprite_animation_finished")):
 		animated_sprite.animation_finished.connect(Callable(self, "_on_animated_sprite_animation_finished"))
 	_play_base_animation(false)
@@ -210,7 +217,10 @@ func _update_visual_orientation(direction: Vector2) -> void:
 
 	var base_angle: float = direction.angle()
 	var offset_radians: float = deg_to_rad(orientation_rotation_offset_degrees)
-	animated_sprite.rotation = base_angle + offset_radians
+	var visual_rotation: float = base_angle + offset_radians
+	animated_sprite.rotation = visual_rotation
+	if collision_rotates_with_facing and collision_shape != null:
+		collision_shape.rotation = _base_collision_shape_rotation + visual_rotation
 
 func _on_animated_sprite_animation_finished() -> void:
 	if animated_sprite == null:
