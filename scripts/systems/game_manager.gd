@@ -4,10 +4,16 @@ const BIOMASS_PICKUP_SCENE: PackedScene = preload("res://scenes/systems/biomass_
 const MUTATION_ICON_SPIKES: Texture2D = preload("res://art/sprites/ui/mutation_spikes.png")
 const MUTATION_ICON_ORBITERS: Texture2D = preload("res://art/sprites/ui/mutation_orbiters.png")
 const MUTATION_ICON_MEMBRANE: Texture2D = preload("res://art/sprites/ui/mutation_membrane.png")
+const MUTATION_ICON_PULSE_NOVA: Texture2D = preload("res://art/sprites/ui/mutation_pulse_nova.png")
+const MUTATION_ICON_ACID_TRAIL: Texture2D = preload("res://art/sprites/ui/mutation_acid_trail.png")
+const MUTATION_ICON_METABOLISM: Texture2D = preload("res://art/sprites/ui/mutation_metabolism.png")
 const MUTATION_ICON_BY_ID: Dictionary = {
 	"spikes": MUTATION_ICON_SPIKES,
 	"orbiters": MUTATION_ICON_ORBITERS,
-	"membrane": MUTATION_ICON_MEMBRANE
+	"membrane": MUTATION_ICON_MEMBRANE,
+	"pulse_nova": MUTATION_ICON_PULSE_NOVA,
+	"acid_trail": MUTATION_ICON_ACID_TRAIL,
+	"metabolism": MUTATION_ICON_METABOLISM
 }
 
 @onready var player: Node = get_node_or_null("Player")
