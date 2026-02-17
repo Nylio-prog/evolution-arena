@@ -21,11 +21,21 @@ var current_hp: int
 var _invulnerable_until_ms: int = 0
 var incoming_damage_multiplier: float = 1.0
 var _is_playing_hit_animation: bool = false
+var _base_move_speed: float = 0.0
+var _base_max_hp: int = 0
+var _bonus_move_speed_multiplier: float = 1.0
+var _bonus_max_hp_flat: int = 0
+var _module_incoming_damage_multiplier: float = 1.0
+var _external_incoming_damage_multiplier: float = 1.0
 
 @onready var animated_sprite: AnimatedSprite2D = get_node_or_null("AnimatedSprite2D")
 
 func _ready() -> void:
+	_base_move_speed = move_speed
+	_base_max_hp = max_hp
 	current_hp = max_hp
+	_refresh_runtime_stats()
+	_refresh_incoming_damage_multiplier()
 	add_to_group("player")
 	hp_changed.emit(current_hp, max_hp)
 	_setup_animated_sprite()
@@ -84,7 +94,20 @@ func heal(amount: int) -> void:
 	hp_changed.emit(current_hp, max_hp)
 
 func set_incoming_damage_multiplier(multiplier: float) -> void:
-	incoming_damage_multiplier = clampf(multiplier, 0.05, 1.0)
+	_module_incoming_damage_multiplier = clampf(multiplier, 0.05, 1.0)
+	_refresh_incoming_damage_multiplier()
+
+func set_external_incoming_damage_multiplier(multiplier: float) -> void:
+	_external_incoming_damage_multiplier = clampf(multiplier, 0.05, 1.0)
+	_refresh_incoming_damage_multiplier()
+
+func set_bonus_move_speed_multiplier(multiplier: float) -> void:
+	_bonus_move_speed_multiplier = maxf(0.1, multiplier)
+	_refresh_runtime_stats()
+
+func set_bonus_max_hp_flat(amount: int) -> void:
+	_bonus_max_hp_flat = maxi(0, amount)
+	_refresh_runtime_stats()
 
 func set_lineage_accent(color: Color) -> void:
 	lineage_accent_color = color
@@ -165,3 +188,27 @@ func _apply_damage_value(final_amount: int, raw_amount: int, is_dot: bool) -> vo
 
 	if current_hp == 0:
 		died.emit()
+
+func _refresh_incoming_damage_multiplier() -> void:
+	incoming_damage_multiplier = clampf(
+		_module_incoming_damage_multiplier * _external_incoming_damage_multiplier,
+		0.05,
+		1.0
+	)
+
+func _refresh_runtime_stats() -> void:
+	move_speed = _base_move_speed * _bonus_move_speed_multiplier
+
+	var previous_max_hp: int = max_hp
+	var target_max_hp: int = maxi(1, _base_max_hp + _bonus_max_hp_flat)
+	if previous_max_hp == target_max_hp:
+		return
+
+	max_hp = target_max_hp
+	if current_hp > 0:
+		var bonus_delta: int = target_max_hp - previous_max_hp
+		if bonus_delta > 0:
+			current_hp = mini(max_hp, current_hp + bonus_delta)
+		else:
+			current_hp = mini(current_hp, max_hp)
+	hp_changed.emit(current_hp, max_hp)

@@ -97,6 +97,15 @@ var _biohazard_recent_player_positions: Array = []
 var _strain_bloom_elite_target: Node2D
 var _strain_bloom_active: bool = false
 var _strain_bloom_elite_killed: bool = false
+var _reward_module_damage_multiplier: float = 1.0
+var _reward_orbiter_speed_multiplier: float = 1.0
+var _reward_pulse_radius_multiplier: float = 1.0
+var _reward_acid_lifetime_multiplier: float = 1.0
+var _reward_move_speed_multiplier: float = 1.0
+var _reward_external_damage_multiplier: float = 1.0
+var _reward_bonus_max_hp_flat: int = 0
+var _reward_passive_regen_per_second: float = 0.0
+var _reward_passive_regen_progress: float = 0.0
 @export var debug_allow_grant_xp: bool = false
 @export var debug_grant_xp_amount: int = 20
 @export var debug_fast_forward_seconds: float = 10.0
@@ -155,6 +164,7 @@ func _ready() -> void:
 		mutation_system.connect("lineage_changed", Callable(self, "_on_lineage_changed"))
 	if mutation_system != null and mutation_system.has_signal("mutation_applied"):
 		mutation_system.connect("mutation_applied", Callable(self, "_on_mutation_applied"))
+	_apply_runtime_reward_effects()
 
 	if player != null:
 		var current_hp_value = player.get("current_hp")
@@ -238,6 +248,15 @@ func _reset_runtime_state() -> void:
 	crisis_reward_selection_active = false
 	active_crisis_reward_id = ""
 	crisis_reward_options.clear()
+	_reward_module_damage_multiplier = 1.0
+	_reward_orbiter_speed_multiplier = 1.0
+	_reward_pulse_radius_multiplier = 1.0
+	_reward_acid_lifetime_multiplier = 1.0
+	_reward_move_speed_multiplier = 1.0
+	_reward_external_damage_multiplier = 1.0
+	_reward_bonus_max_hp_flat = 0
+	_reward_passive_regen_per_second = 0.0
+	_reward_passive_regen_progress = 0.0
 	game_over_main_menu_requested = false
 	_last_player_hp = -1
 	_clear_containment_sweep()
@@ -938,9 +957,29 @@ func _process(delta: float) -> void:
 		return
 	elapsed_seconds += delta
 	_update_timer_label()
+	_tick_reward_passive_regen(delta)
 	_tick_crisis_director(delta)
 	_tick_biohazard_leak_spawner(delta)
 	_update_crisis_debug_banner()
+
+func _tick_reward_passive_regen(delta: float) -> void:
+	if _reward_passive_regen_per_second <= 0.0:
+		return
+	if player == null:
+		return
+	if not player.has_method("heal"):
+		return
+
+	_reward_passive_regen_progress += _reward_passive_regen_per_second * delta
+	if _reward_passive_regen_progress < 1.0:
+		return
+
+	var heal_amount: int = int(floor(_reward_passive_regen_progress))
+	if heal_amount <= 0:
+		return
+
+	_reward_passive_regen_progress -= float(heal_amount)
+	player.call("heal", heal_amount)
 
 func _unhandled_input(event: InputEvent) -> void:
 	var key_event := event as InputEventKey
@@ -1013,6 +1052,7 @@ func _on_lineage_changed(_lineage_id: String, _lineage_name: String) -> void:
 	_refresh_metabolism_hud()
 
 func _on_mutation_applied(_mutation_id: String, _new_level: int) -> void:
+	_apply_runtime_reward_effects()
 	_refresh_metabolism_hud()
 
 func _refresh_lineage_labels() -> void:
@@ -1049,24 +1089,23 @@ func _refresh_choice_panel_labels() -> void:
 func _refresh_metabolism_hud() -> void:
 	if metabolism_label == null:
 		return
-	if mutation_system == null:
-		metabolism_label.visible = false
-		return
-	if not mutation_system.has_method("get_mutation_level"):
-		metabolism_label.visible = false
-		return
+	var metabolism_level: int = 0
+	var metabolism_regen_per_second: float = 0.0
+	if mutation_system != null and mutation_system.has_method("get_mutation_level"):
+		metabolism_level = int(mutation_system.call("get_mutation_level", "metabolism"))
+	if mutation_system != null and mutation_system.has_method("get_metabolism_regen_per_second"):
+		metabolism_regen_per_second = float(mutation_system.call("get_metabolism_regen_per_second"))
 
-	var metabolism_level: int = int(mutation_system.call("get_mutation_level", "metabolism"))
-	if metabolism_level <= 0:
+	var total_regen_per_second: float = metabolism_regen_per_second + _reward_passive_regen_per_second
+	if total_regen_per_second <= 0.0:
 		metabolism_label.visible = false
 		return
-
-	var regen_per_second: float = 0.0
-	if mutation_system.has_method("get_metabolism_regen_per_second"):
-		regen_per_second = float(mutation_system.call("get_metabolism_regen_per_second"))
 
 	metabolism_label.visible = true
-	metabolism_label.text = "Regen: +%.1f/s (L%d)" % [regen_per_second, metabolism_level]
+	if _reward_passive_regen_per_second > 0.0:
+		metabolism_label.text = "Regen: +%.1f/s (L%d + Crisis)" % [total_regen_per_second, metabolism_level]
+		return
+	metabolism_label.text = "Regen: +%.1f/s (L%d)" % [total_regen_per_second, metabolism_level]
 
 func _on_tree_node_added(node: Node) -> void:
 	_connect_enemy_death(node)
@@ -1865,11 +1904,71 @@ func _apply_crisis_reward_choice(choice_index: int) -> bool:
 	var reward_option: Dictionary = crisis_reward_options[choice_index]
 	var reward_id: String = String(reward_option.get("id", ""))
 	var reward_name: String = String(reward_option.get("name", "Crisis Reward"))
+	var reward_applied: bool = _apply_crisis_reward_effect(reward_id)
+	if not reward_applied:
+		return false
+	_apply_runtime_reward_effects()
+	_refresh_metabolism_hud()
 	if debug_log_crisis_timeline:
 		print("[GameManager] Crisis reward selected: %s (%s)" % [reward_name, reward_id])
-
-	# R4-50 scope: reward UI flow only. R4-51 applies gameplay effects.
 	return true
+
+func _apply_crisis_reward_effect(reward_id: String) -> bool:
+	match reward_id:
+		"sweep_breach_lenses":
+			_reward_module_damage_multiplier *= 1.15
+		"sweep_phase_ducts":
+			_reward_move_speed_multiplier *= 1.12
+		"sweep_reactive_shell":
+			_reward_external_damage_multiplier *= 0.88
+		"bloom_overclock_core":
+			_reward_module_damage_multiplier *= 1.20
+		"bloom_hunters_gyro":
+			_reward_orbiter_speed_multiplier *= 1.25
+		"bloom_adaptive_skin":
+			_reward_bonus_max_hp_flat += 15
+		"leak_detox_glands":
+			_reward_passive_regen_per_second += 2.0
+		"leak_acid_recycler":
+			_reward_acid_lifetime_multiplier *= 1.30
+		"leak_nova_condenser":
+			_reward_pulse_radius_multiplier *= 1.20
+		"fallback_hardened_membrane":
+			_reward_bonus_max_hp_flat += 10
+		"fallback_spike_density":
+			_reward_module_damage_multiplier *= 1.10
+		"fallback_metabolic_burst":
+			_reward_move_speed_multiplier *= 1.08
+		_:
+			return false
+	return true
+
+func _apply_runtime_reward_effects() -> void:
+	_apply_runtime_reward_effects_to_player()
+	_apply_runtime_reward_effects_to_mutation_system()
+
+func _apply_runtime_reward_effects_to_player() -> void:
+	if player == null:
+		return
+	if player.has_method("set_bonus_move_speed_multiplier"):
+		player.call("set_bonus_move_speed_multiplier", maxf(0.1, _reward_move_speed_multiplier))
+	if player.has_method("set_bonus_max_hp_flat"):
+		player.call("set_bonus_max_hp_flat", maxi(0, _reward_bonus_max_hp_flat))
+	if player.has_method("set_external_incoming_damage_multiplier"):
+		player.call("set_external_incoming_damage_multiplier", clampf(_reward_external_damage_multiplier, 0.05, 1.0))
+
+func _apply_runtime_reward_effects_to_mutation_system() -> void:
+	if mutation_system == null:
+		return
+	if not mutation_system.has_method("set_runtime_crisis_reward_modifiers"):
+		return
+	mutation_system.call(
+		"set_runtime_crisis_reward_modifiers",
+		maxf(0.1, _reward_module_damage_multiplier),
+		maxf(0.1, _reward_orbiter_speed_multiplier),
+		maxf(0.1, _reward_pulse_radius_multiplier),
+		maxf(0.1, _reward_acid_lifetime_multiplier)
+	)
 
 func _finish_crisis_reward_prompt() -> void:
 	crisis_reward_selection_active = false

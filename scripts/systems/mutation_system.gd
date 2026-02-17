@@ -81,6 +81,17 @@ var membrane_instance: Node2D
 var pulse_nova_instance: Node2D
 var acid_trail_instance: Node2D
 var metabolism_instance: Node2D
+var runtime_module_damage_multiplier: float = 1.0
+var runtime_orbiter_speed_multiplier: float = 1.0
+var runtime_pulse_radius_multiplier: float = 1.0
+var runtime_acid_lifetime_multiplier: float = 1.0
+var _base_spike_damage: int = -1
+var _base_orbiter_damage: int = -1
+var _base_orbiter_speed_rps: float = -1.0
+var _base_pulse_damage: int = -1
+var _base_pulse_radius: float = -1.0
+var _base_acid_damage_per_tick: int = -1
+var _base_acid_lifetime_seconds: float = -1.0
 
 func _ready() -> void:
 	mutation_defs = MUTATIONS_DATA.get_all()
@@ -89,6 +100,7 @@ func _ready() -> void:
 func setup(player_node: Node) -> void:
 	player = player_node as Node2D
 	_apply_starting_loadout()
+	_apply_runtime_crisis_reward_modifiers()
 	_apply_lineage_visuals()
 
 func get_levelup_options(count: int = 3) -> Array[Dictionary]:
@@ -356,6 +368,7 @@ func _apply_mutation_effect(mutation_id: String, new_level: int) -> void:
 			_ensure_metabolism()
 			if metabolism_instance != null and metabolism_instance.has_method("set_level"):
 				metabolism_instance.call("set_level", new_level)
+	_apply_runtime_crisis_reward_modifiers()
 	_apply_lineage_visuals()
 
 func _ensure_spike_ring() -> void:
@@ -434,6 +447,18 @@ func get_metabolism_regen_per_second() -> float:
 		return 0.0
 	return float(metabolism_instance.call("get_regen_per_second"))
 
+func set_runtime_crisis_reward_modifiers(
+	module_damage_multiplier: float,
+	orbiter_speed_multiplier: float,
+	pulse_radius_multiplier: float,
+	acid_lifetime_multiplier: float
+) -> void:
+	runtime_module_damage_multiplier = maxf(0.1, module_damage_multiplier)
+	runtime_orbiter_speed_multiplier = maxf(0.1, orbiter_speed_multiplier)
+	runtime_pulse_radius_multiplier = maxf(0.1, pulse_radius_multiplier)
+	runtime_acid_lifetime_multiplier = maxf(0.1, acid_lifetime_multiplier)
+	_apply_runtime_crisis_reward_modifiers()
+
 func _grant_lineage_starter_mutation(lineage_id: String) -> void:
 	if not LINEAGE_STARTER_MUTATION.has(lineage_id):
 		return
@@ -479,3 +504,65 @@ func _apply_lineage_visuals() -> void:
 		acid_trail_instance.call("set_lineage_color", acid_color)
 	if metabolism_instance != null and metabolism_instance.has_method("set_lineage_color"):
 		metabolism_instance.call("set_lineage_color", metabolism_color)
+
+func _apply_runtime_crisis_reward_modifiers() -> void:
+	_apply_spike_runtime_modifiers()
+	_apply_orbiter_runtime_modifiers()
+	_apply_pulse_runtime_modifiers()
+	_apply_acid_runtime_modifiers()
+
+func _apply_spike_runtime_modifiers() -> void:
+	if spike_ring_instance == null:
+		return
+	if _base_spike_damage < 0:
+		_base_spike_damage = int(spike_ring_instance.get("spike_damage"))
+
+	var damage_value: int = maxi(1, int(round(float(_base_spike_damage) * runtime_module_damage_multiplier)))
+	spike_ring_instance.set("spike_damage", damage_value)
+	if spike_ring_instance.has_method("set_level"):
+		spike_ring_instance.call("set_level", get_mutation_level("spikes"))
+
+func _apply_orbiter_runtime_modifiers() -> void:
+	if orbiter_instance == null:
+		return
+	if _base_orbiter_damage < 0:
+		_base_orbiter_damage = int(orbiter_instance.get("orbiter_damage"))
+	if _base_orbiter_speed_rps < 0.0:
+		_base_orbiter_speed_rps = float(orbiter_instance.get("base_orbit_speed_rps"))
+
+	var orbiter_damage_value: int = maxi(1, int(round(float(_base_orbiter_damage) * runtime_module_damage_multiplier)))
+	var orbiter_speed_value: float = maxf(0.1, _base_orbiter_speed_rps * runtime_orbiter_speed_multiplier)
+	orbiter_instance.set("orbiter_damage", orbiter_damage_value)
+	orbiter_instance.set("base_orbit_speed_rps", orbiter_speed_value)
+	if orbiter_instance.has_method("set_level"):
+		orbiter_instance.call("set_level", get_mutation_level("orbiters"))
+
+func _apply_pulse_runtime_modifiers() -> void:
+	if pulse_nova_instance == null:
+		return
+	if _base_pulse_damage < 0:
+		_base_pulse_damage = int(pulse_nova_instance.get("base_pulse_damage"))
+	if _base_pulse_radius < 0.0:
+		_base_pulse_radius = float(pulse_nova_instance.get("base_pulse_radius"))
+
+	var pulse_damage_value: int = maxi(1, int(round(float(_base_pulse_damage) * runtime_module_damage_multiplier)))
+	var pulse_radius_value: float = maxf(1.0, _base_pulse_radius * runtime_pulse_radius_multiplier)
+	pulse_nova_instance.set("base_pulse_damage", pulse_damage_value)
+	pulse_nova_instance.set("base_pulse_radius", pulse_radius_value)
+	if pulse_nova_instance.has_method("set_level"):
+		pulse_nova_instance.call("set_level", get_mutation_level("pulse_nova"))
+
+func _apply_acid_runtime_modifiers() -> void:
+	if acid_trail_instance == null:
+		return
+	if _base_acid_damage_per_tick < 0:
+		_base_acid_damage_per_tick = int(acid_trail_instance.get("base_damage_per_tick"))
+	if _base_acid_lifetime_seconds < 0.0:
+		_base_acid_lifetime_seconds = float(acid_trail_instance.get("base_lifetime_seconds"))
+
+	var acid_damage_value: int = maxi(1, int(round(float(_base_acid_damage_per_tick) * runtime_module_damage_multiplier)))
+	var acid_lifetime_value: float = maxf(0.1, _base_acid_lifetime_seconds * runtime_acid_lifetime_multiplier)
+	acid_trail_instance.set("base_damage_per_tick", acid_damage_value)
+	acid_trail_instance.set("base_lifetime_seconds", acid_lifetime_value)
+	if acid_trail_instance.has_method("set_level"):
+		acid_trail_instance.call("set_level", get_mutation_level("acid_trail"))
