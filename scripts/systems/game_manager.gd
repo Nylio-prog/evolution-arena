@@ -578,6 +578,9 @@ func _spawn_one_biohazard_leak(optional_player_node: Node2D = null) -> void:
 	var leak_finished_callable := Callable(self, "_on_biohazard_leak_finished").bind(leak_zone)
 	if leak_zone.has_signal("leak_finished") and not leak_zone.is_connected("leak_finished", leak_finished_callable):
 		leak_zone.connect("leak_finished", leak_finished_callable)
+	var leak_exposed_callable := Callable(self, "_on_biohazard_leak_player_exposed")
+	if leak_zone.has_signal("player_exposed") and not leak_zone.is_connected("player_exposed", leak_exposed_callable):
+		leak_zone.connect("player_exposed", leak_exposed_callable)
 
 func _select_biohazard_spawn_position(player_node: Node2D, telegraph_duration_seconds: float) -> Vector2:
 	var lead_seconds: float = maxf(0.0, telegraph_duration_seconds + biohazard_leak_prediction_extra_lead_seconds)
@@ -756,6 +759,22 @@ func _on_biohazard_leak_finished(leak_zone: Node2D) -> void:
 	if leak_zone != null:
 		_active_biohazard_leaks.erase(leak_zone)
 
+func _on_biohazard_leak_player_exposed(_player_node: Node) -> void:
+	if not _is_biohazard_leak_crisis_active():
+		return
+	_fail_run_immediately("Biohazard leak exposure")
+
+func _is_biohazard_leak_crisis_active() -> bool:
+	if crisis_director == null:
+		return false
+	if not crisis_director.has_method("get_phase"):
+		return false
+	if not crisis_director.has_method("get_active_crisis_id"):
+		return false
+	var phase_name: String = String(crisis_director.call("get_phase"))
+	var crisis_id: String = String(crisis_director.call("get_active_crisis_id"))
+	return phase_name == "active" and crisis_id == "biohazard_leak"
+
 func _on_containment_sweep_player_contacted(_player_node: Node) -> void:
 	_fail_run_immediately("Containment sweep contact")
 
@@ -829,7 +848,7 @@ func _get_crisis_objective_text(phase_name: String, crisis_id: String) -> String
 						return "Elite down - hold until reward"
 					return "Locate and eliminate elite strain"
 				"biohazard_leak":
-					return "Survive contamination leak"
+					return "Avoid leak zones - contact is fatal"
 				_:
 					return "Survive active crisis"
 		"reward":

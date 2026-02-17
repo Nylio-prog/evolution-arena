@@ -1,6 +1,7 @@
 extends Area2D
 
 signal leak_finished()
+signal player_exposed(player_node: Node)
 
 @export var telegraph_duration_seconds: float = 0.45
 @export var active_duration_seconds: float = 0.0
@@ -185,6 +186,7 @@ func _on_body_entered(body: Node) -> void:
 		return
 	if not body.is_in_group("player"):
 		return
+	player_exposed.emit(body)
 	if _tracked_players.has(body):
 		return
 	_tracked_players.append(body)
