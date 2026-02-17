@@ -1,6 +1,7 @@
 ﻿extends Node2D
 
 const BIOMASS_PICKUP_SCENE: PackedScene = preload("res://scenes/systems/biomass_pickup.tscn")
+const CONTAINMENT_SWEEP_SCENE: PackedScene = preload("res://scenes/systems/containment_sweep_hazard.tscn")
 const MUTATION_ICON_SPIKES: Texture2D = preload("res://art/sprites/ui/mutation_spikes.png")
 const MUTATION_ICON_ORBITERS: Texture2D = preload("res://art/sprites/ui/mutation_orbiters.png")
 const MUTATION_ICON_MEMBRANE: Texture2D = preload("res://art/sprites/ui/mutation_membrane.png")
@@ -80,6 +81,7 @@ var lineage_selection_active: bool = false
 var game_over_main_menu_requested: bool = false
 var _last_player_hp: int = -1
 var _syncing_audio_controls: bool = false
+var _active_containment_sweep: Node2D = null
 @export var debug_allow_grant_xp: bool = false
 @export var debug_grant_xp_amount: int = 20
 @export var debug_fast_forward_seconds: float = 10.0
@@ -193,6 +195,7 @@ func _reset_runtime_state() -> void:
 	lineage_selection_active = false
 	game_over_main_menu_requested = false
 	_last_player_hp = -1
+	_clear_containment_sweep()
 	if crisis_director != null and crisis_director.has_method("reset_runtime_state"):
 		crisis_director.call("reset_runtime_state")
 
@@ -232,6 +235,8 @@ func _tick_crisis_director(delta: float) -> void:
 func _on_crisis_phase_changed(new_phase: String, crisis_id: String) -> void:
 	var crisis_active: bool = (new_phase == "active" or new_phase == "final")
 	_set_crisis_spawn_throttle(crisis_active)
+	if new_phase != "active" or crisis_id != "containment_sweep":
+		_clear_containment_sweep()
 	_update_crisis_debug_banner()
 
 	if not debug_log_crisis_timeline:
@@ -253,6 +258,47 @@ func _set_crisis_spawn_throttle(active: bool) -> void:
 		if not spawner_node.has_method("set_crisis_spawn_wait_multiplier"):
 			continue
 		spawner_node.call("set_crisis_spawn_wait_multiplier", target_multiplier)
+
+func _spawn_containment_sweep(active_duration_seconds: float) -> void:
+	_clear_containment_sweep()
+
+	var sweep_node := CONTAINMENT_SWEEP_SCENE.instantiate() as Node2D
+	if sweep_node == null:
+		return
+
+	add_child(sweep_node)
+	_active_containment_sweep = sweep_node
+
+	var sweep_center: Vector2 = Vector2.ZERO
+	var player_node := player as Node2D
+	if player_node != null:
+		sweep_center = player_node.global_position
+
+	if sweep_node.has_method("begin_sweep"):
+		sweep_node.call("begin_sweep", sweep_center, active_duration_seconds)
+
+	var sweep_finished_callable := Callable(self, "_on_containment_sweep_finished")
+	if sweep_node.has_signal("sweep_finished") and not sweep_node.is_connected("sweep_finished", sweep_finished_callable):
+		sweep_node.connect("sweep_finished", sweep_finished_callable)
+
+	var player_contacted_callable := Callable(self, "_on_containment_sweep_player_contacted")
+	if sweep_node.has_signal("player_contacted") and not sweep_node.is_connected("player_contacted", player_contacted_callable):
+		sweep_node.connect("player_contacted", player_contacted_callable)
+
+func _clear_containment_sweep() -> void:
+	if _active_containment_sweep == null:
+		return
+	if is_instance_valid(_active_containment_sweep):
+		_active_containment_sweep.queue_free()
+	_active_containment_sweep = null
+
+func _on_containment_sweep_finished() -> void:
+	_active_containment_sweep = null
+
+func _on_containment_sweep_player_contacted(_player_node: Node) -> void:
+	if not debug_log_crisis_timeline:
+		return
+	print("[GameManager] Containment sweep contact registered")
 
 func _update_crisis_debug_banner() -> void:
 	if crisis_debug_label == null:
@@ -317,6 +363,9 @@ func _get_crisis_objective_text(phase_name: String, crisis_id: String) -> String
 			return "--"
 
 func _on_crisis_started(crisis_id: String, is_final: bool, duration_seconds: float) -> void:
+	if not is_final and crisis_id == "containment_sweep":
+		_spawn_containment_sweep(duration_seconds)
+
 	if not debug_log_crisis_timeline:
 		return
 	if is_final:
@@ -330,6 +379,7 @@ func _on_crisis_reward_started(crisis_id: String, duration_seconds: float) -> vo
 	print("[GameManager] Crisis reward started: %s (%.1fs)" % [crisis_id, duration_seconds])
 
 func _on_final_crisis_completed() -> void:
+	_clear_containment_sweep()
 	if not debug_log_crisis_timeline:
 		return
 	print("[GameManager] Final crisis completed at %.1fs" % elapsed_seconds)
@@ -522,6 +572,7 @@ func _on_player_died() -> void:
 		pause_menu_ui.visible = false
 	if crisis_debug_label != null:
 		crisis_debug_label.visible = false
+	_clear_containment_sweep()
 	run_ended = true
 	_play_sfx("player_death")
 	_stop_music()
@@ -551,6 +602,13 @@ func _set_gameplay_active(active: bool) -> void:
 			continue
 		if spawner_node.has_method("set_spawning_enabled"):
 			spawner_node.call("set_spawning_enabled", active)
+
+	for crisis_runtime_raw in get_tree().get_nodes_in_group("crisis_runtime_nodes"):
+		var crisis_runtime_node := crisis_runtime_raw as Node
+		if crisis_runtime_node == null:
+			continue
+		crisis_runtime_node.set_process(active)
+		crisis_runtime_node.set_physics_process(active)
 
 func _show_game_over() -> void:
 	if game_over_stats_label != null:
