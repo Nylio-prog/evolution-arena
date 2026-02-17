@@ -13,7 +13,7 @@ const CRISIS_TYPES: Array[String] = [
 
 @export var debug_log_state: bool = true
 @export var first_crisis_delay_seconds: float = 40.0
-@export var crisis_interval_seconds: float = 46.0
+@export var crisis_interval_seconds: float = 38.0
 @export var crisis_duration_seconds: float = 15.0
 @export var reward_duration_seconds: float = 5.5
 @export var final_crisis_start_seconds: float = 240.0
