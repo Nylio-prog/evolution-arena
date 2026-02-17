@@ -86,6 +86,20 @@ func get_time_until_next_crisis(run_elapsed_seconds: float) -> float:
 		return minf(time_until_regular, time_until_final)
 	return time_until_final
 
+func complete_active_crisis_early(expected_crisis_id: String = "") -> bool:
+	if _phase != "active":
+		return false
+	if _is_final_crisis:
+		return false
+	if not expected_crisis_id.is_empty() and _active_crisis_id != expected_crisis_id:
+		return false
+
+	var completed_crisis_id: String = _active_crisis_id
+	_enter_reward_phase()
+	if debug_log_state:
+		print("[CrisisDirector] Crisis completed early: %s" % completed_crisis_id)
+	return true
+
 func _process_idle(_delta: float, run_elapsed_seconds: float) -> void:
 	if run_elapsed_seconds >= final_crisis_start_seconds:
 		_start_crisis("purge_protocol", true)

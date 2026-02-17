@@ -251,6 +251,8 @@ func _on_crisis_phase_changed(new_phase: String, crisis_id: String) -> void:
 	_set_crisis_spawn_throttle(crisis_active)
 	if new_phase == "reward" and crisis_id == "strain_bloom":
 		_handle_strain_bloom_timeout()
+	if _strain_bloom_active and crisis_id != "strain_bloom":
+		_clear_strain_bloom_state()
 	if new_phase != "active" or crisis_id != "containment_sweep":
 		_clear_containment_sweep()
 	_update_crisis_debug_banner()
@@ -326,6 +328,16 @@ func _on_strain_bloom_elite_died(_world_position: Vector2, elite_node: Node2D) -
 	_strain_bloom_elite_target = null
 	if debug_log_crisis_timeline:
 		print("[GameManager] Strain Bloom elite eliminated with %.1fs remaining" % _get_crisis_phase_time_remaining())
+	_complete_strain_bloom_early()
+
+func _complete_strain_bloom_early() -> void:
+	if crisis_director == null:
+		return
+	if not crisis_director.has_method("complete_active_crisis_early"):
+		return
+	var completed_early: bool = bool(crisis_director.call("complete_active_crisis_early", "strain_bloom"))
+	if debug_log_crisis_timeline and completed_early:
+		print("[GameManager] Strain Bloom completed early by elite kill")
 
 func _handle_strain_bloom_timeout() -> void:
 	if not _strain_bloom_active:
@@ -731,6 +743,7 @@ func _on_player_died() -> void:
 	if crisis_debug_label != null:
 		crisis_debug_label.visible = false
 	_clear_containment_sweep()
+	_clear_strain_bloom_state()
 	run_ended = true
 	_play_sfx("player_death")
 	_stop_music()
