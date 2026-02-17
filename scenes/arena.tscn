@@ -5,6 +5,7 @@
 [ext_resource type="PackedScene" uid="uid://chajohnv7utp" path="res://scenes/ui/ui_hud.tscn" id="3_rbtd0"]
 [ext_resource type="Script" uid="uid://d106i6a2grg7p" path="res://scripts/systems/game_manager.gd" id="4_6g2vy"]
 [ext_resource type="PackedScene" uid="uid://chcru5d2lttfj" path="res://scenes/ui/game_over.tscn" id="5_p3n4s"]
+[ext_resource type="PackedScene" path="res://scenes/ui/pause_menu.tscn" id="6_3wmgv"]
 [ext_resource type="Script" uid="uid://pobg3kqvblvq" path="res://scripts/systems/xp_system.gd" id="7_x7sj1"]
 [ext_resource type="PackedScene" uid="uid://btqxqlyulj1ii" path="res://scenes/ui/ui_levelup.tscn" id="8_rdvuh"]
 [ext_resource type="Script" uid="uid://dfjo7orusdc6v" path="res://scripts/systems/enemy_spawner.gd" id="9_yl4i1"]
@@ -38,6 +39,9 @@ script = ExtResource("7_x7sj1")
 visible = false
 
 [node name="GameOver" parent="." unique_id=173502092 instance=ExtResource("5_p3n4s")]
+visible = false
+
+[node name="PauseMenu" parent="." instance=ExtResource("6_3wmgv")]
 visible = false
 
 [node name="EnemySpawner" type="Node" parent="." unique_id=273176210]

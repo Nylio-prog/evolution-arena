@@ -55,12 +55,18 @@ const MUTATION_ICON_BY_ID: Dictionary = {
 @onready var game_over_ui: CanvasLayer = get_node_or_null("GameOver")
 @onready var game_over_stats_label: Label = get_node_or_null("GameOver/Root/StatsLabel")
 @onready var game_over_restart_button: Button = get_node_or_null("GameOver/Root/RestartButton")
+@onready var pause_menu_ui: CanvasLayer = get_node_or_null("PauseMenu")
+@onready var pause_resume_button: Button = get_node_or_null("PauseMenu/Root/Content/Buttons/ResumeButton")
+@onready var pause_options_button: Button = get_node_or_null("PauseMenu/Root/Content/Buttons/OptionsButton")
+@onready var pause_main_menu_button: Button = get_node_or_null("PauseMenu/Root/Content/Buttons/MainMenuButton")
+@onready var pause_options_hint_label: Label = get_node_or_null("PauseMenu/Root/Content/OptionsHintLabel")
 @onready var audio_manager: Node = get_node_or_null("/root/AudioManager")
 
 var elapsed_seconds: float = 0.0
 var level_reached: int = 1
 var run_ended: bool = false
 var run_paused_for_levelup: bool = false
+var run_paused_for_menu: bool = false
 var pending_levelup_count: int = 0
 var debug_log_drops: bool = false
 var levelup_options: Array = []
@@ -125,6 +131,23 @@ func _ready() -> void:
 		game_over_restart_button.disabled = false
 		game_over_restart_button.connect("pressed", Callable(self, "_on_restart_pressed"))
 
+	if pause_menu_ui != null:
+		pause_menu_ui.visible = false
+	if pause_options_hint_label != null:
+		pause_options_hint_label.visible = false
+	if pause_resume_button != null:
+		var resume_callable := Callable(self, "_on_pause_resume_pressed")
+		if not pause_resume_button.pressed.is_connected(resume_callable):
+			pause_resume_button.pressed.connect(resume_callable)
+	if pause_options_button != null:
+		var options_callable := Callable(self, "_on_pause_options_pressed")
+		if not pause_options_button.pressed.is_connected(options_callable):
+			pause_options_button.pressed.connect(options_callable)
+	if pause_main_menu_button != null:
+		var main_menu_callable := Callable(self, "_on_pause_main_menu_pressed")
+		if not pause_main_menu_button.pressed.is_connected(main_menu_callable):
+			pause_main_menu_button.pressed.connect(main_menu_callable)
+
 	if levelup_ui != null:
 		levelup_ui.visible = false
 
@@ -145,6 +168,8 @@ func _ready() -> void:
 func _process(delta: float) -> void:
 	if run_ended:
 		return
+	if run_paused_for_menu:
+		return
 	if run_paused_for_levelup:
 		return
 	elapsed_seconds += delta
@@ -155,6 +180,13 @@ func _unhandled_input(event: InputEvent) -> void:
 	if key_event != null and key_event.pressed and not key_event.echo:
 		if key_event.keycode == KEY_G and _can_use_debug_xp_cheat():
 			_debug_grant_xp()
+			get_viewport().set_input_as_handled()
+			return
+		if key_event.keycode == KEY_ESCAPE and not run_ended and not run_paused_for_levelup:
+			if run_paused_for_menu:
+				_close_pause_menu()
+			else:
+				_open_pause_menu()
 			get_viewport().set_input_as_handled()
 			return
 
@@ -308,8 +340,11 @@ func _on_player_died() -> void:
 
 	pending_levelup_count = 0
 	run_paused_for_levelup = false
+	run_paused_for_menu = false
 	if levelup_ui != null:
 		levelup_ui.visible = false
+	if pause_menu_ui != null:
+		pause_menu_ui.visible = false
 	run_ended = true
 	_play_sfx("player_death")
 	_stop_music()
@@ -359,6 +394,9 @@ func _update_timer_label() -> void:
 func _on_player_leveled_up(_new_level: int) -> void:
 	if run_ended:
 		return
+	if run_paused_for_menu:
+		pending_levelup_count += 1
+		return
 	if run_paused_for_levelup:
 		pending_levelup_count += 1
 		return
@@ -396,6 +434,62 @@ func _on_restart_pressed() -> void:
 		game_over_restart_button.disabled = true
 	_play_sfx("ui_click")
 	call_deferred("_reload_current_scene_deferred")
+
+func _on_pause_resume_pressed() -> void:
+	_close_pause_menu()
+
+func _on_pause_options_pressed() -> void:
+	if pause_options_hint_label != null:
+		pause_options_hint_label.visible = not pause_options_hint_label.visible
+	_play_sfx("ui_click")
+
+func _on_pause_main_menu_pressed() -> void:
+	_play_sfx("ui_click")
+	run_paused_for_menu = false
+	if pause_menu_ui != null:
+		pause_menu_ui.visible = false
+	call_deferred("_go_to_main_menu_deferred")
+
+func _open_pause_menu() -> void:
+	if run_ended or run_paused_for_levelup or run_paused_for_menu:
+		return
+	run_paused_for_menu = true
+	_set_gameplay_active(false)
+	if pause_options_hint_label != null:
+		pause_options_hint_label.visible = false
+	if pause_menu_ui != null:
+		pause_menu_ui.visible = true
+	_play_sfx("ui_click")
+
+func _close_pause_menu(play_click_sound: bool = true) -> void:
+	if not run_paused_for_menu:
+		return
+
+	run_paused_for_menu = false
+	if pause_menu_ui != null:
+		pause_menu_ui.visible = false
+	if pause_options_hint_label != null:
+		pause_options_hint_label.visible = false
+	if play_click_sound:
+		_play_sfx("ui_click")
+
+	var opened_levelup_prompt: bool = false
+	if pending_levelup_count > 0 and not run_ended:
+		pending_levelup_count -= 1
+		opened_levelup_prompt = _open_levelup_prompt(false)
+		if not opened_levelup_prompt:
+			pending_levelup_count = 0
+
+	if not opened_levelup_prompt:
+		_set_gameplay_active(true)
+
+func _go_to_main_menu_deferred() -> void:
+	var main_menu_scene_path: String = "res://scenes/main_menu.tscn"
+	if not ResourceLoader.exists(main_menu_scene_path, "PackedScene"):
+		push_error("Main menu scene missing at: %s" % main_menu_scene_path)
+		_set_gameplay_active(true)
+		return
+	get_tree().change_scene_to_file(main_menu_scene_path)
 
 func _refresh_levelup_choice_text() -> Array:
 	var options: Array = []
