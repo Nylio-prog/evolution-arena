@@ -64,6 +64,7 @@ const MUTATION_ICON_BY_ID: Dictionary = {
 @onready var pause_sfx_mute_toggle: CheckButton = get_node_or_null("PauseMenu/Root/Content/OptionsPanel/Padding/AudioRows/SfxRow/SfxMuteToggle")
 @onready var pause_music_slider: HSlider = get_node_or_null("PauseMenu/Root/Content/OptionsPanel/Padding/AudioRows/MusicRow/MusicSlider")
 @onready var pause_music_mute_toggle: CheckButton = get_node_or_null("PauseMenu/Root/Content/OptionsPanel/Padding/AudioRows/MusicRow/MusicMuteToggle")
+@onready var crisis_director: Node = get_node_or_null("CrisisDirector")
 @onready var audio_manager: Node = get_node_or_null("/root/AudioManager")
 
 var elapsed_seconds: float = 0.0
@@ -80,6 +81,8 @@ var _last_player_hp: int = -1
 var _syncing_audio_controls: bool = false
 @export var debug_allow_grant_xp: bool = false
 @export var debug_grant_xp_amount: int = 20
+@export var debug_fast_forward_seconds: float = 10.0
+@export var debug_log_crisis_timeline: bool = true
 
 const LINEAGE_CHOICES: Array[String] = ["predator", "swarm", "bulwark"]
 
@@ -122,6 +125,7 @@ func _ready() -> void:
 	_update_timer_label()
 	_refresh_lineage_labels()
 	_refresh_metabolism_hud()
+	_setup_crisis_director()
 	_setup_audio_controls()
 	_play_music("bgm_main")
 
@@ -185,6 +189,65 @@ func _reset_runtime_state() -> void:
 	lineage_selection_active = false
 	game_over_main_menu_requested = false
 	_last_player_hp = -1
+	if crisis_director != null and crisis_director.has_method("reset_runtime_state"):
+		crisis_director.call("reset_runtime_state")
+
+func _setup_crisis_director() -> void:
+	if crisis_director == null:
+		return
+
+	if crisis_director.has_method("reset_runtime_state"):
+		crisis_director.call("reset_runtime_state")
+
+	if crisis_director.has_signal("crisis_phase_changed"):
+		var phase_changed_callable := Callable(self, "_on_crisis_phase_changed")
+		if not crisis_director.is_connected("crisis_phase_changed", phase_changed_callable):
+			crisis_director.connect("crisis_phase_changed", phase_changed_callable)
+	if crisis_director.has_signal("crisis_started"):
+		var crisis_started_callable := Callable(self, "_on_crisis_started")
+		if not crisis_director.is_connected("crisis_started", crisis_started_callable):
+			crisis_director.connect("crisis_started", crisis_started_callable)
+	if crisis_director.has_signal("crisis_reward_started"):
+		var reward_started_callable := Callable(self, "_on_crisis_reward_started")
+		if not crisis_director.is_connected("crisis_reward_started", reward_started_callable):
+			crisis_director.connect("crisis_reward_started", reward_started_callable)
+	if crisis_director.has_signal("final_crisis_completed"):
+		var final_completed_callable := Callable(self, "_on_final_crisis_completed")
+		if not crisis_director.is_connected("final_crisis_completed", final_completed_callable):
+			crisis_director.connect("final_crisis_completed", final_completed_callable)
+
+func _tick_crisis_director(delta: float) -> void:
+	if crisis_director == null:
+		return
+	if not crisis_director.has_method("tick"):
+		return
+	crisis_director.call("tick", delta, elapsed_seconds)
+
+func _on_crisis_phase_changed(new_phase: String, crisis_id: String) -> void:
+	if not debug_log_crisis_timeline:
+		return
+	if crisis_id.is_empty():
+		print("[GameManager] Crisis phase -> %s at %.1fs" % [new_phase, elapsed_seconds])
+	else:
+		print("[GameManager] Crisis phase -> %s (%s) at %.1fs" % [new_phase, crisis_id, elapsed_seconds])
+
+func _on_crisis_started(crisis_id: String, is_final: bool, duration_seconds: float) -> void:
+	if not debug_log_crisis_timeline:
+		return
+	if is_final:
+		print("[GameManager] Final crisis started: %s (%.1fs)" % [crisis_id, duration_seconds])
+	else:
+		print("[GameManager] Crisis started: %s (%.1fs)" % [crisis_id, duration_seconds])
+
+func _on_crisis_reward_started(crisis_id: String, duration_seconds: float) -> void:
+	if not debug_log_crisis_timeline:
+		return
+	print("[GameManager] Crisis reward started: %s (%.1fs)" % [crisis_id, duration_seconds])
+
+func _on_final_crisis_completed() -> void:
+	if not debug_log_crisis_timeline:
+		return
+	print("[GameManager] Final crisis completed at %.1fs" % elapsed_seconds)
 
 func _process(delta: float) -> void:
 	if run_ended:
@@ -195,12 +258,17 @@ func _process(delta: float) -> void:
 		return
 	elapsed_seconds += delta
 	_update_timer_label()
+	_tick_crisis_director(delta)
 
 func _unhandled_input(event: InputEvent) -> void:
 	var key_event := event as InputEventKey
 	if key_event != null and key_event.pressed and not key_event.echo:
 		if key_event.keycode == KEY_G and _can_use_debug_xp_cheat():
 			_debug_grant_xp()
+			get_viewport().set_input_as_handled()
+			return
+		if key_event.keycode == KEY_T and _can_use_debug_xp_cheat():
+			_debug_fast_forward_time()
 			get_viewport().set_input_as_handled()
 			return
 		if key_event.keycode == KEY_ESCAPE and not run_ended and not run_paused_for_levelup:
@@ -704,6 +772,32 @@ func _debug_grant_xp() -> void:
 
 	xp_system.call("add_xp", debug_grant_xp_amount)
 	print("Debug XP granted: +", debug_grant_xp_amount)
+
+func _debug_fast_forward_time() -> void:
+	if not _can_use_debug_xp_cheat():
+		return
+	if run_ended:
+		return
+	if run_paused_for_levelup or run_paused_for_menu:
+		return
+
+	var seconds_to_skip: float = maxf(0.0, debug_fast_forward_seconds)
+	if seconds_to_skip <= 0.0:
+		return
+
+	elapsed_seconds += seconds_to_skip
+	_update_timer_label()
+	_tick_crisis_director(seconds_to_skip)
+
+	for spawner_variant in get_tree().get_nodes_in_group("enemy_spawners"):
+		var spawner_node := spawner_variant as Node
+		if spawner_node == null:
+			continue
+		if not spawner_node.has_method("debug_advance_time"):
+			continue
+		spawner_node.call("debug_advance_time", seconds_to_skip)
+
+	print("Debug fast-forward: +%.1fs (run time now %.1fs)" % [seconds_to_skip, elapsed_seconds])
 
 func _can_use_debug_xp_cheat() -> bool:
 	if not debug_allow_grant_xp:

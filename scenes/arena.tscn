@@ -10,6 +10,7 @@
 [ext_resource type="PackedScene" uid="uid://btqxqlyulj1ii" path="res://scenes/ui/ui_levelup.tscn" id="8_rdvuh"]
 [ext_resource type="Script" uid="uid://dfjo7orusdc6v" path="res://scripts/systems/enemy_spawner.gd" id="9_yl4i1"]
 [ext_resource type="Script" uid="uid://bkpmxrcd71u3k" path="res://scripts/systems/mutation_system.gd" id="10_6wsqv"]
+[ext_resource type="Script" path="res://scripts/systems/crisis_director.gd" id="11_oj863"]
 
 [node name="Arena" type="Node2D" unique_id=1478589997]
 script = ExtResource("4_6g2vy")
@@ -52,3 +53,6 @@ autostart = true
 
 [node name="MutationSystem" type="Node" parent="." unique_id=91298898]
 script = ExtResource("10_6wsqv")
+
+[node name="CrisisDirector" type="Node" parent="."]
+script = ExtResource("11_oj863")

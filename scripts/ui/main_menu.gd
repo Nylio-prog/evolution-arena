@@ -73,9 +73,9 @@ func _on_quit_pressed() -> void:
 	_play_sfx("ui_click")
 	get_tree().quit()
 
-func _set_options_visible(visible: bool) -> void:
+func _set_options_visible(should_show: bool) -> void:
 	if options_panel != null:
-		options_panel.visible = visible
+		options_panel.visible = should_show
 
 func _setup_audio_controls() -> void:
 	var sfx_value: float = 0.5

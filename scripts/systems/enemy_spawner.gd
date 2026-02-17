@@ -37,6 +37,12 @@ func set_spawning_enabled(enabled: bool) -> void:
 	else:
 		spawn_timer.stop()
 
+func debug_advance_time(seconds: float) -> void:
+	if seconds <= 0.0:
+		return
+	_elapsed_seconds += seconds
+	_update_spawn_wait_time()
+
 func _on_spawn_timer_timeout() -> void:
 	if not is_instance_valid(_player):
 		_player = get_tree().get_first_node_in_group("player") as Node2D
