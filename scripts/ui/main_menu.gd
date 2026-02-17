@@ -6,6 +6,10 @@ extends Control
 @onready var options_button: Button = get_node_or_null("Root/MenuPanel/Content/Buttons/OptionsButton")
 @onready var quit_button: Button = get_node_or_null("Root/MenuPanel/Content/Buttons/QuitButton")
 @onready var options_panel: PanelContainer = get_node_or_null("OptionsPanel")
+@onready var sfx_slider: HSlider = get_node_or_null("OptionsPanel/OptionsContent/AudioRows/SfxRow/SfxSlider")
+@onready var sfx_mute_toggle: CheckButton = get_node_or_null("OptionsPanel/OptionsContent/AudioRows/SfxRow/SfxMuteToggle")
+@onready var music_slider: HSlider = get_node_or_null("OptionsPanel/OptionsContent/AudioRows/MusicRow/MusicSlider")
+@onready var music_mute_toggle: CheckButton = get_node_or_null("OptionsPanel/OptionsContent/AudioRows/MusicRow/MusicMuteToggle")
 @onready var close_options_button: Button = get_node_or_null("OptionsPanel/OptionsContent/CloseOptionsButton")
 @onready var audio_manager: Node = get_node_or_null("/root/AudioManager")
 
@@ -13,6 +17,7 @@ func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	_connect_ui()
 	_set_options_visible(false)
+	_setup_audio_controls()
 	_play_music("bgm_main")
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -71,6 +76,78 @@ func _on_quit_pressed() -> void:
 func _set_options_visible(visible: bool) -> void:
 	if options_panel != null:
 		options_panel.visible = visible
+
+func _setup_audio_controls() -> void:
+	var sfx_value: float = 0.5
+	var music_value: float = 0.4
+	var sfx_muted: bool = false
+	var music_muted: bool = false
+
+	if audio_manager != null:
+		if audio_manager.has_method("get_sfx_volume_linear"):
+			sfx_value = float(audio_manager.call("get_sfx_volume_linear"))
+		if audio_manager.has_method("get_music_volume_linear"):
+			music_value = float(audio_manager.call("get_music_volume_linear"))
+		if audio_manager.has_method("get_sfx_muted"):
+			sfx_muted = bool(audio_manager.call("get_sfx_muted"))
+		if audio_manager.has_method("get_music_muted"):
+			music_muted = bool(audio_manager.call("get_music_muted"))
+
+	if sfx_slider != null:
+		sfx_slider.value = sfx_value
+		var sfx_changed_callable := Callable(self, "_on_sfx_slider_value_changed")
+		if not sfx_slider.value_changed.is_connected(sfx_changed_callable):
+			sfx_slider.value_changed.connect(sfx_changed_callable)
+		_on_sfx_slider_value_changed(sfx_slider.value)
+
+	if sfx_mute_toggle != null:
+		sfx_mute_toggle.button_pressed = sfx_muted
+		var sfx_toggle_callable := Callable(self, "_on_sfx_mute_toggled")
+		if not sfx_mute_toggle.toggled.is_connected(sfx_toggle_callable):
+			sfx_mute_toggle.toggled.connect(sfx_toggle_callable)
+		_on_sfx_mute_toggled(sfx_mute_toggle.button_pressed)
+
+	if music_slider != null:
+		music_slider.value = music_value
+		var music_changed_callable := Callable(self, "_on_music_slider_value_changed")
+		if not music_slider.value_changed.is_connected(music_changed_callable):
+			music_slider.value_changed.connect(music_changed_callable)
+		_on_music_slider_value_changed(music_slider.value)
+
+	if music_mute_toggle != null:
+		music_mute_toggle.button_pressed = music_muted
+		var music_toggle_callable := Callable(self, "_on_music_mute_toggled")
+		if not music_mute_toggle.toggled.is_connected(music_toggle_callable):
+			music_mute_toggle.toggled.connect(music_toggle_callable)
+		_on_music_mute_toggled(music_mute_toggle.button_pressed)
+
+func _on_sfx_slider_value_changed(value: float) -> void:
+	if audio_manager == null:
+		return
+	if not audio_manager.has_method("set_sfx_volume_linear"):
+		return
+	audio_manager.call("set_sfx_volume_linear", value)
+
+func _on_music_slider_value_changed(value: float) -> void:
+	if audio_manager == null:
+		return
+	if not audio_manager.has_method("set_music_volume_linear"):
+		return
+	audio_manager.call("set_music_volume_linear", value)
+
+func _on_sfx_mute_toggled(pressed: bool) -> void:
+	if audio_manager == null:
+		return
+	if not audio_manager.has_method("set_sfx_muted"):
+		return
+	audio_manager.call("set_sfx_muted", pressed)
+
+func _on_music_mute_toggled(pressed: bool) -> void:
+	if audio_manager == null:
+		return
+	if not audio_manager.has_method("set_music_muted"):
+		return
+	audio_manager.call("set_music_muted", pressed)
 
 func _play_sfx(event_id: String) -> void:
 	if audio_manager == null:

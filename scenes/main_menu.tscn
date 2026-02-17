@@ -152,17 +152,17 @@ layout_mode = 2
 
 [node name="OptionsPanel" type="PanelContainer" parent="."]
 visible = false
-custom_minimum_size = Vector2(480, 240)
+custom_minimum_size = Vector2(520, 300)
 layout_mode = 1
 anchors_preset = 8
 anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = -240.0
-offset_top = -120.0
-offset_right = 240.0
-offset_bottom = 120.0
+offset_left = -260.0
+offset_top = -150.0
+offset_right = 260.0
+offset_bottom = 150.0
 grow_horizontal = 2
 grow_vertical = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_options_panel")
@@ -182,13 +182,57 @@ theme_override_colors/font_color = Color(0.9, 0.96, 1, 1)
 text = "OPTIONS"
 horizontal_alignment = 1
 
-[node name="OptionsText" type="Label" parent="OptionsPanel/OptionsContent"]
+[node name="AudioRows" type="VBoxContainer" parent="OptionsPanel/OptionsContent"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 20
-theme_override_colors/font_color = Color(0.72, 0.86, 0.98, 0.92)
-text = "Audio sliders and toggles come in the next micro-task."
-horizontal_alignment = 1
-autowrap_mode = 3
+theme_override_constants/separation = 8
+
+[node name="SfxRow" type="HBoxContainer" parent="OptionsPanel/OptionsContent/AudioRows"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="SfxLabel" type="Label" parent="OptionsPanel/OptionsContent/AudioRows/SfxRow"]
+custom_minimum_size = Vector2(70, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+theme_override_colors/font_color = Color(0.74, 0.89, 0.98, 0.95)
+text = "SFX"
+
+[node name="SfxSlider" type="HSlider" parent="OptionsPanel/OptionsContent/AudioRows/SfxRow"]
+custom_minimum_size = Vector2(220, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+max_value = 1.0
+step = 0.01
+value = 0.5
+
+[node name="SfxMuteToggle" type="CheckButton" parent="OptionsPanel/OptionsContent/AudioRows/SfxRow"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+text = "Mute"
+
+[node name="MusicRow" type="HBoxContainer" parent="OptionsPanel/OptionsContent/AudioRows"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="MusicLabel" type="Label" parent="OptionsPanel/OptionsContent/AudioRows/MusicRow"]
+custom_minimum_size = Vector2(70, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+theme_override_colors/font_color = Color(0.74, 0.89, 0.98, 0.95)
+text = "Music"
+
+[node name="MusicSlider" type="HSlider" parent="OptionsPanel/OptionsContent/AudioRows/MusicRow"]
+custom_minimum_size = Vector2(220, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+max_value = 1.0
+step = 0.01
+value = 0.4
+
+[node name="MusicMuteToggle" type="CheckButton" parent="OptionsPanel/OptionsContent/AudioRows/MusicRow"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+text = "Mute"
 
 [node name="CloseOptionsButton" type="Button" parent="OptionsPanel/OptionsContent"]
 custom_minimum_size = Vector2(220, 54)
