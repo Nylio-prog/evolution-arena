@@ -53,25 +53,16 @@ func take_damage(amount: int) -> void:
 
 	var final_amount: int = max(1, int(round(float(amount) * incoming_damage_multiplier)))
 	_invulnerable_until_ms = now_ms + int(invulnerability_seconds * 1000.0)
-	current_hp = max(0, current_hp - final_amount)
-	_trigger_hit_animation()
-	if debug_log_damage:
-		print(
-			"Player took ",
-			final_amount,
-			" damage (raw ",
-			amount,
-			", x",
-			incoming_damage_multiplier,
-			"). HP: ",
-			current_hp,
-			"/",
-			max_hp
-		)
-	hp_changed.emit(current_hp, max_hp)
+	_apply_damage_value(final_amount, amount, false)
 
-	if current_hp == 0:
-		died.emit()
+func take_dot_damage(amount: int) -> void:
+	if amount <= 0:
+		return
+	if current_hp <= 0:
+		return
+
+	var final_amount: int = max(1, int(round(float(amount) * incoming_damage_multiplier)))
+	_apply_damage_value(final_amount, amount, true)
 
 func force_die() -> void:
 	if current_hp <= 0:
@@ -150,3 +141,27 @@ func _on_animated_sprite_animation_finished() -> void:
 		return
 	_is_playing_hit_animation = false
 	_play_base_animation(velocity.length() > 0.01)
+
+func _apply_damage_value(final_amount: int, raw_amount: int, is_dot: bool) -> void:
+	current_hp = max(0, current_hp - final_amount)
+	_trigger_hit_animation()
+	if debug_log_damage:
+		var damage_type_label: String = "DOT" if is_dot else "HIT"
+		print(
+			"Player took ",
+			final_amount,
+			" damage [",
+			damage_type_label,
+			"] (raw ",
+			raw_amount,
+			", x",
+			incoming_damage_multiplier,
+			"). HP: ",
+			current_hp,
+			"/",
+			max_hp
+		)
+	hp_changed.emit(current_hp, max_hp)
+
+	if current_hp == 0:
+		died.emit()

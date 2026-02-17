@@ -21,7 +21,7 @@ const SFX_EVENT_COOLDOWN_SEC: Dictionary = {
 }
 
 @export var default_sfx_volume_db: float = -6.0
-@export var default_music_volume_db: float = -10.0
+@export var default_music_volume_db: float = -16.0
 @export var sfx_polyphony: int = DEFAULT_SFX_POLYPHONY
 @export var debug_log_missing_streams: bool = false
 

@@ -115,8 +115,8 @@ var _strain_bloom_elite_killed: bool = false
 @export var biohazard_leak_prediction_path_factor: float = 0.80
 @export var biohazard_leak_target_attraction_weight: float = 0.22
 @export var biohazard_leak_collision_radius: float = 94.0
-@export var biohazard_leak_zone_damage_per_second_min: float = 20.0
-@export var biohazard_leak_zone_damage_per_second_max: float = 28.0
+@export var biohazard_leak_damage_tick_amount: int = 5
+@export var biohazard_leak_damage_tick_interval_seconds: float = 0.2
 @export var biohazard_leak_telegraph_duration_min: float = 0.45
 @export var biohazard_leak_telegraph_duration_max: float = 0.95
 @export var strain_bloom_elite_spawn_radius_min: float = 180.0
@@ -551,12 +551,9 @@ func _spawn_one_biohazard_leak(optional_player_node: Node2D = null) -> void:
 	if player_node == null:
 		return
 
-	var min_damage_per_second: float = maxf(1.0, biohazard_leak_zone_damage_per_second_min)
-	var max_damage_per_second: float = maxf(min_damage_per_second, biohazard_leak_zone_damage_per_second_max)
 	var min_telegraph_duration: float = maxf(0.05, biohazard_leak_telegraph_duration_min)
 	var max_telegraph_duration: float = maxf(min_telegraph_duration, biohazard_leak_telegraph_duration_max)
 
-	var damage_per_second: float = randf_range(min_damage_per_second, max_damage_per_second)
 	var telegraph_duration: float = randf_range(min_telegraph_duration, max_telegraph_duration)
 	var leak_center: Vector2 = _select_biohazard_spawn_position(player_node, telegraph_duration)
 
@@ -567,7 +564,8 @@ func _spawn_one_biohazard_leak(optional_player_node: Node2D = null) -> void:
 	_active_biohazard_leaks.append(leak_zone)
 
 	leak_zone.set("collision_radius", maxf(8.0, biohazard_leak_collision_radius))
-	leak_zone.set("damage_per_second", damage_per_second)
+	leak_zone.set("damage_tick_amount", maxi(1, biohazard_leak_damage_tick_amount))
+	leak_zone.set("damage_tick_interval_seconds", maxf(0.01, biohazard_leak_damage_tick_interval_seconds))
 	leak_zone.set("telegraph_duration_seconds", telegraph_duration)
 
 	if leak_zone.has_method("begin_leak"):
@@ -762,7 +760,8 @@ func _on_biohazard_leak_finished(leak_zone: Node2D) -> void:
 func _on_biohazard_leak_player_exposed(_player_node: Node) -> void:
 	if not _is_biohazard_leak_crisis_active():
 		return
-	_fail_run_immediately("Biohazard leak exposure")
+	if debug_log_crisis_timeline:
+		print("[GameManager] Biohazard leak exposure - damage applied")
 
 func _is_biohazard_leak_crisis_active() -> bool:
 	if crisis_director == null:
@@ -848,7 +847,7 @@ func _get_crisis_objective_text(phase_name: String, crisis_id: String) -> String
 						return "Elite down - hold until reward"
 					return "Locate and eliminate elite strain"
 				"biohazard_leak":
-					return "Avoid leak zones - contact is fatal"
+					return "Avoid leak zones - heavy damage over time"
 				_:
 					return "Survive active crisis"
 		"reward":

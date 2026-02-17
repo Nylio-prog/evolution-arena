@@ -6,7 +6,8 @@ signal player_exposed(player_node: Node)
 @export var telegraph_duration_seconds: float = 0.45
 @export var active_duration_seconds: float = 0.0
 @export var collision_radius: float = 94.0
-@export var damage_per_second: float = 20.0
+@export var damage_tick_amount: int = 5
+@export var damage_tick_interval_seconds: float = 0.2
 @export var use_sprite_visual_when_available: bool = true
 @export var sprite_telegraph_alpha: float = 0.38
 @export var sprite_active_alpha: float = 0.92
@@ -20,7 +21,7 @@ var _phase: String = "idle"
 var _phase_elapsed_seconds: float = 0.0
 var _active_phase_duration_seconds: float = 0.0
 var _tracked_players: Array[Node] = []
-var _damage_carry_by_player: Dictionary = {}
+var _damage_tick_elapsed_by_player: Dictionary = {}
 var _sprite_animation_name: StringName = StringName()
 
 func _ready() -> void:
@@ -38,7 +39,7 @@ func begin_leak(center_position: Vector2, override_active_duration_seconds: floa
 		_active_phase_duration_seconds = override_active_duration_seconds
 
 	_tracked_players.clear()
-	_damage_carry_by_player.clear()
+	_damage_tick_elapsed_by_player.clear()
 	_apply_collision_radius()
 	_enter_phase("telegraph")
 
@@ -105,7 +106,7 @@ func _enter_phase(next_phase: String) -> void:
 	if _phase == "done":
 		_set_collision_active(false)
 		_tracked_players.clear()
-		_damage_carry_by_player.clear()
+		_damage_tick_elapsed_by_player.clear()
 		_update_sprite_visual()
 		if debug_log_events:
 			print("[BiohazardLeak] Zone finished")
@@ -158,9 +159,12 @@ func _sync_overlapping_players() -> void:
 		if _tracked_players.has(body_node):
 			continue
 		_tracked_players.append(body_node)
-		_damage_carry_by_player[body_node] = 0.0
+		_damage_tick_elapsed_by_player[body_node] = 0.0
 
 func _apply_player_damage(delta: float) -> void:
+	var tick_interval_seconds: float = maxf(0.01, damage_tick_interval_seconds)
+	var tick_amount: int = maxi(1, damage_tick_amount)
+
 	for player_index in range(_tracked_players.size() - 1, -1, -1):
 		var player_node: Node = _tracked_players[player_index]
 		if player_node == null or not is_instance_valid(player_node):
@@ -168,16 +172,18 @@ func _apply_player_damage(delta: float) -> void:
 			continue
 		if not player_node.is_in_group("player"):
 			continue
-		if not player_node.has_method("take_damage"):
+		if not player_node.has_method("take_damage") and not player_node.has_method("take_dot_damage"):
 			continue
 
-		var pending_damage_variant: Variant = _damage_carry_by_player.get(player_node, 0.0)
-		var pending_damage: float = float(pending_damage_variant) + (damage_per_second * delta)
-		var whole_damage: int = int(floor(pending_damage))
-		if whole_damage > 0:
-			player_node.call("take_damage", whole_damage)
-			pending_damage -= float(whole_damage)
-		_damage_carry_by_player[player_node] = pending_damage
+		var elapsed_variant: Variant = _damage_tick_elapsed_by_player.get(player_node, 0.0)
+		var elapsed_seconds: float = float(elapsed_variant) + delta
+		while elapsed_seconds >= tick_interval_seconds:
+			elapsed_seconds -= tick_interval_seconds
+			if player_node.has_method("take_dot_damage"):
+				player_node.call("take_dot_damage", tick_amount)
+			else:
+				player_node.call("take_damage", tick_amount)
+		_damage_tick_elapsed_by_player[player_node] = elapsed_seconds
 
 func _on_body_entered(body: Node) -> void:
 	if _phase != "active":
@@ -190,11 +196,11 @@ func _on_body_entered(body: Node) -> void:
 	if _tracked_players.has(body):
 		return
 	_tracked_players.append(body)
-	_damage_carry_by_player[body] = 0.0
+	_damage_tick_elapsed_by_player[body] = 0.0
 
 func _on_body_exited(body: Node) -> void:
 	if body == null:
 		return
 	if _tracked_players.has(body):
 		_tracked_players.erase(body)
-	_damage_carry_by_player.erase(body)
+	_damage_tick_elapsed_by_player.erase(body)
