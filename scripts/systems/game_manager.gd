@@ -36,6 +36,7 @@ const MUTATION_ICON_BY_ID: Dictionary = {
 @onready var music_slider: HSlider = get_node_or_null("UiHud/AudioPanel/Padding/Rows/MusicSlider")
 @onready var music_mute_toggle: CheckButton = get_node_or_null("UiHud/AudioPanel/Padding/Rows/MusicMuteToggle")
 @onready var levelup_ui: CanvasLayer = get_node_or_null("UiLevelup")
+@onready var levelup_title_label: Label = get_node_or_null("UiLevelup/Root/Layout/TitleLabel")
 @onready var levelup_lineage_prompt_label: Label = get_node_or_null("UiLevelup/Root/Layout/LineagePromptLabel")
 @onready var levelup_help_label: Label = get_node_or_null("UiLevelup/Root/Layout/HelpLabel")
 @onready var levelup_choices_row: HBoxContainer = get_node_or_null("UiLevelup/Root/Layout/ChoicesRow")
@@ -80,6 +81,9 @@ var pending_levelup_count: int = 0
 var debug_log_drops: bool = false
 var levelup_options: Array = []
 var lineage_selection_active: bool = false
+var crisis_reward_selection_active: bool = false
+var active_crisis_reward_id: String = ""
+var crisis_reward_options: Array = []
 var game_over_main_menu_requested: bool = false
 var _last_player_hp: int = -1
 var _syncing_audio_controls: bool = false
@@ -231,6 +235,9 @@ func _reset_runtime_state() -> void:
 	pending_levelup_count = 0
 	levelup_options.clear()
 	lineage_selection_active = false
+	crisis_reward_selection_active = false
+	active_crisis_reward_id = ""
+	crisis_reward_options.clear()
 	game_over_main_menu_requested = false
 	_last_player_hp = -1
 	_clear_containment_sweep()
@@ -888,9 +895,12 @@ func _on_crisis_reward_started(crisis_id: String, duration_seconds: float) -> vo
 	if crisis_id == "biohazard_leak":
 		_clear_biohazard_leaks()
 		call_deferred("_verify_biohazard_cleanup")
+	var reward_prompt_opened: bool = _open_crisis_reward_prompt(crisis_id)
 	if not debug_log_crisis_timeline:
 		return
 	print("[GameManager] Crisis reward started: %s (%.1fs)" % [crisis_id, duration_seconds])
+	if reward_prompt_opened:
+		print("[GameManager] Reward prompt opened with %d options for %s" % [crisis_reward_options.size(), crisis_id])
 
 func _on_final_crisis_completed() -> void:
 	_clear_containment_sweep()
@@ -1011,14 +1021,27 @@ func _refresh_lineage_labels() -> void:
 	if lineage_label != null:
 		lineage_label.text = "Lineage: %s" % current_lineage_name
 
+	_refresh_choice_panel_labels()
+
+func _refresh_choice_panel_labels() -> void:
+	if levelup_title_label != null:
+		if crisis_reward_selection_active:
+			levelup_title_label.text = "CRISIS REWARD"
+		else:
+			levelup_title_label.text = "EVOLVE"
+
 	if levelup_lineage_prompt_label != null:
-		if lineage_selection_active:
+		if crisis_reward_selection_active:
+			levelup_lineage_prompt_label.text = "Choose one adaptation"
+		elif lineage_selection_active:
 			levelup_lineage_prompt_label.text = "Choose your lineage"
 		else:
 			levelup_lineage_prompt_label.text = "Choose your mutation"
 
 	if levelup_help_label != null:
-		if lineage_selection_active:
+		if crisis_reward_selection_active:
+			levelup_help_label.text = "Crisis bonus applies immediately for this run."
+		elif lineage_selection_active:
 			levelup_help_label.text = "Choose once. It grants a core mutation and biases future options."
 		else:
 			levelup_help_label.text = "Tip: * marks options favored by your lineage."
@@ -1106,6 +1129,10 @@ func _on_player_died() -> void:
 	pending_levelup_count = 0
 	run_paused_for_levelup = false
 	run_paused_for_menu = false
+	lineage_selection_active = false
+	crisis_reward_selection_active = false
+	active_crisis_reward_id = ""
+	crisis_reward_options.clear()
 	if levelup_ui != null:
 		levelup_ui.visible = false
 	if pause_menu_ui != null:
@@ -1184,6 +1211,13 @@ func _on_levelup_choice_pressed(choice_index: int) -> void:
 	if run_ended:
 		return
 	_play_sfx("ui_click")
+
+	if crisis_reward_selection_active:
+		var reward_applied: bool = _apply_crisis_reward_choice(choice_index)
+		if not reward_applied:
+			return
+		_finish_crisis_reward_prompt()
+		return
 
 	if lineage_selection_active:
 		var lineage_applied: bool = _apply_lineage_choice(choice_index)
@@ -1317,17 +1351,27 @@ func _set_choice_icon(icon: TextureRect, option: Dictionary) -> void:
 		return
 
 	var mutation_id: String = String(option.get("id", ""))
-	if mutation_id.is_empty() or not MUTATION_ICON_BY_ID.has(mutation_id):
+	var icon_id: String = String(option.get("icon_id", mutation_id))
+	if icon_id.is_empty() or not MUTATION_ICON_BY_ID.has(icon_id):
 		icon.texture = null
 		icon.visible = false
 		return
 
-	var icon_texture_variant: Variant = MUTATION_ICON_BY_ID.get(mutation_id, null)
+	var icon_texture_variant: Variant = MUTATION_ICON_BY_ID.get(icon_id, null)
 	var icon_texture: Texture2D = icon_texture_variant as Texture2D
 	icon.texture = icon_texture
 	icon.visible = icon_texture != null
 
 func _format_mutation_option_text(option: Dictionary) -> String:
+	if _is_crisis_reward_option(option):
+		var reward_name: String = String(option.get("name", "Reward"))
+		var reward_summary: String = String(option.get("short", ""))
+		if reward_summary.is_empty():
+			reward_summary = String(option.get("description", ""))
+		if reward_summary.is_empty():
+			return reward_name
+		return "%s\n%s" % [reward_name, reward_summary]
+
 	var mutation_name: String = String(option.get("name", "Mutation"))
 	var next_level: int = int(option.get("next_level", 1))
 	var summary_text: String = String(option.get("short", ""))
@@ -1342,6 +1386,15 @@ func _format_mutation_option_text(option: Dictionary) -> String:
 	return "%s L%d\n%s" % [mutation_name, next_level, summary_text]
 
 func _format_mutation_option_bbcode(option: Dictionary) -> String:
+	if _is_crisis_reward_option(option):
+		var reward_name: String = String(option.get("name", "Reward"))
+		var reward_summary: String = String(option.get("short", ""))
+		if reward_summary.is_empty():
+			reward_summary = String(option.get("description", ""))
+		if reward_summary.is_empty():
+			return "[center][b]%s[/b][/center]" % reward_name
+		return "[center][b]%s[/b]\n%s[/center]" % [reward_name, reward_summary]
+
 	var mutation_name: String = String(option.get("name", "Mutation"))
 	var next_level: int = int(option.get("next_level", 1))
 	var summary_text: String = String(option.get("short", ""))
@@ -1361,6 +1414,9 @@ func _format_mutation_option_bbcode(option: Dictionary) -> String:
 		return "[center][b][color=#ffd966]%s[/color][/b]\n%s[/center]" % [title_text, summary_text]
 	return "[center][b]%s[/b]\n%s[/center]" % [title_text, summary_text]
 
+func _is_crisis_reward_option(option: Dictionary) -> bool:
+	return bool(option.get("is_crisis_reward", false))
+
 func _should_prompt_lineage_now() -> bool:
 	if level_reached < 2:
 		return false
@@ -1375,8 +1431,7 @@ func _should_prompt_lineage_now() -> bool:
 
 func _set_lineage_choice_button_texts() -> void:
 	_set_levelup_mode(true)
-	if levelup_lineage_prompt_label != null:
-		levelup_lineage_prompt_label.text = "Choose your lineage"
+	_refresh_choice_panel_labels()
 	_set_lineage_choice_text(
 		lineage_choice_1,
 		lineage_choice_1_text,
@@ -1681,7 +1736,170 @@ func _stop_music() -> void:
 		return
 	audio_manager.call("stop_music")
 
+func _open_crisis_reward_prompt(crisis_id: String) -> bool:
+	var options: Array = _build_crisis_reward_options(crisis_id)
+	if options.is_empty():
+		return false
+
+	active_crisis_reward_id = crisis_id
+	crisis_reward_selection_active = true
+	lineage_selection_active = false
+	crisis_reward_options = options
+
+	_set_levelup_mode(false)
+	_refresh_lineage_labels()
+	_set_choice_button_text(levelup_choice_1, levelup_choice_1_icon, levelup_choice_1_text, crisis_reward_options, 0)
+	_set_choice_button_text(levelup_choice_2, levelup_choice_2_icon, levelup_choice_2_text, crisis_reward_options, 1)
+	_set_choice_button_text(levelup_choice_3, levelup_choice_3_icon, levelup_choice_3_text, crisis_reward_options, 2)
+
+	run_paused_for_levelup = true
+	_set_gameplay_active(false)
+	if levelup_ui != null:
+		levelup_ui.visible = true
+	_play_sfx("levelup")
+	return true
+
+func _build_crisis_reward_options(crisis_id: String) -> Array:
+	match crisis_id:
+		"containment_sweep":
+			return [
+				_build_crisis_reward_option(
+					"sweep_breach_lenses",
+					"Breach Lenses",
+					"+15% module damage for this run.",
+					"spikes"
+				),
+				_build_crisis_reward_option(
+					"sweep_phase_ducts",
+					"Phase Ducts",
+					"+12% movement speed for this run.",
+					"metabolism"
+				),
+				_build_crisis_reward_option(
+					"sweep_reactive_shell",
+					"Reactive Shell",
+					"-12% incoming damage for this run.",
+					"membrane"
+				)
+			]
+		"strain_bloom":
+			return [
+				_build_crisis_reward_option(
+					"bloom_overclock_core",
+					"Overclock Core",
+					"+20% contact damage for this run.",
+					"pulse_nova"
+				),
+				_build_crisis_reward_option(
+					"bloom_hunters_gyro",
+					"Hunter's Gyro",
+					"+25% orbiter speed for this run.",
+					"orbiters"
+				),
+				_build_crisis_reward_option(
+					"bloom_adaptive_skin",
+					"Adaptive Skin",
+					"+15 max HP for this run.",
+					"membrane"
+				)
+			]
+		"biohazard_leak":
+			return [
+				_build_crisis_reward_option(
+					"leak_detox_glands",
+					"Detox Glands",
+					"+2.0 HP regen per second for this run.",
+					"metabolism"
+				),
+				_build_crisis_reward_option(
+					"leak_acid_recycler",
+					"Acid Recycler",
+					"+30% acid trail uptime for this run.",
+					"acid_trail"
+				),
+				_build_crisis_reward_option(
+					"leak_nova_condenser",
+					"Nova Condenser",
+					"+20% pulse nova radius for this run.",
+					"pulse_nova"
+				)
+			]
+		_:
+			return [
+				_build_crisis_reward_option(
+					"fallback_hardened_membrane",
+					"Hardened Membrane",
+					"+10 max HP for this run.",
+					"membrane"
+				),
+				_build_crisis_reward_option(
+					"fallback_spike_density",
+					"Spike Density",
+					"+10% module damage for this run.",
+					"spikes"
+				),
+				_build_crisis_reward_option(
+					"fallback_metabolic_burst",
+					"Metabolic Burst",
+					"+8% movement speed for this run.",
+					"metabolism"
+				)
+			]
+
+func _build_crisis_reward_option(option_id: String, option_name: String, option_description: String, icon_id: String) -> Dictionary:
+	return {
+		"id": option_id,
+		"name": option_name,
+		"description": option_description,
+		"short": option_description,
+		"icon_id": icon_id,
+		"is_crisis_reward": true
+	}
+
+func _apply_crisis_reward_choice(choice_index: int) -> bool:
+	if choice_index < 0 or choice_index >= crisis_reward_options.size():
+		return false
+	if not (crisis_reward_options[choice_index] is Dictionary):
+		return false
+
+	var reward_option: Dictionary = crisis_reward_options[choice_index]
+	var reward_id: String = String(reward_option.get("id", ""))
+	var reward_name: String = String(reward_option.get("name", "Crisis Reward"))
+	if debug_log_crisis_timeline:
+		print("[GameManager] Crisis reward selected: %s (%s)" % [reward_name, reward_id])
+
+	# R4-50 scope: reward UI flow only. R4-51 applies gameplay effects.
+	return true
+
+func _finish_crisis_reward_prompt() -> void:
+	crisis_reward_selection_active = false
+	active_crisis_reward_id = ""
+	crisis_reward_options.clear()
+	_complete_reward_phase_if_active()
+
+	if pending_levelup_count > 0:
+		pending_levelup_count -= 1
+		var did_open_prompt: bool = _open_levelup_prompt(false)
+		if did_open_prompt:
+			return
+		pending_levelup_count = 0
+
+	_close_levelup_prompt()
+
+func _complete_reward_phase_if_active() -> void:
+	if crisis_director == null:
+		return
+	if not crisis_director.has_method("complete_reward_phase_early"):
+		return
+	var completed_early: bool = bool(crisis_director.call("complete_reward_phase_early"))
+	if debug_log_crisis_timeline and completed_early:
+		print("[GameManager] Crisis reward phase completed early via selection")
+
 func _open_levelup_prompt(play_sound: bool = true) -> bool:
+	crisis_reward_selection_active = false
+	active_crisis_reward_id = ""
+	crisis_reward_options.clear()
+
 	if _should_prompt_lineage_now():
 		lineage_selection_active = true
 		_set_lineage_choice_button_texts()
@@ -1703,4 +1921,8 @@ func _close_levelup_prompt() -> void:
 	if levelup_ui != null:
 		levelup_ui.visible = false
 	run_paused_for_levelup = false
+	crisis_reward_selection_active = false
+	active_crisis_reward_id = ""
+	crisis_reward_options.clear()
+	_refresh_lineage_labels()
 	_set_gameplay_active(true)

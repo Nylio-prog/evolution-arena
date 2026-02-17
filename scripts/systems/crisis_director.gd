@@ -123,6 +123,14 @@ func complete_active_crisis_early(expected_crisis_id: String = "") -> bool:
 		print("[CrisisDirector] Crisis completed early: %s" % completed_crisis_id)
 	return true
 
+func complete_reward_phase_early() -> bool:
+	if _phase != "reward":
+		return false
+	_enter_idle_phase()
+	if debug_log_state:
+		print("[CrisisDirector] Reward phase completed early")
+	return true
+
 func _process_idle(_delta: float, run_elapsed_seconds: float) -> void:
 	if run_elapsed_seconds >= final_crisis_start_seconds:
 		_start_crisis("purge_protocol", true)
