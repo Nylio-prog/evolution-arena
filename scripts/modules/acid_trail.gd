@@ -13,11 +13,11 @@ class TrailSegment:
 
 @export var base_damage_per_tick: int = 3
 @export var base_radius: float = 17.0
-@export var base_spawn_interval_seconds: float = 0.30
-@export var base_lifetime_seconds: float = 2.1
-@export var base_damage_tick_interval_seconds: float = 0.45
-@export var min_spawn_distance: float = 10.0
-@export var max_segment_pool_size: int = 28
+@export var base_spawn_interval_seconds: float = 0.36
+@export var base_lifetime_seconds: float = 1.8
+@export var base_damage_tick_interval_seconds: float = 0.50
+@export var min_spawn_distance: float = 13.0
+@export var max_segment_pool_size: int = 24
 @export var trail_color: Color = Color(0.42, 1.0, 0.86, 0.50)
 @export var trail_sprite_texture: Texture2D = ACID_TRAIL_SPRITE_TEXTURE
 @export var trail_sprite_scale_multiplier: float = 1.55
@@ -103,17 +103,17 @@ func _configure_level_stats() -> void:
 			_trail_lifetime_seconds = base_lifetime_seconds
 			_damage_tick_interval_seconds = base_damage_tick_interval_seconds
 		2:
-			_damage_per_tick = int(round(float(base_damage_per_tick) * 1.33))
-			_trail_radius = base_radius + 2.0
-			_spawn_interval_seconds = maxf(0.16, base_spawn_interval_seconds * 0.88)
-			_trail_lifetime_seconds = base_lifetime_seconds + 0.7
-			_damage_tick_interval_seconds = maxf(0.20, base_damage_tick_interval_seconds * 0.84)
+			_damage_per_tick = int(round(float(base_damage_per_tick) * 1.25))
+			_trail_radius = base_radius + 1.5
+			_spawn_interval_seconds = maxf(0.22, base_spawn_interval_seconds * 0.90)
+			_trail_lifetime_seconds = base_lifetime_seconds + 0.45
+			_damage_tick_interval_seconds = maxf(0.24, base_damage_tick_interval_seconds * 0.90)
 		3:
-			_damage_per_tick = int(round(float(base_damage_per_tick) * 1.65))
-			_trail_radius = base_radius + 4.5
-			_spawn_interval_seconds = maxf(0.13, base_spawn_interval_seconds * 0.76)
-			_trail_lifetime_seconds = base_lifetime_seconds + 1.2
-			_damage_tick_interval_seconds = maxf(0.18, base_damage_tick_interval_seconds * 0.72)
+			_damage_per_tick = int(round(float(base_damage_per_tick) * 1.50))
+			_trail_radius = base_radius + 3.0
+			_spawn_interval_seconds = maxf(0.19, base_spawn_interval_seconds * 0.82)
+			_trail_lifetime_seconds = base_lifetime_seconds + 0.85
+			_damage_tick_interval_seconds = maxf(0.21, base_damage_tick_interval_seconds * 0.82)
 		_:
 			_damage_per_tick = 0
 			_trail_radius = 0.0
@@ -154,7 +154,10 @@ func _apply_segment_damage(segment: TrailSegment) -> void:
 		if not _can_damage_target(target_id):
 			continue
 
-		target.call("take_damage", _damage_per_tick)
+		if target.has_method("take_dot_damage"):
+			target.call("take_dot_damage", _damage_per_tick)
+		else:
+			target.call("take_damage", _damage_per_tick)
 		_target_last_hit_seconds[target_id] = _elapsed_seconds
 		_damaged_target_ids_this_step[target_id] = true
 		if debug_log_hits:

@@ -35,4 +35,8 @@ func add_xp(amount: int) -> void:
 	xp_changed.emit(current_xp, xp_to_next_level)
 
 func _xp_required_for_level(level: int) -> int:
-	return 10 + (level - 1) * 5
+	var level_offset: int = maxi(0, level - 1)
+	var linear_component: int = 10 + (level_offset * 6)
+	var scaling_offset: int = maxi(0, level_offset - 4)
+	var scaling_component: int = scaling_offset * scaling_offset * 2
+	return linear_component + scaling_component

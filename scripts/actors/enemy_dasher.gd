@@ -6,6 +6,7 @@ signal died(world_position: Vector2)
 @export var dash_speed: float = 220.0
 @export var max_hp: int = 12
 @export var contact_damage: int = 10
+@export var dot_damage_multiplier: float = 0.68
 @export var visual_radius: float = 9.0
 @export var idle_animation_name: StringName = &"idle"
 @export var move_animation_name: StringName = &"move"
@@ -142,6 +143,23 @@ func take_damage(amount: int) -> void:
 	if current_hp == 0:
 		died.emit(global_position)
 		queue_free()
+
+func take_dot_damage(amount: int) -> void:
+	if amount <= 0:
+		return
+	var scaled_amount: int = maxi(1, int(round(float(amount) * clampf(dot_damage_multiplier, 0.1, 3.0))))
+	take_damage(scaled_amount)
+
+func apply_spawn_scaling(speed_multiplier: float, hp_multiplier: float, damage_multiplier: float) -> void:
+	var safe_speed_multiplier: float = maxf(0.1, speed_multiplier)
+	var safe_hp_multiplier: float = maxf(0.1, hp_multiplier)
+	var safe_damage_multiplier: float = maxf(0.1, damage_multiplier)
+	move_speed = maxf(1.0, move_speed * safe_speed_multiplier)
+	dash_speed = maxf(1.0, dash_speed * safe_speed_multiplier)
+	dash_interval_seconds = maxf(0.35, dash_interval_seconds / safe_speed_multiplier)
+	max_hp = maxi(1, int(round(float(max_hp) * safe_hp_multiplier)))
+	current_hp = max_hp
+	contact_damage = maxi(1, int(round(float(contact_damage) * safe_damage_multiplier)))
 
 func apply_elite_profile(
 	speed_multiplier: float,

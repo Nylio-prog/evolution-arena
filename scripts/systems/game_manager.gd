@@ -138,6 +138,7 @@ var game_over_main_menu_requested: bool = false
 var _last_player_hp: int = -1
 var _pending_crisis_failure_audio: bool = false
 var _last_run_end_reason: String = ""
+var _last_containment_sweep_hit_seconds: float = -1000.0
 var _syncing_audio_controls: bool = false
 var _active_containment_sweeps: Array[Node2D] = []
 var _active_biohazard_leaks: Array[Node2D] = []
@@ -204,6 +205,8 @@ var _base_arena_tint_color: Color = Color(0.0, 0.40392157, 0.5647059, 0.22)
 @export var crisis_spawn_wait_multiplier_active: float = 1.45
 @export var containment_sweep_concurrent_count: int = 2
 @export var containment_sweep_spacing: float = 220.0
+@export var containment_sweep_contact_damage: int = 50
+@export var containment_sweep_contact_cooldown_seconds: float = 0.45
 @export var final_containment_concurrent_count: int = 2
 @export var final_containment_spacing: float = 220.0
 @export var final_containment_wave_duration_seconds: float = 16.5
@@ -392,6 +395,7 @@ func _reset_runtime_state() -> void:
 	_last_player_hp = -1
 	_pending_crisis_failure_audio = false
 	_last_run_end_reason = ""
+	_last_containment_sweep_hit_seconds = -1000.0
 	_clear_containment_sweep()
 	_clear_biohazard_leaks()
 	_clear_final_crisis_elites()
@@ -1056,7 +1060,19 @@ func _is_biohazard_leak_crisis_active() -> bool:
 	return phase_name == "active" and crisis_id == "biohazard_leak"
 
 func _on_containment_sweep_player_contacted(_player_node: Node) -> void:
-	_fail_run_immediately("Containment sweep contact")
+	if run_ended:
+		return
+	if player == null:
+		return
+	if not player.has_method("take_damage"):
+		return
+	var cooldown_seconds: float = maxf(0.0, containment_sweep_contact_cooldown_seconds)
+	if (elapsed_seconds - _last_containment_sweep_hit_seconds) < cooldown_seconds:
+		return
+	_last_containment_sweep_hit_seconds = elapsed_seconds
+	player.call("take_damage", maxi(1, containment_sweep_contact_damage))
+	if debug_log_crisis_timeline:
+		print("[GameManager] Containment sweep hit player for ", containment_sweep_contact_damage)
 
 func _fail_run_immediately(reason_text: String = "") -> void:
 	if run_ended:
@@ -1126,7 +1142,7 @@ func _get_crisis_objective_text(phase_name: String, crisis_id: String) -> String
 		"active":
 			match crisis_id:
 				"containment_sweep":
-					return "Evade containment sweep"
+					return "Evade containment sweep - %d damage on contact" % maxi(1, containment_sweep_contact_damage)
 				"strain_bloom":
 					if _is_strain_bloom_elite_alive():
 						return "Kill elite before timer expires"
@@ -2501,8 +2517,6 @@ func _show_game_over() -> void:
 func _resolve_failure_reason(reason_text: String) -> String:
 	var normalized_reason: String = reason_text.strip_edges().to_lower()
 	match normalized_reason:
-		"containment sweep contact":
-			return "Touched containment sweep."
 		"strain bloom objective failed":
 			return "Elite survived the Strain Bloom timer."
 		_:
@@ -2525,7 +2539,7 @@ func _resolve_default_death_reason() -> String:
 			"strain_bloom":
 				return "Overwhelmed during Strain Bloom."
 			"biohazard_leak":
-				return "Fatal contamination exposure."
+				return "Severe contamination exposure."
 	if phase_name == "final":
 		return "Contained during Purge Protocol."
 	return "Overwhelmed by hostile strains."
@@ -3158,7 +3172,7 @@ func _debug_jump_to_final_crisis_threshold() -> void:
 	if crisis_director == null:
 		return
 
-	var final_threshold_seconds: float = 480.0
+	var final_threshold_seconds: float = 240.0
 	if crisis_director.has_method("get_final_crisis_start_seconds"):
 		final_threshold_seconds = float(crisis_director.call("get_final_crisis_start_seconds"))
 	else:

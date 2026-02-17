@@ -16,7 +16,7 @@ const CRISIS_TYPES: Array[String] = [
 @export var crisis_interval_seconds: float = 46.0
 @export var crisis_duration_seconds: float = 15.0
 @export var reward_duration_seconds: float = 5.5
-@export var final_crisis_start_seconds: float = 480.0
+@export var final_crisis_start_seconds: float = 240.0
 @export var final_crisis_duration_seconds: float = 28.0
 
 var _phase: String = "idle"

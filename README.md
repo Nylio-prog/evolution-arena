@@ -1,6 +1,6 @@
 # Evolution Arena
 
-Evolution Arena is a dark biolab survivor-like roguelite where you become the outbreak: evolve, survive containment crises, and break the final purge in a 5-10 minute run.
+Evolution Arena is a dark biolab survivor-like roguelite where you become the outbreak: evolve, survive containment crises, and break the final purge in a 4-8 minute run.
 
 ## Release 4 Hook
 - You are the outbreak, not the cure.
