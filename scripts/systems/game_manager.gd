@@ -54,7 +54,7 @@ const MUTATION_ICON_BY_ID: Dictionary = {
 @onready var lineage_bottom_padding: Control = get_node_or_null("UiLevelup/Root/Layout/LineageBottomPadding")
 @onready var game_over_ui: CanvasLayer = get_node_or_null("GameOver")
 @onready var game_over_stats_label: Label = get_node_or_null("GameOver/Root/StatsLabel")
-@onready var game_over_restart_button: Button = get_node_or_null("GameOver/Root/RestartButton")
+@onready var game_over_main_menu_button: Button = get_node_or_null("GameOver/Root/MainMenuButton")
 @onready var pause_menu_ui: CanvasLayer = get_node_or_null("PauseMenu")
 @onready var pause_resume_button: Button = get_node_or_null("PauseMenu/Root/Content/Buttons/ResumeButton")
 @onready var pause_options_button: Button = get_node_or_null("PauseMenu/Root/Content/Buttons/OptionsButton")
@@ -75,7 +75,7 @@ var pending_levelup_count: int = 0
 var debug_log_drops: bool = false
 var levelup_options: Array = []
 var lineage_selection_active: bool = false
-var restart_requested: bool = false
+var game_over_main_menu_requested: bool = false
 var _last_player_hp: int = -1
 var _syncing_audio_controls: bool = false
 @export var debug_allow_grant_xp: bool = false
@@ -132,9 +132,11 @@ func _ready() -> void:
 	if game_over_ui != null:
 		game_over_ui.visible = false
 
-	if game_over_restart_button != null:
-		game_over_restart_button.disabled = false
-		game_over_restart_button.connect("pressed", Callable(self, "_on_restart_pressed"))
+	if game_over_main_menu_button != null:
+		game_over_main_menu_button.disabled = false
+		var game_over_main_menu_callable := Callable(self, "_on_game_over_main_menu_pressed")
+		if not game_over_main_menu_button.pressed.is_connected(game_over_main_menu_callable):
+			game_over_main_menu_button.pressed.connect(game_over_main_menu_callable)
 
 	if pause_menu_ui != null:
 		pause_menu_ui.visible = false
@@ -431,14 +433,14 @@ func _on_levelup_choice_pressed(choice_index: int) -> void:
 
 	_close_levelup_prompt()
 
-func _on_restart_pressed() -> void:
-	if restart_requested:
+func _on_game_over_main_menu_pressed() -> void:
+	if game_over_main_menu_requested:
 		return
-	restart_requested = true
-	if game_over_restart_button != null:
-		game_over_restart_button.disabled = true
+	game_over_main_menu_requested = true
+	if game_over_main_menu_button != null:
+		game_over_main_menu_button.disabled = true
 	_play_sfx("ui_click")
-	call_deferred("_reload_current_scene_deferred")
+	call_deferred("_go_to_main_menu_deferred")
 
 func _on_pause_resume_pressed() -> void:
 	_close_pause_menu()
@@ -888,6 +890,3 @@ func _close_levelup_prompt() -> void:
 		levelup_ui.visible = false
 	run_paused_for_levelup = false
 	_set_gameplay_active(true)
-
-func _reload_current_scene_deferred() -> void:
-	get_tree().reload_current_scene()
