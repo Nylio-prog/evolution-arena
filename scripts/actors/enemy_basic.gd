@@ -24,8 +24,10 @@ var _hit_flash_time_left: float = 0.0
 var _base_sprite_modulate: Color = Color(1, 1, 1, 1)
 var _base_sprite_scale: Vector2 = Vector2.ONE
 var _is_playing_hit_animation: bool = false
+var _is_elite: bool = false
 
 @onready var animated_sprite: AnimatedSprite2D = get_node_or_null("AnimatedSprite2D")
+@onready var collision_shape: CollisionShape2D = get_node_or_null("CollisionShape2D")
 
 func _ready() -> void:
 	current_hp = max_hp
@@ -33,7 +35,23 @@ func _ready() -> void:
 	_setup_animated_sprite()
 
 func _draw() -> void:
-	pass
+	if not _is_elite:
+		return
+
+	var marker_radius: float = _get_elite_marker_radius()
+	draw_circle(Vector2.ZERO, marker_radius + 6.0, Color(1.0, 0.85, 0.2, 0.13))
+	draw_arc(Vector2.ZERO, marker_radius, 0.0, TAU, 52, Color(1.0, 0.95, 0.4, 0.95), 4.0, true)
+	draw_arc(Vector2.ZERO, marker_radius + 5.0, 0.0, TAU, 52, Color(1.0, 0.45, 0.2, 0.9), 2.2, true)
+
+	for i in range(4):
+		var angle: float = PI * 0.25 + PI * 0.5 * float(i)
+		var dir: Vector2 = Vector2.RIGHT.rotated(angle)
+		draw_line(
+			dir * (marker_radius + 3.0),
+			dir * (marker_radius + 12.0),
+			Color(1.0, 0.95, 0.4, 1.0),
+			3.0
+		)
 
 func _physics_process(delta: float) -> void:
 	if not is_instance_valid(_player):
@@ -77,6 +95,41 @@ func take_damage(amount: int) -> void:
 	if current_hp == 0:
 		died.emit(global_position)
 		queue_free()
+
+func apply_elite_profile(
+	speed_multiplier: float,
+	hp_multiplier: float,
+	damage_multiplier: float,
+	scale_multiplier: float,
+	elite_modulate: Color
+) -> void:
+	var safe_speed_multiplier: float = maxf(0.1, speed_multiplier)
+	var safe_hp_multiplier: float = maxf(0.1, hp_multiplier)
+	var safe_damage_multiplier: float = maxf(0.1, damage_multiplier)
+	var safe_scale_multiplier: float = maxf(0.1, scale_multiplier)
+
+	move_speed = maxf(1.0, move_speed * safe_speed_multiplier)
+	max_hp = maxi(1, int(round(float(max_hp) * safe_hp_multiplier)))
+	current_hp = max_hp
+	contact_damage = maxi(1, int(round(float(contact_damage) * safe_damage_multiplier)))
+	scale *= safe_scale_multiplier
+
+	sprite_modulate = elite_modulate
+	_base_sprite_modulate = sprite_modulate
+	_is_elite = true
+	z_index = max(z_index, 5)
+	if animated_sprite != null:
+		animated_sprite.modulate = _base_sprite_modulate
+	queue_redraw()
+
+func _get_elite_marker_radius() -> float:
+	var marker_radius: float = 24.0
+	if collision_shape == null:
+		return marker_radius
+	var circle_shape := collision_shape.shape as CircleShape2D
+	if circle_shape != null:
+		marker_radius = maxf(marker_radius, circle_shape.radius + 9.0)
+	return marker_radius
 
 func _trigger_hit_flash() -> void:
 	if animated_sprite == null:

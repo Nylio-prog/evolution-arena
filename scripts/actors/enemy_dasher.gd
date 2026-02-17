@@ -39,6 +39,7 @@ var _base_sprite_modulate: Color = Color(1, 1, 1, 1)
 var _base_sprite_scale: Vector2 = Vector2.ONE
 var _is_playing_hit_animation: bool = false
 var _base_collision_shape_rotation: float = 0.0
+var _is_elite: bool = false
 
 @onready var animated_sprite: AnimatedSprite2D = get_node_or_null("AnimatedSprite2D")
 @onready var collision_shape: CollisionShape2D = get_node_or_null("CollisionShape2D")
@@ -50,6 +51,22 @@ func _ready() -> void:
 	queue_redraw()
 
 func _draw() -> void:
+	if _is_elite:
+		var pulse: float = 1.0 + 0.06 * sin(Time.get_ticks_msec() * 0.014)
+		var marker_radius: float = maxf(visual_radius + 18.0, _get_collision_radius() + 10.0) * pulse
+		draw_circle(Vector2.ZERO, marker_radius + 6.0, Color(1.0, 0.85, 0.2, 0.11))
+		draw_arc(Vector2.ZERO, marker_radius, 0.0, TAU, 56, Color(1.0, 0.95, 0.42, 0.95), 4.2, true)
+		draw_arc(Vector2.ZERO, marker_radius + 6.0, 0.0, TAU, 56, Color(1.0, 0.45, 0.2, 0.88), 2.3, true)
+		for i in range(4):
+			var angle: float = PI * 0.25 + PI * 0.5 * float(i)
+			var dir: Vector2 = Vector2.RIGHT.rotated(angle)
+			draw_line(
+				dir * (marker_radius + 4.0),
+				dir * (marker_radius + 13.0),
+				Color(1.0, 0.95, 0.42, 1.0),
+				3.2
+			)
+
 	if _dash_windup_left > 0.0:
 		var indicator_radius: float = visual_radius + windup_indicator_radius_offset
 		draw_arc(Vector2.ZERO, indicator_radius, 0.0, TAU, 36, Color(1.0, 0.8, 0.2, 1.0), windup_indicator_line_width, true)
@@ -125,6 +142,42 @@ func take_damage(amount: int) -> void:
 	if current_hp == 0:
 		died.emit(global_position)
 		queue_free()
+
+func apply_elite_profile(
+	speed_multiplier: float,
+	hp_multiplier: float,
+	damage_multiplier: float,
+	scale_multiplier: float,
+	elite_modulate: Color
+) -> void:
+	var safe_speed_multiplier: float = maxf(0.1, speed_multiplier)
+	var safe_hp_multiplier: float = maxf(0.1, hp_multiplier)
+	var safe_damage_multiplier: float = maxf(0.1, damage_multiplier)
+	var safe_scale_multiplier: float = maxf(0.1, scale_multiplier)
+
+	move_speed = maxf(1.0, move_speed * safe_speed_multiplier)
+	dash_speed = maxf(1.0, dash_speed * safe_speed_multiplier)
+	dash_interval_seconds = maxf(0.35, dash_interval_seconds / safe_speed_multiplier)
+	max_hp = maxi(1, int(round(float(max_hp) * safe_hp_multiplier)))
+	current_hp = max_hp
+	contact_damage = maxi(1, int(round(float(contact_damage) * safe_damage_multiplier)))
+	scale *= safe_scale_multiplier
+
+	sprite_modulate = elite_modulate
+	_base_sprite_modulate = sprite_modulate
+	_is_elite = true
+	z_index = max(z_index, 5)
+	if animated_sprite != null:
+		animated_sprite.modulate = _base_sprite_modulate
+	queue_redraw()
+
+func _get_collision_radius() -> float:
+	if collision_shape == null:
+		return visual_radius
+	var circle_shape := collision_shape.shape as CircleShape2D
+	if circle_shape != null:
+		return circle_shape.radius
+	return visual_radius
 
 func _trigger_hit_flash() -> void:
 	if animated_sprite == null:

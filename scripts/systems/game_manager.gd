@@ -2,6 +2,7 @@
 
 const BIOMASS_PICKUP_SCENE: PackedScene = preload("res://scenes/systems/biomass_pickup.tscn")
 const CONTAINMENT_SWEEP_SCENE: PackedScene = preload("res://scenes/systems/containment_sweep_hazard.tscn")
+const STRAIN_BLOOM_ELITE_SCENE: PackedScene = preload("res://scenes/actors/enemy_dasher.tscn")
 const MUTATION_ICON_SPIKES: Texture2D = preload("res://art/sprites/ui/mutation_spikes.png")
 const MUTATION_ICON_ORBITERS: Texture2D = preload("res://art/sprites/ui/mutation_orbiters.png")
 const MUTATION_ICON_MEMBRANE: Texture2D = preload("res://art/sprites/ui/mutation_membrane.png")
@@ -90,6 +91,13 @@ var _active_containment_sweeps: Array[Node2D] = []
 @export var crisis_spawn_wait_multiplier_active: float = 1.6
 @export var containment_sweep_concurrent_count: int = 2
 @export var containment_sweep_spacing: float = 220.0
+@export var strain_bloom_elite_spawn_radius_min: float = 180.0
+@export var strain_bloom_elite_spawn_radius_max: float = 280.0
+@export var strain_bloom_elite_speed_multiplier: float = 1.45
+@export var strain_bloom_elite_hp_multiplier: float = 4.0
+@export var strain_bloom_elite_damage_multiplier: float = 1.8
+@export var strain_bloom_elite_scale_multiplier: float = 1.55
+@export var strain_bloom_elite_tint: Color = Color(0.62, 1.0, 0.22, 1.0)
 
 const LINEAGE_CHOICES: Array[String] = ["predator", "swarm", "bulwark"]
 
@@ -261,6 +269,56 @@ func _set_crisis_spawn_throttle(active: bool) -> void:
 			continue
 		spawner_node.call("set_crisis_spawn_wait_multiplier", target_multiplier)
 
+func _spawn_strain_bloom_elite() -> void:
+	var player_node := player as Node2D
+	if player_node == null:
+		player_node = get_tree().get_first_node_in_group("player") as Node2D
+	if player_node == null:
+		return
+
+	var elite_node := STRAIN_BLOOM_ELITE_SCENE.instantiate() as Node2D
+	if elite_node == null:
+		return
+
+	var min_spawn_radius: float = maxf(40.0, strain_bloom_elite_spawn_radius_min)
+	var max_spawn_radius: float = maxf(min_spawn_radius + 1.0, strain_bloom_elite_spawn_radius_max)
+	var spawn_radius: float = randf_range(min_spawn_radius, max_spawn_radius)
+	var spawn_angle: float = randf() * TAU
+	elite_node.global_position = player_node.global_position + Vector2.RIGHT.rotated(spawn_angle) * spawn_radius
+
+	var spawn_parent: Node = get_tree().current_scene
+	if spawn_parent == null:
+		spawn_parent = self
+	spawn_parent.add_child(elite_node)
+
+	_configure_strain_bloom_elite(elite_node)
+	_connect_enemy_death(elite_node)
+
+	if debug_log_crisis_timeline:
+		print("[GameManager] Strain Bloom elite spawned at ", elite_node.global_position)
+
+func _configure_strain_bloom_elite(enemy_node: Node2D) -> void:
+	if enemy_node == null:
+		return
+
+	var speed_multiplier: float = maxf(0.1, strain_bloom_elite_speed_multiplier)
+	var hp_multiplier: float = maxf(0.1, strain_bloom_elite_hp_multiplier)
+	var damage_multiplier: float = maxf(0.1, strain_bloom_elite_damage_multiplier)
+	var scale_multiplier: float = maxf(0.1, strain_bloom_elite_scale_multiplier)
+
+	if enemy_node.has_method("apply_elite_profile"):
+		enemy_node.call(
+			"apply_elite_profile",
+			speed_multiplier,
+			hp_multiplier,
+			damage_multiplier,
+			scale_multiplier,
+			strain_bloom_elite_tint
+		)
+		return
+
+	enemy_node.scale *= scale_multiplier
+
 func _spawn_containment_sweep(active_duration_seconds: float) -> void:
 	_clear_containment_sweep()
 
@@ -395,6 +453,8 @@ func _get_crisis_objective_text(phase_name: String, crisis_id: String) -> String
 func _on_crisis_started(crisis_id: String, is_final: bool, duration_seconds: float) -> void:
 	if not is_final and crisis_id == "containment_sweep":
 		_spawn_containment_sweep(duration_seconds)
+	if not is_final and crisis_id == "strain_bloom":
+		_spawn_strain_bloom_elite()
 
 	if not debug_log_crisis_timeline:
 		return
