@@ -752,6 +752,16 @@ func _clear_biohazard_leaks() -> void:
 			continue
 		leak_zone.queue_free()
 	_active_biohazard_leaks.clear()
+	_clear_untracked_biohazard_leaks()
+
+func _clear_untracked_biohazard_leaks() -> void:
+	for leak_variant in get_tree().get_nodes_in_group("biohazard_leaks"):
+		var leak_node := leak_variant as Node
+		if leak_node == null:
+			continue
+		if not is_instance_valid(leak_node):
+			continue
+		leak_node.queue_free()
 
 func _on_biohazard_leak_finished(leak_zone: Node2D) -> void:
 	if leak_zone != null:
@@ -875,6 +885,9 @@ func _on_crisis_started(crisis_id: String, is_final: bool, duration_seconds: flo
 		print("[GameManager] Crisis started: %s (%.1fs)" % [crisis_id, duration_seconds])
 
 func _on_crisis_reward_started(crisis_id: String, duration_seconds: float) -> void:
+	if crisis_id == "biohazard_leak":
+		_clear_biohazard_leaks()
+		call_deferred("_verify_biohazard_cleanup")
 	if not debug_log_crisis_timeline:
 		return
 	print("[GameManager] Crisis reward started: %s (%.1fs)" % [crisis_id, duration_seconds])
@@ -886,6 +899,18 @@ func _on_final_crisis_completed() -> void:
 	if not debug_log_crisis_timeline:
 		return
 	print("[GameManager] Final crisis completed at %.1fs" % elapsed_seconds)
+
+func _verify_biohazard_cleanup() -> void:
+	var leaks_left: int = 0
+	for leak_variant in get_tree().get_nodes_in_group("biohazard_leaks"):
+		var leak_node := leak_variant as Node
+		if leak_node == null:
+			continue
+		if not is_instance_valid(leak_node):
+			continue
+		leaks_left += 1
+	if debug_log_crisis_timeline:
+		print("[GameManager] Biohazard cleanup check: %d leak nodes remaining" % leaks_left)
 
 func _get_crisis_phase_time_remaining() -> float:
 	if crisis_director == null:

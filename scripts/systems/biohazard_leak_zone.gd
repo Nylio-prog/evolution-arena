@@ -26,6 +26,7 @@ var _sprite_animation_name: StringName = StringName()
 
 func _ready() -> void:
 	add_to_group("crisis_runtime_nodes")
+	add_to_group("biohazard_leaks")
 	_connect_signals()
 	_setup_animated_sprite()
 	_set_collision_active(false)
