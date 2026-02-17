@@ -83,6 +83,9 @@ var game_over_main_menu_requested: bool = false
 var _last_player_hp: int = -1
 var _syncing_audio_controls: bool = false
 var _active_containment_sweeps: Array[Node2D] = []
+var _strain_bloom_elite_target: Node2D
+var _strain_bloom_active: bool = false
+var _strain_bloom_elite_killed: bool = false
 @export var debug_allow_grant_xp: bool = false
 @export var debug_grant_xp_amount: int = 20
 @export var debug_fast_forward_seconds: float = 10.0
@@ -206,6 +209,7 @@ func _reset_runtime_state() -> void:
 	game_over_main_menu_requested = false
 	_last_player_hp = -1
 	_clear_containment_sweep()
+	_clear_strain_bloom_state()
 	if crisis_director != null and crisis_director.has_method("reset_runtime_state"):
 		crisis_director.call("reset_runtime_state")
 
@@ -245,6 +249,8 @@ func _tick_crisis_director(delta: float) -> void:
 func _on_crisis_phase_changed(new_phase: String, crisis_id: String) -> void:
 	var crisis_active: bool = (new_phase == "active" or new_phase == "final")
 	_set_crisis_spawn_throttle(crisis_active)
+	if new_phase == "reward" and crisis_id == "strain_bloom":
+		_handle_strain_bloom_timeout()
 	if new_phase != "active" or crisis_id != "containment_sweep":
 		_clear_containment_sweep()
 	_update_crisis_debug_banner()
@@ -270,6 +276,8 @@ func _set_crisis_spawn_throttle(active: bool) -> void:
 		spawner_node.call("set_crisis_spawn_wait_multiplier", target_multiplier)
 
 func _spawn_strain_bloom_elite() -> void:
+	_clear_strain_bloom_state()
+
 	var player_node := player as Node2D
 	if player_node == null:
 		player_node = get_tree().get_first_node_in_group("player") as Node2D
@@ -293,9 +301,52 @@ func _spawn_strain_bloom_elite() -> void:
 
 	_configure_strain_bloom_elite(elite_node)
 	_connect_enemy_death(elite_node)
+	_connect_strain_bloom_elite(elite_node)
+	_strain_bloom_active = true
+	_strain_bloom_elite_killed = false
+	_strain_bloom_elite_target = elite_node
 
 	if debug_log_crisis_timeline:
 		print("[GameManager] Strain Bloom elite spawned at ", elite_node.global_position)
+
+func _connect_strain_bloom_elite(elite_node: Node2D) -> void:
+	if elite_node == null:
+		return
+	if not elite_node.has_signal("died"):
+		return
+	var elite_died_callable := Callable(self, "_on_strain_bloom_elite_died").bind(elite_node)
+	if elite_node.is_connected("died", elite_died_callable):
+		return
+	elite_node.connect("died", elite_died_callable)
+
+func _on_strain_bloom_elite_died(_world_position: Vector2, elite_node: Node2D) -> void:
+	if elite_node != _strain_bloom_elite_target:
+		return
+	_strain_bloom_elite_killed = true
+	_strain_bloom_elite_target = null
+	if debug_log_crisis_timeline:
+		print("[GameManager] Strain Bloom elite eliminated with %.1fs remaining" % _get_crisis_phase_time_remaining())
+
+func _handle_strain_bloom_timeout() -> void:
+	if not _strain_bloom_active:
+		return
+	if _is_strain_bloom_elite_alive():
+		if debug_log_crisis_timeline:
+			print("[GameManager] Strain Bloom failed (elite alive at timeout)")
+		_fail_run_immediately("Strain Bloom objective failed")
+		_clear_strain_bloom_state()
+		return
+	if debug_log_crisis_timeline:
+		print("[GameManager] Strain Bloom success before timeout")
+	_clear_strain_bloom_state()
+
+func _is_strain_bloom_elite_alive() -> bool:
+	return _strain_bloom_elite_target != null and is_instance_valid(_strain_bloom_elite_target)
+
+func _clear_strain_bloom_state() -> void:
+	_strain_bloom_active = false
+	_strain_bloom_elite_killed = false
+	_strain_bloom_elite_target = null
 
 func _configure_strain_bloom_elite(enemy_node: Node2D) -> void:
 	if enemy_node == null:
@@ -375,8 +426,13 @@ func _on_containment_sweep_finished(sweep_node: Node2D) -> void:
 		_active_containment_sweeps.erase(sweep_node)
 
 func _on_containment_sweep_player_contacted(_player_node: Node) -> void:
+	_fail_run_immediately("Containment sweep contact")
+
+func _fail_run_immediately(reason_text: String = "") -> void:
 	if run_ended:
 		return
+	if debug_log_crisis_timeline and not reason_text.is_empty():
+		print("[GameManager] Crisis failure: %s at %.1fs" % [reason_text, elapsed_seconds])
 	if player == null:
 		return
 
@@ -436,7 +492,11 @@ func _get_crisis_objective_text(phase_name: String, crisis_id: String) -> String
 				"containment_sweep":
 					return "Evade containment sweep"
 				"strain_bloom":
-					return "Eliminate elite strain"
+					if _is_strain_bloom_elite_alive():
+						return "Kill elite before timer expires"
+					if _strain_bloom_elite_killed:
+						return "Elite down - hold until reward"
+					return "Locate and eliminate elite strain"
 				"biohazard_leak":
 					return "Survive contamination leak"
 				_:
@@ -470,9 +530,17 @@ func _on_crisis_reward_started(crisis_id: String, duration_seconds: float) -> vo
 
 func _on_final_crisis_completed() -> void:
 	_clear_containment_sweep()
+	_clear_strain_bloom_state()
 	if not debug_log_crisis_timeline:
 		return
 	print("[GameManager] Final crisis completed at %.1fs" % elapsed_seconds)
+
+func _get_crisis_phase_time_remaining() -> float:
+	if crisis_director == null:
+		return 0.0
+	if not crisis_director.has_method("get_phase_time_remaining"):
+		return 0.0
+	return float(crisis_director.call("get_phase_time_remaining"))
 
 func _process(delta: float) -> void:
 	if run_ended:
