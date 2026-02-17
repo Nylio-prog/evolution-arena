@@ -84,6 +84,8 @@ var _syncing_audio_controls: bool = false
 const LINEAGE_CHOICES: Array[String] = ["predator", "swarm", "bulwark"]
 
 func _ready() -> void:
+	_reset_runtime_state()
+
 	if OS.has_feature("standalone") and not OS.has_feature("dev_cheats"):
 		debug_allow_grant_xp = false
 
@@ -171,6 +173,18 @@ func _ready() -> void:
 	if lineage_choice_3 != null:
 		lineage_choice_3.connect("pressed", Callable(self, "_on_levelup_choice_pressed").bind(2))
 	_set_levelup_mode(false)
+
+func _reset_runtime_state() -> void:
+	elapsed_seconds = 0.0
+	level_reached = 1
+	run_ended = false
+	run_paused_for_levelup = false
+	run_paused_for_menu = false
+	pending_levelup_count = 0
+	levelup_options.clear()
+	lineage_selection_active = false
+	game_over_main_menu_requested = false
+	_last_player_hp = -1
 
 func _process(delta: float) -> void:
 	if run_ended:
