@@ -47,12 +47,12 @@ const LINEAGE_VISUALS: Dictionary = {
 	}
 }
 const DEFAULT_PLAYER_ACCENT: Color = Color(1.0, 1.0, 1.0, 0.0)
-const DEFAULT_SPIKE_COLOR: Color = Color(0.95, 0.95, 0.95, 1.0)
-const DEFAULT_ORBITER_COLOR: Color = Color(0.85, 0.95, 1.0, 1.0)
-const DEFAULT_MEMBRANE_COLOR: Color = Color(0.75, 0.95, 1.0, 0.8)
-const DEFAULT_PULSE_COLOR: Color = Color(0.75, 0.95, 1.0, 0.95)
-const DEFAULT_ACID_COLOR: Color = Color(0.42, 1.0, 0.86, 0.50)
-const DEFAULT_METABOLISM_COLOR: Color = Color(0.75, 1.0, 0.78, 0.95)
+const DEFAULT_SPIKE_COLOR: Color = Color(1.0, 1.0, 1.0, 1.0)
+const DEFAULT_ORBITER_COLOR: Color = Color(1.0, 1.0, 1.0, 1.0)
+const DEFAULT_MEMBRANE_COLOR: Color = Color(1.0, 1.0, 1.0, 1.0)
+const DEFAULT_PULSE_COLOR: Color = Color(1.0, 1.0, 1.0, 1.0)
+const DEFAULT_ACID_COLOR: Color = Color(1.0, 1.0, 1.0, 1.0)
+const DEFAULT_METABOLISM_COLOR: Color = Color(1.0, 1.0, 1.0, 1.0)
 const WEIGHT_BASE: float = 1.0
 const WEIGHT_DEFAULT_SAME_LINEAGE_BONUS: float = 2.0
 const WEIGHT_DEFAULT_OFF_LINEAGE_BONUS: float = 0.2
@@ -67,6 +67,7 @@ signal lineage_changed(lineage_id: String, lineage_name: String)
 @export_range(0, 3) var starting_acid_trail_level: int = 0
 @export_range(0, 3) var starting_metabolism_level: int = 0
 @export var debug_log_weighted_rolls: bool = false
+@export var enable_lineage_visual_tint: bool = false
 
 var player: Node2D
 var mutation_defs: Dictionary = {}
@@ -453,7 +454,7 @@ func _get_mutation_max_level(mutation_id: String) -> int:
 
 func _apply_lineage_visuals() -> void:
 	var style: Dictionary = {}
-	if LINEAGE_VISUALS.has(current_lineage_id):
+	if enable_lineage_visual_tint and LINEAGE_VISUALS.has(current_lineage_id):
 		style = LINEAGE_VISUALS.get(current_lineage_id, {})
 
 	var player_accent: Color = Color(style.get("player_accent", DEFAULT_PLAYER_ACCENT))

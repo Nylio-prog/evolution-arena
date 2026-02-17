@@ -1,10 +1,14 @@
 extends Node2D
 
+const SPIKE_SPRITE_TEXTURE: Texture2D = preload("res://art/sprites/mutations/mutation_spike.png")
+
 @export var spike_damage: int = 8
 @export var spike_distance: float = 26.0
 @export var spike_collision_radius: float = 5.0
 @export var spike_color: Color = Color(0.95, 0.95, 0.95, 1.0)
 @export var spike_outline_color: Color = Color(0.1, 0.1, 0.1, 0.9)
+@export var spike_sprite_texture: Texture2D = SPIKE_SPRITE_TEXTURE
+@export var spike_sprite_world_size_multiplier: float = 3.4
 @export var damage_interval_seconds: float = 0.2
 @export var debug_log_hits: bool = false
 
@@ -26,13 +30,15 @@ func _process(delta: float) -> void:
 	_deal_contact_damage_tick()
 
 func set_level(new_level: int) -> void:
-	spike_level = clamp(new_level, 0, 3)
+	spike_level = clampi(new_level, 0, 3)
 	_rebuild_spike_areas()
+	_refresh_spike_visuals()
 	queue_redraw()
 
 func set_lineage_color(color: Color) -> void:
 	spike_color = color
 	spike_outline_color = color.darkened(0.8)
+	_refresh_spike_visuals()
 	queue_redraw()
 
 func _rebuild_spike_areas() -> void:
@@ -54,6 +60,16 @@ func _rebuild_spike_areas() -> void:
 		collision_shape.shape = circle_shape
 
 		spike_area.add_child(collision_shape)
+
+		var visual_sprite := Sprite2D.new()
+		visual_sprite.name = "VisualSprite"
+		visual_sprite.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
+		visual_sprite.texture = spike_sprite_texture
+		visual_sprite.scale = _compute_spike_sprite_scale()
+		visual_sprite.modulate = spike_color
+		visual_sprite.rotation = angle - (PI * 0.5)
+		spike_area.add_child(visual_sprite)
+
 		add_child(spike_area)
 
 func _deal_contact_damage_tick() -> void:
@@ -87,18 +103,24 @@ func _get_spike_count_for_level(level: int) -> int:
 			return 0
 
 func _draw() -> void:
-	var spike_count := _get_spike_count_for_level(spike_level)
-	if spike_count <= 0:
-		return
+	pass
 
-	for i in range(spike_count):
-		var angle := (TAU * float(i)) / float(spike_count)
-		var direction := Vector2.RIGHT.rotated(angle)
-		var tip := direction * (spike_distance + 8.0)
-		var base_center := direction * (spike_distance - 4.0)
-		var normal := Vector2(-direction.y, direction.x)
-		var left := base_center + normal * 4.0
-		var right := base_center - normal * 4.0
-		var points := PackedVector2Array([tip, left, right])
-		draw_colored_polygon(points, spike_color)
-		draw_polyline(PackedVector2Array([tip, left, right, tip]), spike_outline_color, 1.2, true)
+func _refresh_spike_visuals() -> void:
+	for child in get_children():
+		var spike_area := child as Area2D
+		if spike_area == null:
+			continue
+		var visual_sprite := spike_area.get_node_or_null("VisualSprite") as Sprite2D
+		if visual_sprite == null:
+			continue
+		visual_sprite.texture = spike_sprite_texture
+		visual_sprite.scale = _compute_spike_sprite_scale()
+		visual_sprite.modulate = spike_color
+
+func _compute_spike_sprite_scale() -> Vector2:
+	if spike_sprite_texture == null:
+		return Vector2.ONE
+	var texture_width: float = maxf(1.0, spike_sprite_texture.get_size().x)
+	var desired_diameter: float = spike_collision_radius * 2.0 * spike_sprite_world_size_multiplier
+	var uniform_scale: float = desired_diameter / texture_width
+	return Vector2(uniform_scale, uniform_scale)

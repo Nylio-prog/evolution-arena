@@ -1,10 +1,13 @@
 extends Node2D
 
+const ACID_TRAIL_SPRITE_TEXTURE: Texture2D = preload("res://art/sprites/mutations/mutation_acid_trail.png")
+
 class TrailSegment:
 	extends RefCounted
 	var area: Area2D
 	var collision_shape: CollisionShape2D
-	var visual: Polygon2D
+	var visual: Sprite2D
+	var rotation_seed: float = 0.0
 	var age_seconds: float = 0.0
 	var active: bool = false
 
@@ -16,6 +19,8 @@ class TrailSegment:
 @export var min_spawn_distance: float = 10.0
 @export var max_segment_pool_size: int = 28
 @export var trail_color: Color = Color(0.42, 1.0, 0.86, 0.50)
+@export var trail_sprite_texture: Texture2D = ACID_TRAIL_SPRITE_TEXTURE
+@export var trail_sprite_scale_multiplier: float = 1.55
 @export var debug_log_hits: bool = false
 
 var acid_trail_level: int = 0
@@ -84,6 +89,10 @@ func set_level(new_level: int) -> void:
 
 func set_lineage_color(color: Color) -> void:
 	trail_color = color
+	for segment in _segments:
+		if segment == null or not segment.active:
+			continue
+		_update_segment_visual(segment, 1.0)
 
 func _configure_level_stats() -> void:
 	match acid_trail_level:
@@ -176,6 +185,8 @@ func _spawn_segment(world_position: Vector2) -> void:
 		segment.collision_shape.disabled = false
 	if segment.visual != null:
 		segment.visual.visible = true
+		segment.rotation_seed = randf_range(-PI, PI)
+		segment.visual.rotation = segment.rotation_seed
 	_update_segment_visual(segment, 1.0)
 
 func _take_segment_for_reuse() -> TrailSegment:
@@ -230,10 +241,13 @@ func _create_segment() -> TrailSegment:
 	collision_shape.disabled = true
 	area.add_child(collision_shape)
 
-	var visual := Polygon2D.new()
-	visual.polygon = _build_circle_polygon(_trail_radius, 18)
-	visual.color = trail_color
+	var visual := Sprite2D.new()
+	visual.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
+	visual.texture = trail_sprite_texture
 	visual.visible = false
+	var add_material := CanvasItemMaterial.new()
+	add_material.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
+	visual.material = add_material
 	area.add_child(visual)
 
 	_world_container.add_child(area)
@@ -275,25 +289,24 @@ func _update_all_segment_shapes() -> void:
 			if circle_shape != null:
 				circle_shape.radius = _trail_radius
 		if segment.visual != null:
-			segment.visual.polygon = _build_circle_polygon(_trail_radius, 18)
+			segment.visual.texture = trail_sprite_texture
 
 func _update_segment_visual(segment: TrailSegment, life_ratio: float) -> void:
 	if segment.visual == null:
 		return
+	if trail_sprite_texture == null:
+		segment.visual.visible = false
+		return
 
 	var clamped_ratio: float = clampf(life_ratio, 0.0, 1.0)
 	var color_now: Color = trail_color
-	color_now.a = trail_color.a * clamped_ratio
-	segment.visual.color = color_now
+	color_now.a = trail_color.a * (0.35 + (0.65 * clamped_ratio))
+	segment.visual.modulate = color_now
+	segment.visual.texture = trail_sprite_texture
 
-	var scale_factor: float = 0.90 + (0.16 * clamped_ratio)
+	var texture_width: float = maxf(1.0, trail_sprite_texture.get_size().x)
+	var desired_diameter: float = _trail_radius * 2.0 * trail_sprite_scale_multiplier
+	var base_scale: float = desired_diameter / texture_width
+	var scale_factor: float = base_scale * (0.90 + (0.18 * clamped_ratio))
 	segment.visual.scale = Vector2(scale_factor, scale_factor)
-
-func _build_circle_polygon(radius: float, point_count: int) -> PackedVector2Array:
-	var safe_points: int = maxi(8, point_count)
-	var points := PackedVector2Array()
-	for i in range(safe_points):
-		var angle: float = (TAU * float(i)) / float(safe_points)
-		var point: Vector2 = Vector2(cos(angle), sin(angle)) * radius
-		points.append(point)
-	return points
+	segment.visual.rotation = segment.rotation_seed + ((_elapsed_seconds + segment.age_seconds) * 0.7)

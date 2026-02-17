@@ -1,11 +1,15 @@
 extends Node2D
 
+const ORBITER_SPRITE_TEXTURE: Texture2D = preload("res://art/sprites/mutations/mutation_orbiters.png")
+
 @export var orbiter_damage: int = 6
 @export var base_orbit_radius: float = 24.0
 @export var base_orbit_speed_rps: float = 2.5
 @export var orbiter_collision_radius: float = 9.0
 @export var orbiter_color: Color = Color(0.85, 0.95, 1.0, 1.0)
 @export var orbiter_outline_color: Color = Color(0.08, 0.14, 0.18, 0.95)
+@export var orbiter_sprite_texture: Texture2D = ORBITER_SPRITE_TEXTURE
+@export var orbiter_sprite_world_size_multiplier: float = 2.2
 @export var damage_interval_seconds: float = 0.2
 @export var debug_log_hits: bool = false
 
@@ -33,11 +37,13 @@ func set_level(new_level: int) -> void:
 	_configure_level_stats()
 	_rebuild_orbiter_areas()
 	_update_orbiter_positions()
+	_refresh_orbiter_visuals()
 	queue_redraw()
 
 func set_lineage_color(color: Color) -> void:
 	orbiter_color = color
 	orbiter_outline_color = color.darkened(0.75)
+	_refresh_orbiter_visuals()
 	queue_redraw()
 
 func _configure_level_stats() -> void:
@@ -66,6 +72,15 @@ func _rebuild_orbiter_areas() -> void:
 		collision_shape.shape = circle_shape
 
 		orbiter_area.add_child(collision_shape)
+
+		var visual_sprite := Sprite2D.new()
+		visual_sprite.name = "VisualSprite"
+		visual_sprite.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
+		visual_sprite.texture = orbiter_sprite_texture
+		visual_sprite.scale = _compute_orbiter_sprite_scale()
+		visual_sprite.modulate = orbiter_color
+		orbiter_area.add_child(visual_sprite)
+
 		add_child(orbiter_area)
 
 func _update_orbiter_positions() -> void:
@@ -81,6 +96,9 @@ func _update_orbiter_positions() -> void:
 		var normalized_index := float(i) / float(orbiter_count)
 		var angle := (TAU * normalized_index) + (_elapsed_seconds * TAU * _current_orbit_speed_rps)
 		orbiter_area.position = Vector2.RIGHT.rotated(angle) * _current_orbit_radius
+		var visual_sprite := orbiter_area.get_node_or_null("VisualSprite") as Sprite2D
+		if visual_sprite != null:
+			visual_sprite.rotation = angle
 
 func _deal_contact_damage_tick() -> void:
 	for child in get_children():
@@ -128,9 +146,24 @@ func _get_orbiter_count_for_level(level: int) -> int:
 			return 0
 
 func _draw() -> void:
+	pass
+
+func _refresh_orbiter_visuals() -> void:
 	for child in get_children():
 		var orbiter_area := child as Area2D
 		if orbiter_area == null:
 			continue
-		draw_circle(orbiter_area.position, orbiter_collision_radius, orbiter_color)
-		draw_arc(orbiter_area.position, orbiter_collision_radius, 0.0, TAU, 24, orbiter_outline_color, 1.6, true)
+		var visual_sprite := orbiter_area.get_node_or_null("VisualSprite") as Sprite2D
+		if visual_sprite == null:
+			continue
+		visual_sprite.texture = orbiter_sprite_texture
+		visual_sprite.scale = _compute_orbiter_sprite_scale()
+		visual_sprite.modulate = orbiter_color
+
+func _compute_orbiter_sprite_scale() -> Vector2:
+	if orbiter_sprite_texture == null:
+		return Vector2.ONE
+	var texture_width: float = maxf(1.0, orbiter_sprite_texture.get_size().x)
+	var desired_diameter: float = orbiter_collision_radius * 2.0 * orbiter_sprite_world_size_multiplier
+	var uniform_scale: float = desired_diameter / texture_width
+	return Vector2(uniform_scale, uniform_scale)

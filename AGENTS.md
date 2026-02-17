@@ -22,7 +22,77 @@ If something is ambiguous, default to the simplest option that keeps the alpha p
 - Mutations physically change your organism (more spikes, orbiting cells, etc.).
 - Goal for alpha: survive as long as possible; show satisfying growth.
 
-**Art style:** simple geometric shapes (circles/triangles), subtle glow, minimal UI.
+**Art style direction (current):** bio-organic sci-fi, readable at high enemy density, with strong silhouettes and mutation-driven visual growth.
+
+### 1.1 Genre Art Style Analysis (Survivor-Like)
+This genre works best when combat is readable in less than a second, even during heavy enemy density.
+
+Core genre patterns to keep:
+- Silhouette-first readability: player, enemies, pickups, and hazards must be identifiable by shape before color.
+- Color-coded threat language: friendly effects use one color family; hostile units and danger zones use a contrasting family.
+- Strong combat punctuation: hit feedback, level-up moments, and death moments need immediate visual impact.
+- Low-noise background: arena textures should support atmosphere without hiding gameplay.
+- Consistent iconography: mutation icons should share one lighting, stroke, and material language.
+
+### 1.2 Evolution Arena Art Direction (Authoritative)
+Target fantasy:
+- A fast-evolving organism in a hostile microscopic arena.
+- The world should feel alive and cellular while staying clean and readable.
+
+Visual pillars:
+- Clarity under pressure: gameplay readability comes before decorative detail.
+- Visible evolution: each mutation tier must change silhouette, scale, or movement style.
+- Cohesive identity: gameplay sprites, UI, icons, and VFX must feel from the same universe.
+
+Color system:
+- Player/friendly: cyan, teal, white accents.
+- Enemies/threat: red, orange, magenta accents.
+- Resources/XP: bright aqua-green accents.
+- UI: deep navy translucent panels with high-contrast text.
+- Rule: enemy tones must never blend into the arena background.
+
+Shape language:
+- Player: rounded, stable nucleus silhouette.
+- Basic enemy: sharper asymmetry, directional pressure feel.
+- Dasher enemy: elongated forward silhouette that telegraphs burst speed.
+- Mutation visuals:
+  - Spikes: angular and outward.
+  - Orbiters: circular rhythm and orbital motion.
+  - Membrane: protective layered ring.
+  - Pulse Nova: radial burst with clear edge.
+  - Acid Trail: visible persistent hazard residue.
+  - Metabolism: internal pulse/glow sustain identity.
+
+Motion language:
+- Idle: subtle breathing/pulsing only.
+- Move: directional emphasis with minimal noise.
+- Hit: quick flash and fast recovery.
+- Death: short pop/dissolve that reads instantly.
+- Evolve: brief high-contrast celebratory pulse.
+
+UI direction:
+- Keep HUD edge-anchored and minimal.
+- Level-up cards prioritize: icon, name, one-line effect.
+- Favored/recommended options use one consistent accent pattern.
+- Typography must be legible at combat pace.
+
+Asset quality bar:
+- No placeholder geometric-only gameplay visuals for release candidates.
+- Every gameplay-significant object needs authored art.
+- New visual asset acceptance checklist:
+  - silhouette reads at gameplay scale
+  - role color family is correct
+  - animation timing feels alive
+  - visual does not reduce combat readability
+
+### 1.3 Art Production Workflow (AI + Human)
+- AI defines asset specs first (role, size, silhouette cues, palette family).
+- Human generates or sources the art asset.
+- AI integrates and tunes scale/offset/modulate in-engine.
+- Each visual micro-task must include:
+  - live readability check in a normal run
+  - high-density check with many enemies/effects
+  - screenshot check for clarity
 
 ---
 
@@ -134,6 +204,8 @@ If requested later, plan for "beta".
 - Every mutation must produce a visible change (new triangles/circles, more of them, faster, etc.)
 - Avoid +5% style boring upgrades in alpha
 - Difficulty scaling: spawn rate increases slowly; enemy HP increases slowly
+- Keep strict role-based color coding (friendly vs hostile vs resource).
+- Prefer one strong visual idea per mutation rather than stacking many weak effects.
 
 ---
 

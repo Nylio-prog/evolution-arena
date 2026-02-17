@@ -1,11 +1,15 @@
 extends Node2D
 
+const PULSE_NOVA_SPRITE_TEXTURE: Texture2D = preload("res://art/sprites/mutations/mutation_pulse_nova.png")
+
 @export var base_pulse_damage: int = 8
 @export var base_pulse_radius: float = 68.0
 @export var base_pulse_interval_seconds: float = 1.85
 @export var pulse_visual_duration_seconds: float = 0.22
 @export var pulse_color: Color = Color(0.75, 0.95, 1.0, 0.95)
 @export var pulse_outline_color: Color = Color(0.12, 0.2, 0.26, 1.0)
+@export var pulse_sprite_texture: Texture2D = PULSE_NOVA_SPRITE_TEXTURE
+@export var pulse_sprite_scale_multiplier: float = 1.15
 @export var debug_log_hits: bool = false
 
 var pulse_level: int = 0
@@ -14,9 +18,11 @@ var _pulse_radius: float = 0.0
 var _pulse_interval_seconds: float = 999.0
 var _time_until_next_pulse: float = 0.0
 var _pulse_visual_time_left: float = 0.0
+var _pulse_visual_sprite: Sprite2D = null
 
 func _ready() -> void:
 	add_to_group("player_modules")
+	_ensure_pulse_visual_sprite()
 	set_level(0)
 
 func _physics_process(delta: float) -> void:
@@ -30,18 +36,18 @@ func _physics_process(delta: float) -> void:
 
 	if _pulse_visual_time_left > 0.0:
 		_pulse_visual_time_left = maxf(0.0, _pulse_visual_time_left - delta)
-		queue_redraw()
+		_update_pulse_visual()
 
 func set_level(new_level: int) -> void:
 	pulse_level = clampi(new_level, 0, 3)
 	_configure_level_stats()
 	_time_until_next_pulse = minf(_time_until_next_pulse, _pulse_interval_seconds)
-	queue_redraw()
+	_update_pulse_visual()
 
 func set_lineage_color(color: Color) -> void:
 	pulse_color = color
 	pulse_outline_color = color.darkened(0.75)
-	queue_redraw()
+	_update_pulse_visual()
 
 func _configure_level_stats() -> void:
 	match pulse_level:
@@ -90,22 +96,48 @@ func _emit_pulse() -> void:
 		print("Pulse Nova hit ", hit_count, " enemy(s) for ", _pulse_damage)
 
 	_pulse_visual_time_left = pulse_visual_duration_seconds
-	queue_redraw()
+	_update_pulse_visual()
 
 func _draw() -> void:
-	if pulse_level <= 0:
+	pass
+
+func _ensure_pulse_visual_sprite() -> void:
+	if _pulse_visual_sprite != null and is_instance_valid(_pulse_visual_sprite):
 		return
-	if _pulse_visual_time_left <= 0.0:
+
+	_pulse_visual_sprite = Sprite2D.new()
+	_pulse_visual_sprite.name = "PulseVisual"
+	_pulse_visual_sprite.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
+	_pulse_visual_sprite.texture = pulse_sprite_texture
+	_pulse_visual_sprite.visible = false
+	var add_material := CanvasItemMaterial.new()
+	add_material.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
+	_pulse_visual_sprite.material = add_material
+	add_child(_pulse_visual_sprite)
+
+func _update_pulse_visual() -> void:
+	if _pulse_visual_sprite == null or not is_instance_valid(_pulse_visual_sprite):
 		return
+
+	if pulse_level <= 0 or _pulse_visual_time_left <= 0.0:
+		_pulse_visual_sprite.visible = false
+		return
+
+	_pulse_visual_sprite.visible = true
+	if pulse_sprite_texture == null:
+		_pulse_visual_sprite.visible = false
+		return
+	_pulse_visual_sprite.texture = pulse_sprite_texture
 
 	var normalized: float = 1.0 - (_pulse_visual_time_left / maxf(0.01, pulse_visual_duration_seconds))
-	var radius_now: float = lerpf(8.0, _pulse_radius, normalized)
+	var radius_now: float = lerpf(4.0, _pulse_radius, normalized)
 	var alpha_factor: float = 1.0 - normalized
+	var texture_width: float = maxf(1.0, pulse_sprite_texture.get_size().x)
+	var desired_diameter: float = radius_now * 2.0 * pulse_sprite_scale_multiplier
+	var uniform_scale: float = desired_diameter / texture_width
+	_pulse_visual_sprite.scale = Vector2(uniform_scale, uniform_scale)
 
-	var ring_color: Color = pulse_color
-	ring_color.a = clampf(0.85 * alpha_factor, 0.0, 1.0)
-	var outline_color: Color = pulse_outline_color
-	outline_color.a = clampf(0.95 * alpha_factor, 0.0, 1.0)
-
-	draw_arc(Vector2.ZERO, radius_now, 0.0, TAU, 72, ring_color, 3.0, true)
-	draw_arc(Vector2.ZERO, radius_now + 3.0, 0.0, TAU, 72, outline_color, 1.5, true)
+	var visual_color: Color = pulse_color
+	visual_color.a = clampf(0.95 * pow(alpha_factor, 0.6), 0.0, 1.0)
+	_pulse_visual_sprite.modulate = visual_color
+	_pulse_visual_sprite.rotation = normalized * 0.35 * TAU
