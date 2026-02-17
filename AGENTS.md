@@ -94,6 +94,59 @@ Asset quality bar:
   - high-density check with many enemies/effects
   - screenshot check for clarity
 
+### 1.4 Current Playable Content Snapshot (Living Scope)
+This section describes the current in-game content at a high level.
+Use this for design/planning communication. Exact numbers stay in code.
+
+Core run structure:
+- Main menu -> Play / Options / Quit.
+- Arena run with XP leveling, mutation choices, and periodic crisis events.
+- Pause menu with audio options and return to main menu.
+- Game over flow returns to main menu.
+
+Current lineages:
+- Predator: close-range aggressive identity, starts with Pulse Nova.
+- Swarm: orbit/control identity, starts with Orbiters.
+- Bulwark: sustain/defense identity, starts with Membrane.
+
+Current mutations (level-up pool):
+- Spikes: outward contact damage ring with growth across levels.
+- Orbiters: rotating cells that damage enemies on touch.
+- Membrane: defensive shell reducing incoming damage.
+- Pulse Nova: periodic radial burst damage around player.
+- Acid Trail: persistent damage zones spawned while moving.
+- Metabolism: passive health regeneration mutation.
+
+Current crisis system:
+- Crisis cadence runs through three regular crisis types, then a final crisis near end-run.
+- Crisis phases include active objective + reward phase.
+- Failing a crisis objective is lethal.
+
+Current crisis types:
+- Containment Sweep: sweeping hazard pattern the player must evade.
+- Strain Bloom: elite target appears; player must eliminate it before timeout.
+- Biohazard Leak: hazardous leak zones spawn progressively and pressure movement.
+
+Current crisis rewards:
+- Reward selection uses a dedicated crisis-reward mode on the evolve panel.
+- Each completed crisis grants one of three run bonuses.
+- Reward families currently include:
+  - offense boosts (module damage, orbiter aggression)
+  - mobility/defense boosts (movement speed, damage mitigation, bonus max HP)
+  - utility/sustain boosts (regen, pulse radius, acid-trail persistence)
+- Reward effects apply immediately and persist for the current run.
+
+UI/state currently present:
+- HUD: HP, XP bar, level, timer, lineage, regen indicator.
+- Evolve panel: lineage selection, mutation selection, crisis reward selection.
+- Crisis debug banner for active objective and phase timing.
+
+Debug/iteration helpers currently present:
+- Debug XP grant.
+- Debug time fast-forward.
+- Debug skip to next crisis.
+- Cheats are guarded by debug-build checks.
+
 ---
 
 ## 2) Hard Constraints (Non-Negotiable)
