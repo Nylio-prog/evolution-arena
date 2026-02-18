@@ -5,20 +5,71 @@ const BUS_SFX := "SFX"
 const BUS_MUSIC := "Music"
 const DEFAULT_SFX_POLYPHONY := 8
 const DEFAULT_STREAM_PATHS: Dictionary = {
-	"ui_click": "res://audio/sfx/ui_click.wav",
-	"pickup": "res://audio/sfx/pickup.wav",
-	"enemy_death": "res://audio/sfx/enemy_death.wav",
-	"levelup": "res://audio/sfx/levelup.wav",
-	"player_hit": "res://audio/sfx/player_hit.wav",
-	"player_death": "res://audio/sfx/player_death.wav",
-	"crisis_start": "res://audio/sfx/crisis_start.wav",
-	"crisis_success": "res://audio/sfx/crisis_success.wav",
-	"crisis_fail": "res://audio/sfx/crisis_fail.wav",
-	"final_crisis_start": "res://audio/sfx/final_crisis_start.wav",
-	"victory": "res://audio/sfx/victory.wav",
-	"bgm_main": "res://audio/music/bgm.ogg"
+	# Canonical R5 IDs from plan/release5_assets_prompts.md
+	"sfx_ui_click": "res://audio/sfx/sfx_ui_click.wav",
+	"sfx_ui_hover": "res://audio/sfx/sfx_ui_hover.wav",
+	"sfx_pickup_biomass": "res://audio/sfx/sfx_pickup_biomass.wav",
+	"sfx_enemy_death": "res://audio/sfx/sfx_enemy_death.wav",
+	"sfx_enemy_elite_death": "res://audio/sfx/sfx_enemy_elite_death.wav",
+	"sfx_levelup": "res://audio/sfx/sfx_levelup.wav",
+	"sfx_player_hit": "res://audio/sfx/sfx_player_hit.wav",
+	"sfx_variant_pick": "res://audio/sfx/sfx_variant_pick.wav",
+	"sfx_event_start": "res://audio/sfx/sfx_event_start.wav",
+	"sfx_event_clear": "res://audio/sfx/sfx_event_clear.wav",
+	"sfx_defeat": "res://audio/sfx/sfx_defeat.wav",
+	"sfx_victory": "res://audio/sfx/sfx_victory.wav",
+	"sfx_boss_spawn": "res://audio/sfx/sfx_boss_spawn.wav",
+	"sfx_boss_phase_shift": "res://audio/sfx/sfx_boss_phase_shift.wav",
+	"sfx_proto_pulse": "res://audio/sfx/sfx_proto_pulse.wav",
+	"sfx_razor_halo_hit": "res://audio/sfx/sfx_razor_halo_hit.wav",
+	"sfx_puncture_lance_fire": "res://audio/sfx/sfx_puncture_lance_fire.wav",
+	"sfx_lytic_burst": "res://audio/sfx/sfx_lytic_burst.wav",
+	"sfx_infective_trail_tick": "res://audio/sfx/sfx_infective_trail_tick.wav",
+	"sfx_chain_bloom": "res://audio/sfx/sfx_chain_bloom.wav",
+	"sfx_leech_tendril_loop": "res://audio/sfx/sfx_leech_tendril_loop.wav",
+	"sfx_host_override_cast": "res://audio/sfx/sfx_host_override_cast.wav",
+	"bgm_main": "res://audio/music/bgm_run_loop.mp3",
+	"bgm_menu_loop": "res://audio/music/bgm_menu_loop.mp3",
+	"bgm_boss_loop": "res://audio/music/bgm_boss_loop.mp3",
+	"bgm_victory_sting": "res://audio/music/bgm_victory_sting.mp3",
+	"bgm_defeat_sting": "res://audio/music/bgm_defeat_sting.mp3",
+
+	# Backward-compat aliases used by current gameplay code paths.
+	"ui_click": "res://audio/sfx/sfx_ui_click.wav",
+	"pickup": "res://audio/sfx/sfx_pickup_biomass.wav",
+	"enemy_death": "res://audio/sfx/sfx_enemy_death.wav",
+	"levelup": "res://audio/sfx/sfx_levelup.wav",
+	"player_hit": "res://audio/sfx/sfx_player_hit.wav",
+	"player_death": "res://audio/sfx/sfx_defeat.wav",
+	"crisis_start": "res://audio/sfx/sfx_event_start.wav",
+	"crisis_success": "res://audio/sfx/sfx_event_clear.wav",
+	"crisis_fail": "res://audio/sfx/sfx_defeat.wav",
+	"final_crisis_start": "res://audio/sfx/sfx_boss_spawn.wav",
+	"victory": "res://audio/sfx/sfx_victory.wav"
 }
 const SFX_EVENT_COOLDOWN_SEC: Dictionary = {
+	"sfx_ui_click": 0.04,
+	"sfx_ui_hover": 0.04,
+	"sfx_pickup_biomass": 0.05,
+	"sfx_player_hit": 0.12,
+	"sfx_enemy_death": 0.09,
+	"sfx_enemy_elite_death": 0.12,
+	"sfx_event_start": 0.15,
+	"sfx_event_clear": 0.15,
+	"sfx_defeat": 0.2,
+	"sfx_boss_spawn": 0.25,
+	"sfx_boss_phase_shift": 0.2,
+	"sfx_victory": 0.2,
+	"sfx_proto_pulse": 0.10,
+	"sfx_razor_halo_hit": 0.03,
+	"sfx_puncture_lance_fire": 0.05,
+	"sfx_lytic_burst": 0.12,
+	"sfx_infective_trail_tick": 0.08,
+	"sfx_chain_bloom": 0.08,
+	"sfx_leech_tendril_loop": 0.2,
+	"sfx_host_override_cast": 0.15,
+
+	# Backward-compat aliases.
 	"ui_click": 0.04,
 	"pickup": 0.05,
 	"player_hit": 0.12,
@@ -44,6 +95,7 @@ var _music_volume_linear: float = 1.0
 var _sfx_muted: bool = false
 var _music_muted: bool = false
 var _last_sfx_played_at: Dictionary = {}
+var _sfx_dispatch_depth: int = 0
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -53,6 +105,32 @@ func _ready() -> void:
 	_preload_optional_streams()
 
 func play_sfx(event_id: String, volume_db_offset: float = 0.0, pitch_scale: float = 1.0) -> bool:
+	if _sfx_dispatch_depth >= 8:
+		if debug_log_missing_streams:
+			print("AudioManager: blocked recursive play_sfx call for ", event_id)
+		return false
+	_sfx_dispatch_depth += 1
+	var played: bool = _play_sfx_internal(event_id, volume_db_offset, pitch_scale)
+	_sfx_dispatch_depth = maxi(0, _sfx_dispatch_depth - 1)
+	return played
+
+func stop_sfx(event_id: String) -> void:
+	if event_id.is_empty():
+		return
+	var target_stream: AudioStream = _get_stream(event_id)
+	if target_stream == null:
+		return
+	for player in _sfx_players:
+		if player == null:
+			continue
+		if not player.playing:
+			continue
+		if player.stream != target_stream:
+			continue
+		player.stop()
+	_last_sfx_played_at.erase(event_id)
+
+func _play_sfx_internal(event_id: String, volume_db_offset: float = 0.0, pitch_scale: float = 1.0) -> bool:
 	if _is_sfx_rate_limited(event_id):
 		return false
 
@@ -79,6 +157,9 @@ func play_music(track_id: String = "bgm_main", restart_if_same: bool = false) ->
 		_music_fade_tween = null
 
 	var stream: AudioStream = _get_stream(track_id)
+	if stream == null and track_id != "bgm_main":
+		# Keep runtime resilient when an optional track ID is requested but only bgm_main exists.
+		stream = _get_stream("bgm_main")
 	if stream == null:
 		return false
 	_ensure_stream_loops(stream)
@@ -99,6 +180,11 @@ func _ensure_stream_loops(stream: AudioStream) -> void:
 	var ogg_stream: AudioStreamOggVorbis = stream as AudioStreamOggVorbis
 	if ogg_stream != null:
 		ogg_stream.loop = true
+		return
+
+	var mp3_stream: AudioStreamMP3 = stream as AudioStreamMP3
+	if mp3_stream != null:
+		mp3_stream.loop = true
 		return
 
 	var wav_stream: AudioStreamWAV = stream as AudioStreamWAV

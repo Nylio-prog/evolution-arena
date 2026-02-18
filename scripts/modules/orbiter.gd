@@ -3,7 +3,9 @@ extends Node2D
 const ORBITER_SPRITE_TEXTURE: Texture2D = preload("res://art/sprites/mutations/mutation_orbiters.png")
 
 @export var orbiter_damage: int = 6
-@export var base_orbit_radius: float = 30.0
+@export var base_orbit_radius: float = 72.0
+@export var orbit_radius_bonus_level_2: float = 18.0
+@export var orbit_radius_bonus_level_3: float = 34.0
 @export var base_orbit_speed_rps: float = 2.5
 @export var orbiter_collision_radius: float = 9.0
 @export var orbiter_color: Color = Color(0.85, 0.95, 1.0, 1.0)
@@ -11,13 +13,17 @@ const ORBITER_SPRITE_TEXTURE: Texture2D = preload("res://art/sprites/mutations/m
 @export var orbiter_sprite_texture: Texture2D = ORBITER_SPRITE_TEXTURE
 @export var orbiter_sprite_world_size_multiplier: float = 2.2
 @export var damage_interval_seconds: float = 0.2
+@export var hit_sfx_cooldown_seconds: float = 0.1
 @export var debug_log_hits: bool = false
+
+@onready var audio_manager: Node = get_node_or_null("/root/AudioManager")
 
 var orbiter_level: int = 0
 var _elapsed_seconds: float = 0.0
-var _current_orbit_radius: float = 30.0
+var _current_orbit_radius: float = 72.0
 var _current_orbit_speed_rps: float = 2.5
 var _target_last_hit_time: Dictionary = {}
+var _hit_sfx_cooldown_left: float = 0.0
 
 func _ready() -> void:
 	add_to_group("player_modules")
@@ -28,6 +34,7 @@ func _physics_process(delta: float) -> void:
 		return
 
 	_elapsed_seconds += delta
+	_hit_sfx_cooldown_left = maxf(0.0, _hit_sfx_cooldown_left - delta)
 	_update_orbiter_positions()
 	_deal_contact_damage_tick()
 	queue_redraw()
@@ -49,6 +56,10 @@ func set_lineage_color(color: Color) -> void:
 func _configure_level_stats() -> void:
 	_current_orbit_radius = base_orbit_radius
 	_current_orbit_speed_rps = base_orbit_speed_rps
+	if orbiter_level >= 2:
+		_current_orbit_radius += maxf(0.0, orbit_radius_bonus_level_2)
+	if orbiter_level >= 3:
+		_current_orbit_radius += maxf(0.0, orbit_radius_bonus_level_3)
 
 	if orbiter_level >= 3:
 		_current_orbit_speed_rps = base_orbit_speed_rps * 1.5
@@ -101,6 +112,7 @@ func _update_orbiter_positions() -> void:
 			visual_sprite.rotation = angle
 
 func _deal_contact_damage_tick() -> void:
+	var did_hit_target: bool = false
 	for child in get_children():
 		var orbiter_area := child as Area2D
 		if orbiter_area == null:
@@ -118,8 +130,14 @@ func _deal_contact_damage_tick() -> void:
 				continue
 
 			target.call("take_damage", orbiter_damage)
+			if target.has_method("apply_infection"):
+				target.call("apply_infection", 2.0, 1)
+			did_hit_target = true
 			if debug_log_hits:
 				print("Orbiter hit enemy for ", orbiter_damage)
+	if did_hit_target and _hit_sfx_cooldown_left <= 0.0:
+		_play_sfx("sfx_razor_halo_hit", -8.5, randf_range(0.95, 1.06))
+		_hit_sfx_cooldown_left = maxf(0.03, hit_sfx_cooldown_seconds)
 
 func _can_hit_target_now(target: Node) -> bool:
 	var target_id: int = target.get_instance_id()
@@ -167,3 +185,10 @@ func _compute_orbiter_sprite_scale() -> Vector2:
 	var desired_diameter: float = orbiter_collision_radius * 2.0 * orbiter_sprite_world_size_multiplier
 	var uniform_scale: float = desired_diameter / texture_width
 	return Vector2(uniform_scale, uniform_scale)
+
+func _play_sfx(event_id: String, volume_db_offset: float = 0.0, pitch_scale: float = 1.0) -> void:
+	if audio_manager == null:
+		return
+	if not audio_manager.has_method("play_sfx"):
+		return
+	audio_manager.call("play_sfx", event_id, volume_db_offset, pitch_scale)

@@ -18,13 +18,14 @@ var _arena_preload_ready: bool = false
 var _arena_preload_failed: bool = false
 var _arena_scene_cache: PackedScene
 var _play_requested_while_loading: bool = false
+var _sfx_reentry_guard: bool = false
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	_connect_ui()
 	_set_options_visible(false)
 	_setup_audio_controls()
-	_stop_music()
+	_play_music("bgm_menu_loop")
 	_begin_arena_preload()
 
 func _process(_delta: float) -> void:
@@ -42,7 +43,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 
 	_set_options_visible(false)
-	_play_sfx("ui_click")
+	_play_sfx("sfx_ui_click")
 	get_viewport().set_input_as_handled()
 
 func _connect_ui() -> void:
@@ -63,7 +64,7 @@ func _connect_ui() -> void:
 		close_options_button.pressed.connect(close_options_callable)
 
 func _on_play_pressed() -> void:
-	_play_sfx("ui_click")
+	_play_sfx("sfx_ui_click")
 	if _arena_preload_ready and _arena_scene_cache != null:
 		get_tree().change_scene_to_packed(_arena_scene_cache)
 		return
@@ -81,17 +82,17 @@ func _on_play_pressed() -> void:
 		play_button.text = "Loading..."
 
 func _on_options_pressed() -> void:
-	_play_sfx("ui_click")
+	_play_sfx("sfx_ui_click")
 	if options_panel == null:
 		return
 	_set_options_visible(not options_panel.visible)
 
 func _on_close_options_pressed() -> void:
-	_play_sfx("ui_click")
+	_play_sfx("sfx_ui_click")
 	_set_options_visible(false)
 
 func _on_quit_pressed() -> void:
-	_play_sfx("ui_click")
+	_play_sfx("sfx_ui_click")
 	get_tree().quit()
 
 func _set_options_visible(should_show: bool) -> void:
@@ -171,11 +172,17 @@ func _on_music_mute_toggled(pressed: bool) -> void:
 	audio_manager.call("set_music_muted", pressed)
 
 func _play_sfx(event_id: String) -> void:
+	if _sfx_reentry_guard:
+		return
 	if audio_manager == null:
+		return
+	if audio_manager == self:
 		return
 	if not audio_manager.has_method("play_sfx"):
 		return
+	_sfx_reentry_guard = true
 	audio_manager.call("play_sfx", event_id)
+	_sfx_reentry_guard = false
 
 func _stop_music() -> void:
 	if audio_manager == null:
@@ -183,6 +190,13 @@ func _stop_music() -> void:
 	if not audio_manager.has_method("stop_music"):
 		return
 	audio_manager.call("stop_music")
+
+func _play_music(track_id: String = "bgm_menu_loop") -> void:
+	if audio_manager == null:
+		return
+	if not audio_manager.has_method("play_music"):
+		return
+	audio_manager.call("play_music", track_id)
 
 func _begin_arena_preload() -> void:
 	if _arena_preload_started:

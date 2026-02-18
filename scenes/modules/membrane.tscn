@@ -1,6 +1,84 @@
 [gd_scene format=3 uid="uid://dcn2ftt3jr4v6"]
 
-[ext_resource type="Script" path="res://scripts/modules/membrane.gd" id="1_8lh6i"]
+[ext_resource type="Script" uid="uid://bnw6q7l07rvk2" path="res://scripts/modules/membrane.gd" id="1_8lh6i"]
+[ext_resource type="Texture2D" uid="uid://dbya0gm0t3hci" path="res://art/sprites/modules/protein_shell_aura_sheet.png" id="2_ntpvr"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_a2jtl"]
+atlas = ExtResource("2_ntpvr")
+region = Rect2(12, 3, 333, 332)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_6e0mf"]
+atlas = ExtResource("2_ntpvr")
+region = Rect2(345, 3, 333, 332)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_ud585"]
+atlas = ExtResource("2_ntpvr")
+region = Rect2(678, 3, 333, 332)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_7pbha"]
+atlas = ExtResource("2_ntpvr")
+region = Rect2(12, 335, 333, 332)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_tljft"]
+atlas = ExtResource("2_ntpvr")
+region = Rect2(345, 335, 333, 332)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_lts68"]
+atlas = ExtResource("2_ntpvr")
+region = Rect2(678, 335, 333, 332)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_qk8bp"]
+atlas = ExtResource("2_ntpvr")
+region = Rect2(12, 667, 333, 332)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_hm34r"]
+atlas = ExtResource("2_ntpvr")
+region = Rect2(345, 667, 333, 332)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_do2ky"]
+atlas = ExtResource("2_ntpvr")
+region = Rect2(678, 667, 333, 332)
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_kr6kw"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_a2jtl")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_6e0mf")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_ud585")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_7pbha")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_tljft")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_lts68")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_qk8bp")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_hm34r")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_do2ky")
+}],
+"loop": true,
+"name": &"default",
+"speed": 5.0
+}]
 
 [node name="Membrane" type="Node2D" unique_id=1956651230]
 script = ExtResource("1_8lh6i")
+
+[node name="VisualSprite" type="AnimatedSprite2D" parent="." unique_id=598539405]
+z_index = -5
+scale = Vector2(0.35, 0.35)
+sprite_frames = SubResource("SpriteFrames_kr6kw")
+frame_progress = 0.5150686

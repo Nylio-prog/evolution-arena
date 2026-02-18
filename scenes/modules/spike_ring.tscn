@@ -1,6 +1,25 @@
-[gd_scene load_steps=2 format=3 uid="uid://cwla4kyh500a4"]
+[gd_scene format=3 uid="uid://cwla4kyh500a4"]
 
-[ext_resource type="Script" path="res://scripts/modules/spike_ring.gd" id="1_er4h6"]
+[ext_resource type="Script" uid="uid://d02bovqprp55g" path="res://scripts/modules/spike_ring.gd" id="1_er4h6"]
+[ext_resource type="Texture2D" uid="uid://bki7nyk2ciidk" path="res://art/sprites/modules/razor_halo_blade.png" id="2_t4n84"]
+
+[sub_resource type="CapsuleShape2D" id="CapsuleShape2D_t4n84"]
 
 [node name="SpikeRing" type="Node2D" unique_id=1459318333]
+z_index = -5
 script = ExtResource("1_er4h6")
+
+[node name="SpikeTemplate" type="Area2D" parent="." unique_id=780242405]
+visible = false
+scale = Vector2(0.1, 0.1)
+monitoring = false
+monitorable = false
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="SpikeTemplate" unique_id=1736841503]
+position = Vector2(51, 43)
+rotation = 0.6599077
+scale = Vector2(13.140265, 33.550716)
+shape = SubResource("CapsuleShape2D_t4n84")
+
+[node name="VisualSprite" type="Sprite2D" parent="SpikeTemplate" unique_id=1964344731]
+texture = ExtResource("2_t4n84")

@@ -95,57 +95,62 @@ Asset quality bar:
   - screenshot check for clarity
 
 ### 1.4 Current Playable Content Snapshot (Living Scope)
-This section describes the current in-game content at a high level.
-Use this for design/planning communication. Exact numbers stay in code.
+This section describes current implemented gameplay scope at a high level.
+Use this for planning and QA; exact values stay in code.
 
 Core run structure:
 - Main menu -> Play / Options / Quit.
-- Arena run with XP leveling, mutation choices, and periodic crisis events.
+- Arena run with XP leveling, variant selection, mutation/stat choices, containment events, and final boss resolution.
 - Pause menu with audio options and return to main menu.
-- Game over flow returns to main menu.
+- Game over and victory flows both return to main menu.
 
-Current lineages:
-- Predator: close-range aggressive identity, starts with Pulse Nova.
-- Swarm: orbit/control identity, starts with Orbiters.
-- Bulwark: sustain/defense identity, starts with Membrane.
+Current variants:
+- Lytic Strain: close-range burst pressure.
+- Pandemic Strain: infection spread and chain clear.
+- Parasitic Strain: sustain and temporary host conversion.
 
-Current mutations (level-up pool):
-- Spikes: outward contact damage ring with growth across levels.
-- Orbiters: rotating cells that damage enemies on touch.
-- Membrane: defensive shell reducing incoming damage.
-- Pulse Nova: periodic radial burst damage around player.
-- Acid Trail: persistent damage zones spawned while moving.
-- Metabolism: passive health regeneration mutation.
+Current mutation/module pool:
+- Universal start:
+  - Proto Pulse.
+- Lytic kit:
+  - Razor Halo
+  - Puncture Lance
+  - Lytic Burst
+- Pandemic kit:
+  - Infective Secretion
+  - Virion Orbit
+  - Chain Bloom
+- Parasitic kit:
+  - Leech Tendril
+  - Protein Shell
+  - Host Override
+- Core stat upgrades in level-up pool:
+  - Offense, Defense, Pickup Radius, Move Speed, Cooldown, Vitality
 
-Current crisis system:
-- Crisis cadence runs through three regular crisis types, then a final crisis near end-run.
-- Crisis phases include active objective + reward phase.
-- Failing a crisis objective is lethal.
+Current containment arc:
+- Timeline-based events with active and reward phases.
+- Event set:
+  - UV Sweep Grid
+  - Hunter Deployment
+  - Decon Flood
+  - Quarantine Lattice
+  - Antiviral Drone Burst
+  - Containment Seal
+- Boss checkpoints:
+  - Mid boss: Containment Warden
+  - Final boss: Protocol OMEGA Core
 
-Current crisis types:
-- Containment Sweep: sweeping hazard pattern the player must evade.
-- Strain Bloom: elite target appears; player must eliminate it before timeout.
-- Biohazard Leak: hazardous leak zones spawn progressively and pressure movement.
+Current run progression systems:
+- Event rewards with offensive/survival/utility choices.
+- Variant-tag recombinations visible in HUD.
+- Run inventory UI rows for Build, Rewards, and Synergies.
+- Tooltips for mutations/rewards/synergies with value summaries.
 
-Current crisis rewards:
-- Reward selection uses a dedicated crisis-reward mode on the evolve panel.
-- Each completed crisis grants one of three run bonuses.
-- Reward families currently include:
-  - offense boosts (module damage, orbiter aggression)
-  - mobility/defense boosts (movement speed, damage mitigation, bonus max HP)
-  - utility/sustain boosts (regen, pulse radius, acid-trail persistence)
-- Reward effects apply immediately and persist for the current run.
-
-UI/state currently present:
-- HUD: HP, XP bar, level, timer, lineage, regen indicator.
-- Evolve panel: lineage selection, mutation selection, crisis reward selection.
-- Crisis debug banner for active objective and phase timing.
-
-Debug/iteration helpers currently present:
-- Debug XP grant.
-- Debug time fast-forward.
-- Debug skip to next crisis.
-- Cheats are guarded by debug-build checks.
+Current debug helpers:
+- Debug XP grant (debug-build gated).
+- Debug fast-forward time.
+- Debug jump to next active crisis.
+- Debug jump near final-crisis threshold.
 
 ---
 

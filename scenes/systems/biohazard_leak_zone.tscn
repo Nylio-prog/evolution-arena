@@ -1,46 +1,46 @@
 [gd_scene format=3 uid="uid://120wbxlechv4"]
 
 [ext_resource type="Script" uid="uid://cud0hf52ffrn7" path="res://scripts/systems/biohazard_leak_zone.gd" id="1_ghndw"]
-[ext_resource type="Texture2D" uid="uid://bijlpjbd3wfdv" path="res://art/sprites/crisis/leak_zone_sheet.png" id="2_snrcn"]
+[ext_resource type="Texture2D" uid="uid://cfuo3jjqard04" path="res://art/sprites/events/decon_leak_zone_sheet.png" id="2_snrcn"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_hyx0v"]
-radius = 70.0
+radius = 94.0
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_nduhn"]
 atlas = ExtResource("2_snrcn")
-region = Rect2(38, 54, 492, 308)
+region = Rect2(17, 37, 332, 297)
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_uygeo"]
 atlas = ExtResource("2_snrcn")
-region = Rect2(530, 54, 492, 308)
+region = Rect2(349, 37, 332, 297)
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_i8dcl"]
 atlas = ExtResource("2_snrcn")
-region = Rect2(1022, 54, 492, 308)
+region = Rect2(681, 37, 332, 297)
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_1gn0y"]
 atlas = ExtResource("2_snrcn")
-region = Rect2(38, 362, 492, 308)
+region = Rect2(17, 355, 332, 297)
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_5iblq"]
 atlas = ExtResource("2_snrcn")
-region = Rect2(530, 362, 492, 308)
+region = Rect2(349, 355, 332, 297)
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_gpaci"]
 atlas = ExtResource("2_snrcn")
-region = Rect2(1022, 362, 492, 308)
+region = Rect2(681, 355, 332, 297)
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_efa30"]
 atlas = ExtResource("2_snrcn")
-region = Rect2(38, 670, 492, 308)
+region = Rect2(17, 673, 332, 297)
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_mtjbx"]
 atlas = ExtResource("2_snrcn")
-region = Rect2(530, 670, 492, 308)
+region = Rect2(349, 673, 332, 297)
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_7ihtt"]
 atlas = ExtResource("2_snrcn")
-region = Rect2(1022, 670, 492, 308)
+region = Rect2(681, 673, 332, 297)
 
 [sub_resource type="SpriteFrames" id="SpriteFrames_xckeg"]
 animations = [{
@@ -74,7 +74,7 @@ animations = [{
 }],
 "loop": true,
 "name": &"default",
-"speed": 5.0
+"speed": 8.0
 }]
 
 [node name="BiohazardLeakZone" type="Area2D" unique_id=19046470]
@@ -87,5 +87,6 @@ script = ExtResource("1_ghndw")
 shape = SubResource("CircleShape2D_hyx0v")
 
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="." unique_id=348616885]
+scale = Vector2(0.57, 0.57)
 sprite_frames = SubResource("SpriteFrames_xckeg")
-frame_progress = 0.031287566
+animation = &"default"

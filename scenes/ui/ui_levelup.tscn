@@ -78,10 +78,10 @@ anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = -536.0
-offset_top = -320.0
-offset_right = 536.0
-offset_bottom = 320.0
+offset_left = -560.0
+offset_top = -350.0
+offset_right = 560.0
+offset_bottom = 350.0
 grow_horizontal = 2
 grow_vertical = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
@@ -93,13 +93,13 @@ anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = -500.0
-offset_top = -280.0
-offset_right = 500.0
-offset_bottom = 280.0
+offset_left = -520.0
+offset_top = -314.0
+offset_right = 520.0
+offset_bottom = 314.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_constants/separation = 16
+theme_override_constants/separation = 18
 alignment = 1
 
 [node name="TopPadding" type="Control" parent="Root/Layout"]
@@ -117,7 +117,7 @@ horizontal_alignment = 1
 layout_mode = 2
 theme_override_fonts/font = ExtResource("3_q1p9k")
 theme_override_font_sizes/font_size = 30
-text = "Choose your lineage"
+text = "Choose your variant"
 horizontal_alignment = 1
 
 [node name="HelpLabel" type="Label" parent="Root/Layout" unique_id=1889439289]
@@ -134,7 +134,7 @@ theme_override_constants/separation = 16
 alignment = 1
 
 [node name="ChoiceButton1" type="Button" parent="Root/Layout/ChoicesRow" unique_id=60842756]
-custom_minimum_size = Vector2(318, 164)
+custom_minimum_size = Vector2(318, 217)
 layout_mode = 2
 theme_override_fonts/font = ExtResource("2_3nq6d")
 theme_override_styles/normal = SubResource("StyleBoxFlat_card")
@@ -149,10 +149,10 @@ anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = -36.0
-offset_top = -86.0
-offset_right = 36.0
-offset_bottom = -14.0
+offset_left = -44.0
+offset_top = -106.0
+offset_right = 44.0
+offset_bottom = -18.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
@@ -165,7 +165,7 @@ anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 offset_left = 10.0
-offset_top = 70.0
+offset_top = 94.0
 offset_right = -10.0
 offset_bottom = -12.0
 grow_horizontal = 2
@@ -179,7 +179,7 @@ fit_content = true
 scroll_active = false
 
 [node name="ChoiceButton2" type="Button" parent="Root/Layout/ChoicesRow" unique_id=1121768704]
-custom_minimum_size = Vector2(318, 164)
+custom_minimum_size = Vector2(318, 217)
 layout_mode = 2
 theme_override_fonts/font = ExtResource("2_3nq6d")
 theme_override_styles/normal = SubResource("StyleBoxFlat_card")
@@ -194,10 +194,10 @@ anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = -36.0
-offset_top = -86.0
-offset_right = 36.0
-offset_bottom = -14.0
+offset_left = -44.0
+offset_top = -106.0
+offset_right = 44.0
+offset_bottom = -18.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
@@ -210,7 +210,7 @@ anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 offset_left = 10.0
-offset_top = 70.0
+offset_top = 94.0
 offset_right = -10.0
 offset_bottom = -12.0
 grow_horizontal = 2
@@ -224,7 +224,7 @@ fit_content = true
 scroll_active = false
 
 [node name="ChoiceButton3" type="Button" parent="Root/Layout/ChoicesRow" unique_id=1457214829]
-custom_minimum_size = Vector2(318, 164)
+custom_minimum_size = Vector2(318, 217)
 layout_mode = 2
 theme_override_fonts/font = ExtResource("2_3nq6d")
 theme_override_styles/normal = SubResource("StyleBoxFlat_card")
@@ -239,10 +239,10 @@ anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = -36.0
-offset_top = -86.0
-offset_right = 36.0
-offset_bottom = -14.0
+offset_left = -44.0
+offset_top = -106.0
+offset_right = 44.0
+offset_bottom = -18.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
@@ -255,7 +255,7 @@ anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 offset_left = 10.0
-offset_top = 70.0
+offset_top = 94.0
 offset_right = -10.0
 offset_bottom = -12.0
 grow_horizontal = 2
@@ -268,10 +268,12 @@ text = "[center][b]Mutation 3[/b][/center]"
 fit_content = true
 scroll_active = false
 
-[node name="LineageChoicesColumn" type="VBoxContainer" parent="Root/Layout" unique_id=288044493]
+[node name="LineageChoicesColumn" type="HBoxContainer" parent="Root/Layout" unique_id=288044493]
 visible = false
+size_flags_horizontal = 3
 layout_mode = 2
-theme_override_constants/separation = 12
+theme_override_constants/separation = 16
+alignment = 1
 
 [node name="LineageBottomPadding" type="Control" parent="Root/Layout"]
 visible = false
@@ -279,7 +281,7 @@ custom_minimum_size = Vector2(0, 20)
 layout_mode = 2
 
 [node name="LineageButton1" type="Button" parent="Root/Layout/LineageChoicesColumn" unique_id=143338590]
-custom_minimum_size = Vector2(980, 92)
+custom_minimum_size = Vector2(322, 286)
 layout_mode = 2
 theme_override_fonts/font = ExtResource("2_3nq6d")
 theme_override_font_sizes/font_size = 24
@@ -287,27 +289,46 @@ theme_override_styles/normal = SubResource("StyleBoxFlat_card")
 theme_override_styles/hover = SubResource("StyleBoxFlat_card_hover")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_card_pressed")
 theme_override_styles/focus = SubResource("StyleBoxFlat_card_hover")
-text = "Predator"
+text = "Lytic Strain"
+
+[node name="LineageIcon" type="TextureRect" parent="Root/Layout/LineageChoicesColumn/LineageButton1"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -38.0
+offset_top = -108.0
+offset_right = 38.0
+offset_bottom = -32.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
 
 [node name="LineageText" type="RichTextLabel" parent="Root/Layout/LineageChoicesColumn/LineageButton1"]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_top = 10.0
-offset_bottom = -10.0
+offset_left = 16.0
+offset_top = 120.0
+offset_right = -16.0
+offset_bottom = -16.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 theme_override_fonts/normal_font = ExtResource("1_q8x2f")
 theme_override_fonts/bold_font = ExtResource("3_q1p9k")
 bbcode_enabled = true
-text = "[center][b]Predator[/b]\nAggressive close-range pressure[/center]"
+text = "[center][b]Lytic Strain[/b]\nBurst-focused close-range pressure and target deletion[/center]"
 fit_content = true
 scroll_active = false
 
 [node name="LineageButton2" type="Button" parent="Root/Layout/LineageChoicesColumn" unique_id=1126261879]
-custom_minimum_size = Vector2(980, 92)
+custom_minimum_size = Vector2(322, 286)
 layout_mode = 2
 theme_override_fonts/font = ExtResource("2_3nq6d")
 theme_override_font_sizes/font_size = 24
@@ -315,27 +336,46 @@ theme_override_styles/normal = SubResource("StyleBoxFlat_card")
 theme_override_styles/hover = SubResource("StyleBoxFlat_card_hover")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_card_pressed")
 theme_override_styles/focus = SubResource("StyleBoxFlat_card_hover")
-text = "Swarm"
+text = "Pandemic Strain"
+
+[node name="LineageIcon" type="TextureRect" parent="Root/Layout/LineageChoicesColumn/LineageButton2"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -38.0
+offset_top = -108.0
+offset_right = 38.0
+offset_bottom = -32.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
 
 [node name="LineageText" type="RichTextLabel" parent="Root/Layout/LineageChoicesColumn/LineageButton2"]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_top = 10.0
-offset_bottom = -10.0
+offset_left = 16.0
+offset_top = 120.0
+offset_right = -16.0
+offset_bottom = -16.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 theme_override_fonts/normal_font = ExtResource("1_q8x2f")
 theme_override_fonts/bold_font = ExtResource("3_q1p9k")
 bbcode_enabled = true
-text = "[center][b]Swarm[/b]\nOrbit and area control growth[/center]"
+text = "[center][b]Pandemic Strain[/b]\nContagion-focused spread and area pressure growth[/center]"
 fit_content = true
 scroll_active = false
 
 [node name="LineageButton3" type="Button" parent="Root/Layout/LineageChoicesColumn" unique_id=515158070]
-custom_minimum_size = Vector2(980, 92)
+custom_minimum_size = Vector2(322, 286)
 layout_mode = 2
 theme_override_fonts/font = ExtResource("2_3nq6d")
 theme_override_font_sizes/font_size = 24
@@ -343,21 +383,40 @@ theme_override_styles/normal = SubResource("StyleBoxFlat_card")
 theme_override_styles/hover = SubResource("StyleBoxFlat_card_hover")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_card_pressed")
 theme_override_styles/focus = SubResource("StyleBoxFlat_card_hover")
-text = "Bulwark"
+text = "Parasitic Strain"
+
+[node name="LineageIcon" type="TextureRect" parent="Root/Layout/LineageChoicesColumn/LineageButton3"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -38.0
+offset_top = -108.0
+offset_right = 38.0
+offset_bottom = -32.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
 
 [node name="LineageText" type="RichTextLabel" parent="Root/Layout/LineageChoicesColumn/LineageButton3"]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_top = 10.0
-offset_bottom = -10.0
+offset_left = 16.0
+offset_top = 120.0
+offset_right = -16.0
+offset_bottom = -16.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 theme_override_fonts/normal_font = ExtResource("1_q8x2f")
 theme_override_fonts/bold_font = ExtResource("3_q1p9k")
 bbcode_enabled = true
-text = "[center][b]Bulwark[/b]\nDefensive sustain and spacing[/center]"
+text = "[center][b]Parasitic Strain[/b]\nSustain and host-control focused pressure style[/center]"
 fit_content = true
 scroll_active = false

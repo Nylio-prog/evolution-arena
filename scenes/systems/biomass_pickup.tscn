@@ -1,18 +1,89 @@
 [gd_scene format=3 uid="uid://uywt1j4p6mfb"]
 
-[ext_resource type="Texture2D" uid="uid://dnkciwioc1nnv" path="res://art/sprites/ui/biomass_pickup.png" id="2_85jwq"]
+[ext_resource type="Texture2D" uid="uid://uelutaedg3sn" path="res://art/sprites/pickups/biomass_pickup_sheet.png" id="2_85jwq"]
 [ext_resource type="Script" uid="uid://c4ionl8jpnrtg" path="res://scripts/systems/biomass_pickup.gd" id="2_ijx7p"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_85jwq"]
-radius = 8.0
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_85jwq"]
+atlas = ExtResource("2_85jwq")
+region = Rect2(45, 27, 302, 261)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_vlxgv"]
+atlas = ExtResource("2_85jwq")
+region = Rect2(367, 27, 302, 261)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_2mbm8"]
+atlas = ExtResource("2_85jwq")
+region = Rect2(689, 27, 302, 261)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_nj346"]
+atlas = ExtResource("2_85jwq")
+region = Rect2(45, 307, 302, 261)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_xb2kx"]
+atlas = ExtResource("2_85jwq")
+region = Rect2(367, 307, 302, 261)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_kiyik"]
+atlas = ExtResource("2_85jwq")
+region = Rect2(689, 307, 302, 261)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_mjnp0"]
+atlas = ExtResource("2_85jwq")
+region = Rect2(45, 587, 302, 261)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_hi5bm"]
+atlas = ExtResource("2_85jwq")
+region = Rect2(367, 587, 302, 261)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_gfwwy"]
+atlas = ExtResource("2_85jwq")
+region = Rect2(689, 587, 302, 261)
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_nwg52"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_85jwq")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_vlxgv")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_2mbm8")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_nj346")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_xb2kx")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_kiyik")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_mjnp0")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_hi5bm")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_gfwwy")
+}],
+"loop": true,
+"name": &"default",
+"speed": 5.0
+}]
 
 [node name="BiomassPickup" type="Area2D" unique_id=493457500]
 script = ExtResource("2_ijx7p")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=294200155]
+position = Vector2(0, -1)
 shape = SubResource("CircleShape2D_85jwq")
 
-[node name="Sprite2D" type="Sprite2D" parent="." unique_id=333590219]
-modulate = Color(0.1497069, 0.60367393, 0.5370635, 1)
-scale = Vector2(0.12, 0.12)
-texture = ExtResource("2_85jwq")
+[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="." unique_id=1145938138]
+scale = Vector2(0.1, 0.1)
+sprite_frames = SubResource("SpriteFrames_nwg52")
+frame_progress = 0.90613765

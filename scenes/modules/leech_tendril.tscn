@@ -1,0 +1,83 @@
+[gd_scene format=3 uid="uid://cyriwx3mcysrn"]
+
+[ext_resource type="Script" uid="uid://cmhayhue0w6eh" path="res://scripts/modules/leech_tendril.gd" id="1_1"]
+[ext_resource type="Texture2D" uid="uid://doo0omcc7pvhu" path="res://art/sprites/modules/leech_tendril_beam_sheet.png" id="2_om8vm"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_bg8lo"]
+atlas = ExtResource("2_om8vm")
+region = Rect2(0, 67, 341, 159)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_6vns5"]
+atlas = ExtResource("2_om8vm")
+region = Rect2(341, 67, 341, 159)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_41qi7"]
+atlas = ExtResource("2_om8vm")
+region = Rect2(682, 67, 341, 159)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_kgfj8"]
+atlas = ExtResource("2_om8vm")
+region = Rect2(0, 385, 341, 159)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_nxkec"]
+atlas = ExtResource("2_om8vm")
+region = Rect2(341, 385, 341, 159)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_fmji1"]
+atlas = ExtResource("2_om8vm")
+region = Rect2(682, 385, 341, 159)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_pswfh"]
+atlas = ExtResource("2_om8vm")
+region = Rect2(0, 703, 341, 159)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_f7w83"]
+atlas = ExtResource("2_om8vm")
+region = Rect2(341, 703, 341, 159)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_wmpaq"]
+atlas = ExtResource("2_om8vm")
+region = Rect2(682, 703, 341, 159)
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_maa2o"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_bg8lo")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_6vns5")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_41qi7")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_kgfj8")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_nxkec")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_fmji1")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_pswfh")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_f7w83")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_wmpaq")
+}],
+"loop": true,
+"name": &"default",
+"speed": 8.0
+}]
+
+[node name="LeechTendril" type="Node2D" unique_id=311064059]
+script = ExtResource("1_1")
+
+[node name="BeamTemplate" type="AnimatedSprite2D" parent="." unique_id=426694814]
+visible = false
+sprite_frames = SubResource("SpriteFrames_maa2o")
+centered = false

@@ -1,6 +1,7 @@
 extends CharacterBody2D
 
 signal died(world_position: Vector2)
+signal died_detailed(world_position: Vector2, enemy_node: Node)
 
 @export var move_speed: float = 60.0
 @export var dash_speed: float = 220.0
@@ -17,7 +18,7 @@ signal died(world_position: Vector2)
 @export var orientation_rotation_offset_degrees: float = -4.0
 @export var collision_rotates_with_facing: bool = true
 @export var visual_offset: Vector2 = Vector2.ZERO
-@export var sprite_scale: Vector2 = Vector2(0.14, 0.14)
+@export var sprite_scale: Vector2 = Vector2.ONE
 @export var sprite_modulate: Color = Color(1, 1, 1, 1)
 @export var hit_flash_color: Color = Color(0.7, 1, 1, 1)
 @export var hit_flash_duration: float = 0.10
@@ -28,6 +29,10 @@ signal died(world_position: Vector2)
 @export var windup_indicator_radius_offset: float = 9.0
 @export var windup_indicator_line_width: float = 2.4
 @export var debug_log_dash: bool = false
+@export var player_contact_cooldown_seconds: float = 0.20
+@export var infection_tick_interval_seconds: float = 0.65
+@export var conversion_visual_tint: Color = Color(0.42, 1.0, 0.82, 1.0)
+@export var converted_damage_multiplier: float = 1.15
 
 var current_hp: int
 var _player: Node2D
@@ -41,6 +46,15 @@ var _base_sprite_scale: Vector2 = Vector2.ONE
 var _is_playing_hit_animation: bool = false
 var _base_collision_shape_rotation: float = 0.0
 var _is_elite: bool = false
+var _is_converted_host: bool = false
+var _conversion_time_left: float = 0.0
+var _infection_time_left: float = 0.0
+var _infection_stacks: int = 0
+var _infection_tick_accumulator: float = 0.0
+var _viral_mark_time_left: float = 0.0
+var _viral_mark_damage_multiplier: float = 1.0
+var _next_player_contact_time_seconds: float = 0.0
+var _player_collision_exception_added: bool = false
 
 @onready var animated_sprite: AnimatedSprite2D = get_node_or_null("AnimatedSprite2D")
 @onready var collision_shape: CollisionShape2D = get_node_or_null("CollisionShape2D")
@@ -48,6 +62,7 @@ var _is_elite: bool = false
 func _ready() -> void:
 	current_hp = max_hp
 	add_to_group("enemies")
+	add_to_group("hostile_enemies")
 	_setup_animated_sprite()
 	queue_redraw()
 
@@ -76,16 +91,19 @@ func _draw() -> void:
 			draw_line(Vector2.ZERO, windup_dir * (indicator_radius + 5.0), Color(1.0, 0.85, 0.3, 1.0), 2.0)
 
 func _physics_process(delta: float) -> void:
+	_tick_status_effects(delta)
 	if not is_instance_valid(_player):
 		_player = get_tree().get_first_node_in_group("player") as Node2D
+	_ensure_player_collision_exception()
 
-	if not is_instance_valid(_player):
+	var movement_target: Node2D = _get_movement_target()
+	if not is_instance_valid(movement_target):
 		velocity = Vector2.ZERO
 		move_and_slide()
 		_update_animation_state(false)
 		return
 
-	_update_dash_state(delta)
+	_update_dash_state(delta, movement_target)
 	move_and_slide()
 	_apply_contact_damage()
 	_update_hit_flash(delta)
@@ -93,7 +111,14 @@ func _physics_process(delta: float) -> void:
 	_update_visual_orientation(_get_facing_direction())
 	queue_redraw()
 
-func _update_dash_state(delta: float) -> void:
+func _update_dash_state(delta: float, movement_target: Node2D) -> void:
+	if _is_converted_host:
+		_dash_windup_left = 0.0
+		_dash_time_left = 0.0
+		var to_hostile: Vector2 = movement_target.global_position - global_position
+		velocity = to_hostile.normalized() * move_speed
+		return
+
 	if _dash_windup_left > 0.0:
 		_dash_windup_left = maxf(0.0, _dash_windup_left - delta)
 		velocity = Vector2.ZERO
@@ -106,7 +131,7 @@ func _update_dash_state(delta: float) -> void:
 		velocity = _dash_direction * dash_speed
 		return
 
-	var to_player: Vector2 = _player.global_position - global_position
+	var to_player: Vector2 = movement_target.global_position - global_position
 	velocity = to_player.normalized() * move_speed
 
 	_dash_timer += delta
@@ -122,26 +147,39 @@ func _update_dash_state(delta: float) -> void:
 		print("Dasher preparing dash")
 
 func _apply_contact_damage() -> void:
+	if not _is_converted_host:
+		_try_damage_player_by_contact_range()
+		return
+
 	for i in range(get_slide_collision_count()):
 		var collision := get_slide_collision(i)
 		var collider := collision.get_collider() as Node
 		if collider == null:
 			continue
-		if not collider.is_in_group("player"):
+		if not collider.is_in_group("hostile_enemies"):
+			continue
+		if collider == self:
 			continue
 		if collider.has_method("take_damage"):
-			collider.call("take_damage", contact_damage)
+			collider.call("take_damage", maxi(1, int(round(float(contact_damage) * converted_damage_multiplier))))
 
 func take_damage(amount: int) -> void:
 	if amount <= 0:
 		return
+	if current_hp <= 0:
+		return
 
-	current_hp = max(0, current_hp - amount)
+	var final_amount: int = amount
+	if _viral_mark_time_left > 0.0:
+		final_amount = maxi(1, int(round(float(amount) * _viral_mark_damage_multiplier)))
+
+	current_hp = max(0, current_hp - final_amount)
 	if current_hp > 0:
 		_trigger_hit_flash()
 		_trigger_hit_animation()
 	if current_hp == 0:
 		died.emit(global_position)
+		died_detailed.emit(global_position, self)
 		queue_free()
 
 func take_dot_damage(amount: int) -> void:
@@ -149,6 +187,57 @@ func take_dot_damage(amount: int) -> void:
 		return
 	var scaled_amount: int = maxi(1, int(round(float(amount) * clampf(dot_damage_multiplier, 0.1, 3.0))))
 	take_damage(scaled_amount)
+
+func apply_infection(duration_seconds: float = 2.6, stack_count: int = 1) -> void:
+	if duration_seconds <= 0.0:
+		return
+	_infection_time_left = maxf(_infection_time_left, duration_seconds)
+	_infection_stacks = clampi(_infection_stacks + maxi(1, stack_count), 1, 6)
+
+func is_infected() -> bool:
+	return _infection_time_left > 0.0
+
+func get_infection_stacks() -> int:
+	return _infection_stacks
+
+func apply_viral_mark(duration_seconds: float, damage_multiplier: float = 1.2) -> void:
+	_viral_mark_time_left = maxf(_viral_mark_time_left, duration_seconds)
+	_viral_mark_damage_multiplier = maxf(1.0, damage_multiplier)
+
+func convert_to_host_ally(duration_seconds: float) -> bool:
+	if duration_seconds <= 0.0:
+		return false
+	if _is_elite:
+		return false
+	if _is_converted_host:
+		_conversion_time_left = maxf(_conversion_time_left, duration_seconds)
+		return true
+	_is_converted_host = true
+	_conversion_time_left = duration_seconds
+	_dash_windup_left = 0.0
+	_dash_time_left = 0.0
+	if is_in_group("enemies"):
+		remove_from_group("enemies")
+	if is_in_group("hostile_enemies"):
+		remove_from_group("hostile_enemies")
+	if is_in_group("elite_enemies"):
+		remove_from_group("elite_enemies")
+	add_to_group("allied_hosts")
+	if animated_sprite != null:
+		animated_sprite.modulate = conversion_visual_tint
+	return true
+
+func is_converted_host() -> bool:
+	return _is_converted_host
+
+func is_elite_enemy() -> bool:
+	return _is_elite
+
+func get_current_hp() -> int:
+	return current_hp
+
+func get_max_hp() -> int:
+	return max_hp
 
 func apply_spawn_scaling(speed_multiplier: float, hp_multiplier: float, damage_multiplier: float) -> void:
 	var safe_speed_multiplier: float = maxf(0.1, speed_multiplier)
@@ -184,6 +273,8 @@ func apply_elite_profile(
 	sprite_modulate = elite_modulate
 	_base_sprite_modulate = sprite_modulate
 	_is_elite = true
+	if not is_in_group("elite_enemies"):
+		add_to_group("elite_enemies")
 	z_index = max(z_index, 5)
 	if animated_sprite != null:
 		animated_sprite.modulate = _base_sprite_modulate
@@ -209,7 +300,7 @@ func _update_hit_flash(delta: float) -> void:
 		return
 	_hit_flash_time_left = maxf(0.0, _hit_flash_time_left - delta)
 	if _hit_flash_time_left <= 0.0 and animated_sprite != null:
-		animated_sprite.modulate = _base_sprite_modulate
+		animated_sprite.modulate = conversion_visual_tint if _is_converted_host else _base_sprite_modulate
 		animated_sprite.scale = _base_sprite_scale
 
 func _setup_animated_sprite() -> void:
@@ -217,8 +308,8 @@ func _setup_animated_sprite() -> void:
 		push_error("EnemyDasher requires an AnimatedSprite2D child node named AnimatedSprite2D.")
 		return
 	animated_sprite.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
-	animated_sprite.position = visual_offset
-	_base_sprite_scale = sprite_scale
+	animated_sprite.position += visual_offset
+	_base_sprite_scale = Vector2(animated_sprite.scale.x * sprite_scale.x, animated_sprite.scale.y * sprite_scale.y)
 	animated_sprite.scale = _base_sprite_scale
 	_base_sprite_modulate = sprite_modulate
 	animated_sprite.modulate = _base_sprite_modulate
@@ -300,3 +391,77 @@ func _on_animated_sprite_animation_finished() -> void:
 		return
 	_is_playing_hit_animation = false
 	_update_animation_state(velocity.length() > 0.01)
+
+func _tick_status_effects(delta: float) -> void:
+	if _viral_mark_time_left > 0.0:
+		_viral_mark_time_left = maxf(0.0, _viral_mark_time_left - delta)
+	if _infection_time_left > 0.0:
+		_infection_time_left = maxf(0.0, _infection_time_left - delta)
+		_infection_tick_accumulator += delta
+		var tick_interval: float = maxf(0.10, infection_tick_interval_seconds)
+		while _infection_tick_accumulator >= tick_interval:
+			_infection_tick_accumulator -= tick_interval
+			take_dot_damage(maxi(1, _infection_stacks))
+	else:
+		_infection_stacks = 0
+		_infection_tick_accumulator = 0.0
+
+	if _is_converted_host:
+		_conversion_time_left = maxf(0.0, _conversion_time_left - delta)
+		if _conversion_time_left <= 0.0:
+			queue_free()
+
+func _get_movement_target() -> Node2D:
+	if _is_converted_host:
+		return _find_nearest_hostile_enemy()
+	return _player
+
+func _find_nearest_hostile_enemy() -> Node2D:
+	var nearest_enemy: Node2D
+	var nearest_distance_sq: float = INF
+	for enemy_variant in get_tree().get_nodes_in_group("hostile_enemies"):
+		var enemy_node := enemy_variant as Node2D
+		if enemy_node == null:
+			continue
+		if enemy_node == self:
+			continue
+		var distance_sq: float = global_position.distance_squared_to(enemy_node.global_position)
+		if distance_sq < nearest_distance_sq:
+			nearest_distance_sq = distance_sq
+			nearest_enemy = enemy_node
+	return nearest_enemy
+
+func _ensure_player_collision_exception() -> void:
+	if _player_collision_exception_added:
+		return
+	if not is_instance_valid(_player):
+		return
+	add_collision_exception_with(_player)
+	_player_collision_exception_added = true
+
+func _try_damage_player_by_contact_range() -> void:
+	if not is_instance_valid(_player):
+		return
+	var now_seconds: float = float(Time.get_ticks_usec()) / 1000000.0
+	if now_seconds < _next_player_contact_time_seconds:
+		return
+	if not _player.has_method("take_damage"):
+		return
+	if not _player.is_in_group("player"):
+		return
+
+	var contact_distance: float = _get_collision_radius() + _get_player_contact_radius()
+	var distance_sq: float = global_position.distance_squared_to(_player.global_position)
+	if distance_sq > contact_distance * contact_distance:
+		return
+
+	_player.call("take_damage", contact_damage)
+	_next_player_contact_time_seconds = now_seconds + maxf(0.05, player_contact_cooldown_seconds)
+
+func _get_player_contact_radius() -> float:
+	if not is_instance_valid(_player):
+		return 12.0
+	var player_visual_radius_variant: Variant = _player.get("visual_radius")
+	if player_visual_radius_variant != null:
+		return maxf(1.0, float(player_visual_radius_variant))
+	return 12.0

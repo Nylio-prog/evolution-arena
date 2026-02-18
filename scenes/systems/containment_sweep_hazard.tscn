@@ -4,7 +4,7 @@
 [ext_resource type="Texture2D" uid="uid://ckjnv8ddr6lxl" path="res://art/sprites/crisis/containment_sweep_sheet.png" id="2_tab42"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_1"]
-size = Vector2(2800, 120)
+size = Vector2(253, 64)
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_s83rs"]
 atlas = ExtResource("2_tab42")
@@ -105,11 +105,10 @@ monitorable = false
 script = ExtResource("1_pyn6f")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=337710699]
-position = Vector2(0, -2)
-scale = Vector2(0.12000036, 0.7600007)
+position = Vector2(-2.5, -6)
 shape = SubResource("RectangleShape2D_1")
 
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="." unique_id=1456155904]
+scale = Vector2(0.66, 0.66)
 sprite_frames = SubResource("SpriteFrames_fr3lr")
 animation = &"sweep"
-frame_progress = 0.09979621

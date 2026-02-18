@@ -12,6 +12,8 @@ const PULSE_NOVA_SPRITE_TEXTURE: Texture2D = preload("res://art/sprites/mutation
 @export var pulse_sprite_scale_multiplier: float = 1.15
 @export var debug_log_hits: bool = false
 
+@onready var audio_manager: Node = get_node_or_null("/root/AudioManager")
+
 var pulse_level: int = 0
 var _pulse_damage: int = 0
 var _pulse_radius: float = 0.0
@@ -94,6 +96,7 @@ func _emit_pulse() -> void:
 
 	if debug_log_hits:
 		print("Pulse Nova hit ", hit_count, " enemy(s) for ", _pulse_damage)
+	_play_sfx("sfx_lytic_burst", -4.0, randf_range(0.96, 1.04))
 
 	_pulse_visual_time_left = pulse_visual_duration_seconds
 	_update_pulse_visual()
@@ -141,3 +144,10 @@ func _update_pulse_visual() -> void:
 	visual_color.a = clampf(0.95 * pow(alpha_factor, 0.6), 0.0, 1.0)
 	_pulse_visual_sprite.modulate = visual_color
 	_pulse_visual_sprite.rotation = normalized * 0.35 * TAU
+
+func _play_sfx(event_id: String, volume_db_offset: float = 0.0, pitch_scale: float = 1.0) -> void:
+	if audio_manager == null:
+		return
+	if not audio_manager.has_method("play_sfx"):
+		return
+	audio_manager.call("play_sfx", event_id, volume_db_offset, pitch_scale)

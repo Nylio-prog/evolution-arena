@@ -1,0 +1,97 @@
+[gd_scene format=3 uid="uid://bmdyfeqx787c0"]
+
+[ext_resource type="Script" uid="uid://ct2bao45ym1fs" path="res://scripts/systems/containment_pylon.gd" id="1_1"]
+[ext_resource type="Texture2D" uid="uid://rofldw72tohw" path="res://art/sprites/events/containment_pylon.png" id="2_06wrq"]
+[ext_resource type="Texture2D" uid="uid://cafixa4qqqwaf" path="res://art/sprites/events/pylon_shield_sheet.png" id="3_b721j"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_4pwsb"]
+radius = 28.0
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_basln"]
+atlas = ExtResource("3_b721j")
+region = Rect2(24, 28, 327, 321)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_qkmv8"]
+atlas = ExtResource("3_b721j")
+region = Rect2(351, 28, 327, 321)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_nq3ba"]
+atlas = ExtResource("3_b721j")
+region = Rect2(678, 28, 327, 321)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_og7ot"]
+atlas = ExtResource("3_b721j")
+region = Rect2(24, 349, 327, 321)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_x2jqf"]
+atlas = ExtResource("3_b721j")
+region = Rect2(351, 349, 327, 321)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_63v01"]
+atlas = ExtResource("3_b721j")
+region = Rect2(678, 349, 327, 321)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_bat6l"]
+atlas = ExtResource("3_b721j")
+region = Rect2(24, 670, 327, 321)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_27372"]
+atlas = ExtResource("3_b721j")
+region = Rect2(351, 670, 327, 321)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_5c5q7"]
+atlas = ExtResource("3_b721j")
+region = Rect2(678, 670, 327, 321)
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_spj7b"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_basln")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_qkmv8")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_nq3ba")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_og7ot")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_x2jqf")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_63v01")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_bat6l")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_27372")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_5c5q7")
+}],
+"loop": true,
+"name": &"default",
+"speed": 5.0
+}]
+
+[node name="ContainmentPylon" type="StaticBody2D" unique_id=2064964099]
+script = ExtResource("1_1")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1516578417]
+shape = SubResource("CircleShape2D_4pwsb")
+
+[node name="Sprite2D" type="Sprite2D" parent="." unique_id=1879343731]
+z_index = 1
+texture_filter = 5
+scale = Vector2(0.18, 0.18)
+texture = ExtResource("2_06wrq")
+
+[node name="ShieldSprite" type="AnimatedSprite2D" parent="." unique_id=991237576]
+texture_filter = 5
+scale = Vector2(0.18, 0.18)
+sprite_frames = SubResource("SpriteFrames_spj7b")
+animation = &"default"

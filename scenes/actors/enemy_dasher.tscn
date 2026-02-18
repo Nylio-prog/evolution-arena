@@ -1,13 +1,14 @@
 [gd_scene format=3 uid="uid://dlnwi6cw6810v"]
 
 [ext_resource type="Script" uid="uid://cpamvok4io0v2" path="res://scripts/actors/enemy_dasher.gd" id="1_rc5w7"]
-[ext_resource type="Texture2D" uid="uid://equig6shhbks" path="res://art/sprites/enemies/enemy_dasher_dash_sheet.png" id="2_12io8"]
-[ext_resource type="Texture2D" uid="uid://ikn04b76j7ek" path="res://art/sprites/enemies/enemy_dasher_idle_sheet.png" id="3_i5hwg"]
-[ext_resource type="Texture2D" uid="uid://dfscb6h5irj1l" path="res://art/sprites/enemies/enemy_dasher_move_sheet.png" id="4_ahh54"]
-[ext_resource type="Texture2D" uid="uid://cmpb8od6jguir" path="res://art/sprites/enemies/enemy_dasher_windup_sheet.png" id="5_n4ymi"]
+[ext_resource type="Texture2D" uid="uid://equig6shhbks" path="res://art/sprites/enemies/Dasher/enemy_dasher_dash_sheet.png" id="2_12io8"]
+[ext_resource type="Texture2D" uid="uid://dosw4jh0bv7nb" path="res://art/sprites/enemies/Dasher/enemy_dasher_hit_sheet.png" id="3_ahh54"]
+[ext_resource type="Texture2D" uid="uid://ikn04b76j7ek" path="res://art/sprites/enemies/Dasher/enemy_dasher_idle_sheet.png" id="3_i5hwg"]
+[ext_resource type="Texture2D" uid="uid://dfscb6h5irj1l" path="res://art/sprites/enemies/Dasher/enemy_dasher_move_sheet.png" id="4_ahh54"]
+[ext_resource type="Texture2D" uid="uid://cmpb8od6jguir" path="res://art/sprites/enemies/Dasher/enemy_dasher_windup_sheet.png" id="5_n4ymi"]
 
-[sub_resource type="CapsuleShape2D" id="CapsuleShape2D_5ghbf"]
-radius = 6.3639555
+[sub_resource type="CircleShape2D" id="CircleShape2D_5ghbf"]
+radius = 11.0
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_enigh"]
 atlas = ExtResource("2_12io8")
@@ -44,6 +45,42 @@ region = Rect2(515, 651, 455, 315)
 [sub_resource type="AtlasTexture" id="AtlasTexture_bt1s2"]
 atlas = ExtResource("2_12io8")
 region = Rect2(970, 651, 455, 315)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_n4ymi"]
+atlas = ExtResource("3_ahh54")
+region = Rect2(42, 0, 469, 327)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_6f0lv"]
+atlas = ExtResource("3_ahh54")
+region = Rect2(511, 0, 469, 327)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_roifk"]
+atlas = ExtResource("3_ahh54")
+region = Rect2(980, 0, 469, 327)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_80cts"]
+atlas = ExtResource("3_ahh54")
+region = Rect2(42, 327, 469, 327)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_5dut1"]
+atlas = ExtResource("3_ahh54")
+region = Rect2(511, 327, 469, 327)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_l5uaw"]
+atlas = ExtResource("3_ahh54")
+region = Rect2(980, 327, 469, 327)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_ql3mr"]
+atlas = ExtResource("3_ahh54")
+region = Rect2(42, 654, 469, 327)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_qja1e"]
+atlas = ExtResource("3_ahh54")
+region = Rect2(511, 654, 469, 327)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_4nu6u"]
+atlas = ExtResource("3_ahh54")
+region = Rect2(980, 654, 469, 327)
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_7vjab"]
 atlas = ExtResource("3_i5hwg")
@@ -185,7 +222,39 @@ animations = [{
 }],
 "loop": true,
 "name": &"dash",
-"speed": 5.0
+"speed": 12.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_n4ymi")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_6f0lv")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_roifk")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_80cts")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_5dut1")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_l5uaw")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_ql3mr")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_qja1e")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_4nu6u")
+}],
+"loop": false,
+"name": &"hit",
+"speed": 8.0
 }, {
 "frames": [{
 "duration": 1.0,
@@ -217,7 +286,7 @@ animations = [{
 }],
 "loop": true,
 "name": &"idle",
-"speed": 5.0
+"speed": 12.0
 }, {
 "frames": [{
 "duration": 1.0,
@@ -249,7 +318,7 @@ animations = [{
 }],
 "loop": true,
 "name": &"move",
-"speed": 5.0
+"speed": 12.0
 }, {
 "frames": [{
 "duration": 1.0,
@@ -279,20 +348,18 @@ animations = [{
 "duration": 1.0,
 "texture": SubResource("AtlasTexture_3rqs7")
 }],
-"loop": true,
+"loop": false,
 "name": &"windup",
-"speed": 5.0
+"speed": 12.0
 }]
 
 [node name="EnemyDasher" type="CharacterBody2D" unique_id=1038364088]
 script = ExtResource("1_rc5w7")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1024176435]
-rotation = 1.9687976
-shape = SubResource("CapsuleShape2D_5ghbf")
+shape = SubResource("CircleShape2D_5ghbf")
 
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="." unique_id=1356988695]
+scale = Vector2(0.14, 0.14)
 sprite_frames = SubResource("SpriteFrames_6f0lv")
-animation = &"idle"
-frame = 0
-frame_progress = 0.0
+animation = &"move"

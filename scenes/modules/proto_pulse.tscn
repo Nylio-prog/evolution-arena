@@ -1,0 +1,92 @@
+[gd_scene format=3 uid="uid://cmqjijwkrlmka"]
+
+[ext_resource type="Script" uid="uid://dc7cr2sdc0npa" path="res://scripts/modules/proto_pulse.gd" id="1_1"]
+[ext_resource type="Texture2D" uid="uid://dtcg5sxc5n1yd" path="res://art/sprites/modules/proto_pulse_sheet.png" id="2_ojld5"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_1"]
+radius = 92.0
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_ojld5"]
+atlas = ExtResource("2_ojld5")
+region = Rect2(0, 0, 341, 332)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_ncwyn"]
+atlas = ExtResource("2_ojld5")
+region = Rect2(341, 0, 341, 332)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_u0wiy"]
+atlas = ExtResource("2_ojld5")
+region = Rect2(682, 0, 341, 332)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_cvde0"]
+atlas = ExtResource("2_ojld5")
+region = Rect2(0, 332, 341, 332)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_yk6tn"]
+atlas = ExtResource("2_ojld5")
+region = Rect2(341, 332, 341, 332)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_21m37"]
+atlas = ExtResource("2_ojld5")
+region = Rect2(682, 332, 341, 332)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_dfply"]
+atlas = ExtResource("2_ojld5")
+region = Rect2(0, 664, 341, 332)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_ga70x"]
+atlas = ExtResource("2_ojld5")
+region = Rect2(341, 664, 341, 332)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_aax2d"]
+atlas = ExtResource("2_ojld5")
+region = Rect2(682, 664, 341, 332)
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_rqnoi"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_ojld5")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_ncwyn")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_u0wiy")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_cvde0")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_yk6tn")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_21m37")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_dfply")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_ga70x")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_aax2d")
+}],
+"loop": true,
+"name": &"default",
+"speed": 12.0
+}]
+
+[node name="ProtoPulse" type="Node2D" unique_id=115682763]
+script = ExtResource("1_1")
+
+[node name="RangePreviewArea" type="Area2D" parent="." unique_id=907134582]
+monitoring = false
+monitorable = false
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="RangePreviewArea" unique_id=265865936]
+shape = SubResource("CircleShape2D_1")
+
+[node name="PulseAnimatedSprite" type="AnimatedSprite2D" parent="." unique_id=1751235725]
+sprite_frames = SubResource("SpriteFrames_rqnoi")
+frame_progress = 0.2115745

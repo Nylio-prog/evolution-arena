@@ -3,62 +3,136 @@
 const BIOMASS_PICKUP_SCENE: PackedScene = preload("res://scenes/systems/biomass_pickup.tscn")
 const CONTAINMENT_SWEEP_SCENE: PackedScene = preload("res://scenes/systems/containment_sweep_hazard.tscn")
 const BIOHAZARD_LEAK_ZONE_SCENE: PackedScene = preload("res://scenes/systems/biohazard_leak_zone.tscn")
-const STRAIN_BLOOM_ELITE_SCENE: PackedScene = preload("res://scenes/actors/enemy_dasher.tscn")
+const STRAIN_BLOOM_ELITE_SCENE: PackedScene = preload("res://scenes/actors/enemy_elite.tscn")
+const ANTIVIRAL_DRONE_SCENE: PackedScene = preload("res://scenes/actors/enemy_ranged.tscn")
+const CONTAINMENT_PYLON_SCENE: PackedScene = preload("res://scenes/systems/containment_pylon.tscn")
 const MUTATIONS_DATA = preload("res://data/mutations.gd")
-const MUTATION_ICON_SPIKES: Texture2D = preload("res://art/sprites/ui/mutation_spikes.png")
-const MUTATION_ICON_ORBITERS: Texture2D = preload("res://art/sprites/ui/mutation_orbiters.png")
-const MUTATION_ICON_MEMBRANE: Texture2D = preload("res://art/sprites/ui/mutation_membrane.png")
-const MUTATION_ICON_PULSE_NOVA: Texture2D = preload("res://art/sprites/ui/mutation_pulse_nova.png")
-const MUTATION_ICON_ACID_TRAIL: Texture2D = preload("res://art/sprites/ui/mutation_acid_trail.png")
-const MUTATION_ICON_METABOLISM: Texture2D = preload("res://art/sprites/ui/mutation_metabolism.png")
+const MUTATION_ICON_PROTO_PULSE: Texture2D = preload("res://art/sprites/ui/icons/icon_proto_pulse.png")
+const MUTATION_ICON_RAZOR_HALO: Texture2D = preload("res://art/sprites/ui/icons/icon_razor_halo.png")
+const MUTATION_ICON_PUNCTURE_LANCE: Texture2D = preload("res://art/sprites/ui/icons/icon_puncture_lance.png")
+const MUTATION_ICON_LYTIC_BURST: Texture2D = preload("res://art/sprites/ui/icons/icon_lytic_burst.png")
+const MUTATION_ICON_INFECTIVE_SECRETION: Texture2D = preload("res://art/sprites/ui/icons/icon_infective_secretion.png")
+const MUTATION_ICON_VIRION_ORBIT: Texture2D = preload("res://art/sprites/ui/icons/icon_virion_orbit.png")
+const MUTATION_ICON_CHAIN_BLOOM: Texture2D = preload("res://art/sprites/ui/icons/icon_chain_bloom.png")
+const MUTATION_ICON_LEECH_TENDRIL: Texture2D = preload("res://art/sprites/ui/icons/icon_leech_tendril.png")
+const MUTATION_ICON_PROTEIN_SHELL: Texture2D = preload("res://art/sprites/ui/icons/icon_protein_shell.png")
+const MUTATION_ICON_HOST_OVERRIDE: Texture2D = preload("res://art/sprites/ui/icons/icon_host_override.png")
+const MUTATION_ICON_STAT_OFFENSE: Texture2D = preload("res://art/sprites/ui/icons/icon_stat_offense.png")
+const MUTATION_ICON_STAT_DEFENSE: Texture2D = preload("res://art/sprites/ui/icons/icon_stat_defense.png")
+const MUTATION_ICON_STAT_PICKUP: Texture2D = preload("res://art/sprites/ui/icons/icon_stat_pickup.png")
+const MUTATION_ICON_STAT_SPEED: Texture2D = preload("res://art/sprites/ui/icons/icon_stat_speed.png")
+const MUTATION_ICON_STAT_COOLDOWN: Texture2D = preload("res://art/sprites/ui/icons/icon_stat_cooldown.png")
+const MUTATION_ICON_STAT_VITALITY: Texture2D = preload("res://art/sprites/ui/icons/icon_stat_vitality.png")
+const MUTATION_ICON_RECOMB_LYTIC_PAIR: Texture2D = preload("res://art/sprites/ui/icons/icon_recomb_lytic_pair.png")
+const MUTATION_ICON_RECOMB_LYTIC_APEX: Texture2D = preload("res://art/sprites/ui/icons/icon_recomb_lytic_apex.png")
+const MUTATION_ICON_RECOMB_PANDEMIC_PAIR: Texture2D = preload("res://art/sprites/ui/icons/icon_recomb_pandemic_pair.png")
+const MUTATION_ICON_RECOMB_PANDEMIC_APEX: Texture2D = preload("res://art/sprites/ui/icons/icon_recomb_pandemic_apex.png")
+const MUTATION_ICON_RECOMB_PARASITIC_PAIR: Texture2D = preload("res://art/sprites/ui/icons/icon_recomb_parasitic_pair.png")
+const MUTATION_ICON_RECOMB_PARASITIC_APEX: Texture2D = preload("res://art/sprites/ui/icons/icon_recomb_parasitic_apex.png")
+const ICON_BACKGROUND_TEXTURE: Texture2D = preload("res://art/sprites/ui/icons/icon_background.png")
+const VARIANT_ICON_LYTIC: Texture2D = preload("res://art/sprites/ui/icons/icon_razor_halo.png")
+const VARIANT_ICON_PANDEMIC: Texture2D = preload("res://art/sprites/ui/icons/icon_infective_secretion.png")
+const VARIANT_ICON_PARASITIC: Texture2D = preload("res://art/sprites/ui/icons/icon_leech_tendril.png")
+const RUN_INVENTORY_SLOT_SIZE: float = 64.0
+const RUN_INVENTORY_ICON_PADDING: float = 5.0
+const RUN_INVENTORY_VALUE_INSET: float = 7.0
+const RUN_INVENTORY_VALUE_BOX_SIZE: float = 18.0
+const ICON_TEMPLATE_BASE_META_KEY: StringName = &"icon_template_base"
+const ICON_TEMPLATE_BG_NODE_PREFIX: String = "__IconTemplateBg_"
+const ICON_TEMPLATE_CHOICE_ICON_INSET: float = 11.0
+const ICON_TEMPLATE_LINEAGE_ICON_INSET: float = 8.0
+const ICON_TEMPLATE_INVENTORY_ICON_INSET: float = 6.0
+const ICON_TEMPLATE_BG_EXPAND: float = 2.0
 const MUTATION_ICON_BY_ID: Dictionary = {
-	"spikes": MUTATION_ICON_SPIKES,
-	"orbiters": MUTATION_ICON_ORBITERS,
-	"membrane": MUTATION_ICON_MEMBRANE,
-	"pulse_nova": MUTATION_ICON_PULSE_NOVA,
-	"acid_trail": MUTATION_ICON_ACID_TRAIL,
-	"metabolism": MUTATION_ICON_METABOLISM
+	"proto_pulse": MUTATION_ICON_PROTO_PULSE,
+	"razor_halo": MUTATION_ICON_RAZOR_HALO,
+	"puncture_lance": MUTATION_ICON_PUNCTURE_LANCE,
+	"lytic_burst": MUTATION_ICON_LYTIC_BURST,
+	"infective_secretion": MUTATION_ICON_INFECTIVE_SECRETION,
+	"virion_orbit": MUTATION_ICON_VIRION_ORBIT,
+	"chain_bloom": MUTATION_ICON_CHAIN_BLOOM,
+	"leech_tendril": MUTATION_ICON_LEECH_TENDRIL,
+	"protein_shell": MUTATION_ICON_PROTEIN_SHELL,
+	"host_override": MUTATION_ICON_HOST_OVERRIDE,
+	"offense_boost": MUTATION_ICON_STAT_OFFENSE,
+	"defense_boost": MUTATION_ICON_STAT_DEFENSE,
+	"pickup_radius_boost": MUTATION_ICON_STAT_PICKUP,
+	"move_speed_boost": MUTATION_ICON_STAT_SPEED,
+	"cooldown_boost": MUTATION_ICON_STAT_COOLDOWN,
+	"vitality_boost": MUTATION_ICON_STAT_VITALITY,
+	"stat_offense": MUTATION_ICON_STAT_OFFENSE,
+	"stat_defense": MUTATION_ICON_STAT_DEFENSE,
+	"stat_pickup": MUTATION_ICON_STAT_PICKUP,
+	"stat_speed": MUTATION_ICON_STAT_SPEED,
+	"stat_cooldown": MUTATION_ICON_STAT_COOLDOWN,
+	"stat_vitality": MUTATION_ICON_STAT_VITALITY,
+	"icon_recomb_lytic_pair": MUTATION_ICON_RECOMB_LYTIC_PAIR,
+	"icon_recomb_lytic_apex": MUTATION_ICON_RECOMB_LYTIC_APEX,
+	"icon_recomb_pandemic_pair": MUTATION_ICON_RECOMB_PANDEMIC_PAIR,
+	"icon_recomb_pandemic_apex": MUTATION_ICON_RECOMB_PANDEMIC_APEX,
+	"icon_recomb_parasitic_pair": MUTATION_ICON_RECOMB_PARASITIC_PAIR,
+	"icon_recomb_parasitic_apex": MUTATION_ICON_RECOMB_PARASITIC_APEX
 }
 const SYNERGY_ICON_ID_BY_RULE_ID: Dictionary = {
-	"contact_burst": "spikes",
-	"orbit_sustain": "orbiters",
-	"infection_burst": "acid_trail",
-	"contact_sustain": "membrane"
+	"lytic_pair": "icon_recomb_lytic_pair",
+	"lytic_apex": "icon_recomb_lytic_apex",
+	"pandemic_pair": "icon_recomb_pandemic_pair",
+	"pandemic_apex": "icon_recomb_pandemic_apex",
+	"parasitic_pair": "icon_recomb_parasitic_pair",
+	"parasitic_apex": "icon_recomb_parasitic_apex"
 }
 const INVENTORY_MUTATION_IDS: Array[String] = [
-	"spikes",
-	"orbiters",
-	"membrane",
-	"pulse_nova",
-	"acid_trail",
-	"metabolism"
+	"proto_pulse",
+	"razor_halo",
+	"puncture_lance",
+	"lytic_burst",
+	"infective_secretion",
+	"virion_orbit",
+	"chain_bloom",
+	"leech_tendril",
+	"protein_shell",
+	"host_override"
 ]
 const MUTATION_TAG_SYNERGY_RULES: Array[Dictionary] = [
 	{
-		"id": "contact_burst",
-		"name": "Predatory Burst",
-		"tags": ["contact", "burst"],
-		"module_damage_multiplier": 1.10
+		"id": "lytic_pair",
+		"name": "Lytic Pressure",
+		"tags": ["lytic_starter", "lytic_core"],
+		"module_damage_multiplier": 1.12
 	},
 	{
-		"id": "orbit_sustain",
-		"name": "Rotary Homeostasis",
-		"tags": ["orbit", "sustain"],
-		"orbiter_speed_multiplier": 1.18,
-		"passive_regen_per_second": 0.8
+		"id": "lytic_apex",
+		"name": "Lytic Overrun",
+		"tags": ["lytic_starter", "lytic_core", "lytic_capstone"],
+		"module_damage_multiplier": 1.10,
+		"pulse_radius_multiplier": 1.08
 	},
 	{
-		"id": "infection_burst",
+		"id": "pandemic_pair",
 		"name": "Volatile Secretion",
-		"tags": ["infection", "burst"],
-		"pulse_radius_multiplier": 1.12,
-		"acid_lifetime_multiplier": 1.15
+		"tags": ["pandemic_starter", "pandemic_core"],
+		"acid_lifetime_multiplier": 1.18,
+		"pulse_radius_multiplier": 1.06
 	},
 	{
-		"id": "contact_sustain",
+		"id": "pandemic_apex",
+		"name": "Epidemic Cascade",
+		"tags": ["pandemic_starter", "pandemic_core", "pandemic_capstone"],
+		"module_damage_multiplier": 1.08,
+		"acid_lifetime_multiplier": 1.10
+	},
+	{
+		"id": "parasitic_pair",
 		"name": "Armored Pressure",
-		"tags": ["contact", "sustain"],
+		"tags": ["parasitic_starter", "parasitic_core"],
 		"external_damage_multiplier": 0.92
+	},
+	{
+		"id": "parasitic_apex",
+		"name": "Host Dominion",
+		"tags": ["parasitic_starter", "parasitic_core", "parasitic_capstone"],
+		"passive_regen_per_second": 1.2,
+		"external_damage_multiplier": 0.95
 	}
 ]
 
@@ -70,7 +144,9 @@ const MUTATION_TAG_SYNERGY_RULES: Array[Dictionary] = [
 @onready var xp_bar: ProgressBar = get_node_or_null("UiHud/XPBar")
 @onready var level_label: Label = get_node_or_null("UiHud/LevelLabel")
 @onready var timer_label: Label = get_node_or_null("UiHud/TimerLabel")
+@onready var timer_backdrop: Panel = get_node_or_null("UiHud/TimerBackdrop")
 @onready var crisis_debug_label: Label = get_node_or_null("UiHud/CrisisDebugLabel")
+@onready var crisis_backdrop: Panel = get_node_or_null("UiHud/CrisisBackdrop")
 @onready var lineage_label: Label = get_node_or_null("UiHud/LineageLabel")
 @onready var arena_tint_rect: ColorRect = get_node_or_null("ColorRect")
 @onready var ui_hud_layer: CanvasLayer = get_node_or_null("UiHud")
@@ -93,13 +169,16 @@ const MUTATION_TAG_SYNERGY_RULES: Array[Dictionary] = [
 @onready var levelup_choice_1_text: RichTextLabel = get_node_or_null("UiLevelup/Root/Layout/ChoicesRow/ChoiceButton1/MutationText")
 @onready var levelup_choice_2_text: RichTextLabel = get_node_or_null("UiLevelup/Root/Layout/ChoicesRow/ChoiceButton2/MutationText")
 @onready var levelup_choice_3_text: RichTextLabel = get_node_or_null("UiLevelup/Root/Layout/ChoicesRow/ChoiceButton3/MutationText")
-@onready var lineage_choices_column: VBoxContainer = get_node_or_null("UiLevelup/Root/Layout/LineageChoicesColumn")
+@onready var lineage_choices_column: BoxContainer = get_node_or_null("UiLevelup/Root/Layout/LineageChoicesColumn")
 @onready var lineage_choice_1: Button = get_node_or_null("UiLevelup/Root/Layout/LineageChoicesColumn/LineageButton1")
 @onready var lineage_choice_2: Button = get_node_or_null("UiLevelup/Root/Layout/LineageChoicesColumn/LineageButton2")
 @onready var lineage_choice_3: Button = get_node_or_null("UiLevelup/Root/Layout/LineageChoicesColumn/LineageButton3")
 @onready var lineage_choice_1_text: RichTextLabel = get_node_or_null("UiLevelup/Root/Layout/LineageChoicesColumn/LineageButton1/LineageText")
 @onready var lineage_choice_2_text: RichTextLabel = get_node_or_null("UiLevelup/Root/Layout/LineageChoicesColumn/LineageButton2/LineageText")
 @onready var lineage_choice_3_text: RichTextLabel = get_node_or_null("UiLevelup/Root/Layout/LineageChoicesColumn/LineageButton3/LineageText")
+@onready var lineage_choice_1_icon: TextureRect = get_node_or_null("UiLevelup/Root/Layout/LineageChoicesColumn/LineageButton1/LineageIcon")
+@onready var lineage_choice_2_icon: TextureRect = get_node_or_null("UiLevelup/Root/Layout/LineageChoicesColumn/LineageButton2/LineageIcon")
+@onready var lineage_choice_3_icon: TextureRect = get_node_or_null("UiLevelup/Root/Layout/LineageChoicesColumn/LineageButton3/LineageIcon")
 @onready var lineage_bottom_padding: Control = get_node_or_null("UiLevelup/Root/Layout/LineageBottomPadding")
 @onready var game_over_ui: CanvasLayer = get_node_or_null("GameOver")
 @onready var game_over_stats_label: Label = get_node_or_null("GameOver/Root/StatsLabel")
@@ -119,6 +198,7 @@ const MUTATION_TAG_SYNERGY_RULES: Array[Dictionary] = [
 @onready var pause_sfx_mute_toggle: CheckButton = get_node_or_null("PauseMenu/Root/Content/OptionsPanel/Padding/AudioRows/SfxRow/SfxMuteToggle")
 @onready var pause_music_slider: HSlider = get_node_or_null("PauseMenu/Root/Content/OptionsPanel/Padding/AudioRows/MusicRow/MusicSlider")
 @onready var pause_music_mute_toggle: CheckButton = get_node_or_null("PauseMenu/Root/Content/OptionsPanel/Padding/AudioRows/MusicRow/MusicMuteToggle")
+@onready var pause_stats_text: RichTextLabel = get_node_or_null("PauseMenu/Root/StatsPanel/StatsPadding/StatsColumn/StatsText")
 @onready var crisis_director: Node = get_node_or_null("CrisisDirector")
 @onready var audio_manager: Node = get_node_or_null("/root/AudioManager")
 
@@ -140,9 +220,12 @@ var _pending_crisis_failure_audio: bool = false
 var _last_run_end_reason: String = ""
 var _last_containment_sweep_hit_seconds: float = -1000.0
 var _syncing_audio_controls: bool = false
+var _sfx_reentry_guard: bool = false
 var _active_containment_sweeps: Array[Node2D] = []
 var _active_biohazard_leaks: Array[Node2D] = []
 var _final_crisis_elites: Array[Node2D] = []
+var _active_antiviral_drones: Array[Node2D] = []
+var _active_containment_pylons: Array[Node2D] = []
 var _biohazard_leak_spawner_active: bool = false
 var _biohazard_leak_spawn_accumulator: float = 0.0
 var _biohazard_leak_position_sample_accumulator: float = 0.0
@@ -150,9 +233,12 @@ var _biohazard_leak_elapsed_seconds: float = 0.0
 var _biohazard_recent_player_positions: Array = []
 var _final_crisis_active: bool = false
 var _final_containment_wave_elapsed_seconds: float = 0.0
+var _containment_seal_active: bool = false
+var _containment_seal_destroyed_count: int = 0
 var _strain_bloom_elite_target: Node2D
 var _strain_bloom_active: bool = false
 var _strain_bloom_elite_killed: bool = false
+var _strain_bloom_crisis_id: String = ""
 var _reward_module_damage_multiplier: float = 1.0
 var _reward_orbiter_speed_multiplier: float = 1.0
 var _reward_pulse_radius_multiplier: float = 1.0
@@ -190,6 +276,8 @@ var _run_intro_popup_shown: bool = false
 var _base_arena_tint_color: Color = Color(0.0, 0.40392157, 0.5647059, 0.22)
 @export var debug_allow_grant_xp: bool = false
 @export var debug_grant_xp_amount: int = 20
+@export var biomass_xp_multiplier: float = 1.35
+@export var elite_biomass_xp_bonus: int = 6
 @export var debug_fast_forward_seconds: float = 10.0
 @export var debug_log_crisis_timeline: bool = true
 @export var debug_log_tag_synergies: bool = true
@@ -240,8 +328,13 @@ var _base_arena_tint_color: Color = Color(0.0, 0.40392157, 0.5647059, 0.22)
 @export var strain_bloom_elite_scale_multiplier: float = 1.55
 @export var strain_bloom_elite_tint: Color = Color(0.62, 1.0, 0.22, 1.0)
 @export var final_crisis_elite_count: int = 2
+@export var antiviral_drone_wave_count: int = 4
+@export var containment_seal_pylon_count: int = 3
+@export var containment_seal_pylon_spawn_radius_min: float = 170.0
+@export var containment_seal_pylon_spawn_radius_max: float = 300.0
+@export var containment_seal_fail_if_objective_alive: bool = true
 
-const LINEAGE_CHOICES: Array[String] = ["predator", "swarm", "bulwark"]
+const LINEAGE_CHOICES: Array[String] = ["lytic", "pandemic", "parasitic"]
 
 func _ready() -> void:
 	_reset_runtime_state()
@@ -263,8 +356,14 @@ func _ready() -> void:
 		xp_system.connect("leveled_up", Callable(self, "_on_player_leveled_up"))
 	if mutation_system != null and mutation_system.has_method("setup"):
 		mutation_system.call("setup", player)
+	if mutation_system != null and mutation_system.has_method("get_mutation_level") and mutation_system.has_method("apply_mutation"):
+		var proto_level: int = int(mutation_system.call("get_mutation_level", "proto_pulse"))
+		if proto_level <= 0:
+			mutation_system.call("apply_mutation", "proto_pulse")
 	if mutation_system != null and mutation_system.has_signal("lineage_changed"):
 		mutation_system.connect("lineage_changed", Callable(self, "_on_lineage_changed"))
+	if mutation_system != null and mutation_system.has_signal("variant_changed"):
+		mutation_system.connect("variant_changed", Callable(self, "_on_variant_changed"))
 	if mutation_system != null and mutation_system.has_signal("mutation_applied"):
 		mutation_system.connect("mutation_applied", Callable(self, "_on_mutation_applied"))
 	_sync_mutation_inventory_levels()
@@ -399,7 +498,11 @@ func _reset_runtime_state() -> void:
 	_clear_containment_sweep()
 	_clear_biohazard_leaks()
 	_clear_final_crisis_elites()
+	_clear_antiviral_drones()
+	_clear_containment_pylons()
 	_clear_strain_bloom_state()
+	_containment_seal_active = false
+	_containment_seal_destroyed_count = 0
 	if crisis_director != null and crisis_director.has_method("reset_runtime_state"):
 		crisis_director.call("reset_runtime_state")
 	_apply_crisis_ui_accent("idle", "", 0.0)
@@ -440,27 +543,48 @@ func _tick_crisis_director(delta: float) -> void:
 
 func _on_crisis_phase_changed(new_phase: String, crisis_id: String) -> void:
 	var crisis_active: bool = (new_phase == "active" or new_phase == "final")
-	var is_final_purge_phase: bool = (new_phase == "final" and crisis_id == "purge_protocol")
+	var is_final_purge_phase: bool = (new_phase == "final" and crisis_id == "protocol_omega_core")
 	_set_crisis_spawn_throttle(crisis_active)
 	_apply_crisis_ui_accent(new_phase, crisis_id, _get_crisis_phase_time_remaining())
-	if new_phase == "reward" and crisis_id == "strain_bloom":
+	if new_phase == "reward" and _is_elite_objective_crisis(crisis_id):
 		_handle_strain_bloom_timeout()
-	if _strain_bloom_active and crisis_id != "strain_bloom":
+	if new_phase == "reward" and crisis_id == "containment_seal":
+		_handle_containment_seal_timeout()
+	if _strain_bloom_active and crisis_id != _strain_bloom_crisis_id:
 		_clear_strain_bloom_state()
 	if _final_crisis_active and not is_final_purge_phase:
 		_stop_final_crisis_composition()
-	if not ((new_phase == "active" and crisis_id == "containment_sweep") or is_final_purge_phase):
+	if not (_is_sweep_crisis(crisis_id) or is_final_purge_phase):
 		_clear_containment_sweep()
-	if not ((new_phase == "active" and crisis_id == "biohazard_leak") or is_final_purge_phase):
+	if not (_is_leak_crisis(crisis_id) or is_final_purge_phase):
 		_clear_biohazard_leaks()
+	if not (_is_antiviral_drone_crisis(crisis_id) or is_final_purge_phase):
+		_clear_antiviral_drones()
+	if not (_is_containment_seal_crisis(crisis_id) or is_final_purge_phase):
+		_clear_containment_pylons()
 	_update_crisis_debug_banner()
 
 	if not debug_log_crisis_timeline:
 		return
 	if crisis_id.is_empty():
-		print("[GameManager] Crisis phase -> %s at %.1fs" % [new_phase, elapsed_seconds])
+		print("[GameManager] Event phase -> %s at %.1fs" % [new_phase, elapsed_seconds])
 	else:
-		print("[GameManager] Crisis phase -> %s (%s) at %.1fs" % [new_phase, crisis_id, elapsed_seconds])
+		print("[GameManager] Event phase -> %s (%s) at %.1fs" % [new_phase, crisis_id, elapsed_seconds])
+
+func _is_sweep_crisis(crisis_id: String) -> bool:
+	return crisis_id == "uv_sweep_grid" or crisis_id == "quarantine_lattice" or crisis_id == "containment_seal"
+
+func _is_leak_crisis(crisis_id: String) -> bool:
+	return crisis_id == "decon_flood"
+
+func _is_elite_objective_crisis(crisis_id: String) -> bool:
+	return crisis_id == "hunter_deployment" or crisis_id == "containment_warden"
+
+func _is_antiviral_drone_crisis(crisis_id: String) -> bool:
+	return crisis_id == "antiviral_drone_burst"
+
+func _is_containment_seal_crisis(crisis_id: String) -> bool:
+	return crisis_id == "containment_seal"
 
 func _set_crisis_spawn_throttle(active: bool) -> void:
 	var target_multiplier: float = 1.0
@@ -478,6 +602,7 @@ func _set_crisis_spawn_throttle(active: bool) -> void:
 func _start_final_crisis_composition(active_duration_seconds: float) -> void:
 	_final_crisis_active = true
 	_final_containment_wave_elapsed_seconds = 0.0
+	_play_sfx("sfx_boss_phase_shift", -3.0, randf_range(0.96, 1.04))
 	_spawn_containment_sweep(
 		maxf(1.0, final_containment_wave_duration_seconds),
 		maxi(1, final_containment_concurrent_count),
@@ -564,7 +689,133 @@ func _clear_final_crisis_elites() -> void:
 		elite_node.queue_free()
 	_final_crisis_elites.clear()
 
-func _spawn_strain_bloom_elite() -> void:
+func _spawn_antiviral_drone_wave(count: int) -> void:
+	var spawn_count: int = maxi(0, count)
+	if spawn_count <= 0:
+		return
+	var player_node := player as Node2D
+	if player_node == null:
+		player_node = get_tree().get_first_node_in_group("player") as Node2D
+	if player_node == null:
+		return
+
+	for _spawn_index in range(spawn_count):
+		var drone_node := ANTIVIRAL_DRONE_SCENE.instantiate() as Node2D
+		if drone_node == null:
+			continue
+		var spawn_radius: float = randf_range(130.0, 320.0)
+		var spawn_angle: float = randf() * TAU
+		drone_node.global_position = player_node.global_position + Vector2.RIGHT.rotated(spawn_angle) * spawn_radius
+		var spawn_parent: Node = get_tree().current_scene
+		if spawn_parent == null:
+			spawn_parent = self
+		spawn_parent.add_child(drone_node)
+		_connect_enemy_death(drone_node)
+		_active_antiviral_drones.append(drone_node)
+
+func _clear_antiviral_drones() -> void:
+	for drone_node in _active_antiviral_drones:
+		if drone_node == null:
+			continue
+		if not is_instance_valid(drone_node):
+			continue
+		drone_node.queue_free()
+	_active_antiviral_drones.clear()
+
+func _start_containment_seal_objective(crisis_id: String = "containment_seal") -> void:
+	_clear_containment_pylons()
+	_containment_seal_active = true
+	_containment_seal_destroyed_count = 0
+
+	var pylon_count: int = maxi(1, containment_seal_pylon_count)
+	var player_node := player as Node2D
+	if player_node == null:
+		player_node = get_tree().get_first_node_in_group("player") as Node2D
+	if player_node == null:
+		return
+
+	for pylon_index in range(pylon_count):
+		var pylon_node := CONTAINMENT_PYLON_SCENE.instantiate() as Node2D
+		if pylon_node == null:
+			continue
+
+		var ring_ratio: float = float(pylon_index) / float(maxi(1, pylon_count))
+		var base_angle: float = ring_ratio * TAU
+		var jitter: float = randf_range(-0.22, 0.22)
+		var spawn_angle: float = base_angle + jitter
+		var min_radius: float = maxf(80.0, containment_seal_pylon_spawn_radius_min)
+		var max_radius: float = maxf(min_radius + 1.0, containment_seal_pylon_spawn_radius_max)
+		var spawn_radius: float = randf_range(min_radius, max_radius)
+		pylon_node.global_position = player_node.global_position + Vector2.RIGHT.rotated(spawn_angle) * spawn_radius
+
+		var spawn_parent: Node = get_tree().current_scene
+		if spawn_parent == null:
+			spawn_parent = self
+		spawn_parent.add_child(pylon_node)
+		_active_containment_pylons.append(pylon_node)
+		_connect_enemy_death(pylon_node)
+
+		if pylon_node.has_signal("destroyed"):
+			var destroyed_callable := Callable(self, "_on_containment_pylon_destroyed").bind(pylon_node, crisis_id)
+			if not pylon_node.is_connected("destroyed", destroyed_callable):
+				pylon_node.connect("destroyed", destroyed_callable)
+
+func _on_containment_pylon_destroyed(
+	_world_position: Vector2,
+	_signal_pylon_node: Node,
+	pylon_node: Node2D,
+	crisis_id: String
+) -> void:
+	_containment_seal_destroyed_count += 1
+	if pylon_node != null:
+		_active_containment_pylons.erase(pylon_node)
+	_prune_containment_pylons()
+	_update_crisis_debug_banner()
+	if not _containment_seal_active:
+		return
+	if not _active_containment_pylons.is_empty():
+		return
+	if crisis_director == null:
+		return
+	if not crisis_director.has_method("complete_active_crisis_early"):
+		return
+	var completed: bool = bool(crisis_director.call("complete_active_crisis_early", crisis_id))
+	if completed and debug_log_crisis_timeline:
+		print("[GameManager] Containment Seal completed early by pylon destruction")
+
+func _handle_containment_seal_timeout() -> void:
+	if not _containment_seal_active:
+		return
+	_prune_containment_pylons()
+	if containment_seal_fail_if_objective_alive and not _active_containment_pylons.is_empty():
+		if debug_log_crisis_timeline:
+			print("[GameManager] Containment Seal failed (pylons still active at timeout)")
+		_fail_run_immediately("Containment seal objective failed")
+	_clear_containment_pylons()
+	_containment_seal_active = false
+
+func _clear_containment_pylons() -> void:
+	for pylon_node in _active_containment_pylons:
+		if pylon_node == null:
+			continue
+		if not is_instance_valid(pylon_node):
+			continue
+		pylon_node.queue_free()
+	_active_containment_pylons.clear()
+	_containment_seal_active = false
+	_containment_seal_destroyed_count = 0
+
+func _prune_containment_pylons() -> void:
+	for idx in range(_active_containment_pylons.size() - 1, -1, -1):
+		var pylon_node: Node2D = _active_containment_pylons[idx]
+		if pylon_node == null or not is_instance_valid(pylon_node):
+			_active_containment_pylons.remove_at(idx)
+
+func _get_active_containment_pylon_count() -> int:
+	_prune_containment_pylons()
+	return _active_containment_pylons.size()
+
+func _spawn_strain_bloom_elite(crisis_id: String = "hunter_deployment") -> void:
 	_clear_strain_bloom_state()
 
 	var player_node := player as Node2D
@@ -594,6 +845,7 @@ func _spawn_strain_bloom_elite() -> void:
 	_strain_bloom_active = true
 	_strain_bloom_elite_killed = false
 	_strain_bloom_elite_target = elite_node
+	_strain_bloom_crisis_id = crisis_id
 
 	if debug_log_crisis_timeline:
 		print("[GameManager] Strain Bloom elite spawned at ", elite_node.global_position)
@@ -622,9 +874,10 @@ func _complete_strain_bloom_early() -> void:
 		return
 	if not crisis_director.has_method("complete_active_crisis_early"):
 		return
-	var completed_early: bool = bool(crisis_director.call("complete_active_crisis_early", "strain_bloom"))
+	var expected_crisis_id: String = _strain_bloom_crisis_id
+	var completed_early: bool = bool(crisis_director.call("complete_active_crisis_early", expected_crisis_id))
 	if debug_log_crisis_timeline and completed_early:
-		print("[GameManager] Strain Bloom completed early by elite kill")
+		print("[GameManager] Elite objective completed early by elite kill (%s)" % expected_crisis_id)
 
 func _handle_strain_bloom_timeout() -> void:
 	if not _strain_bloom_active:
@@ -632,7 +885,7 @@ func _handle_strain_bloom_timeout() -> void:
 	if _is_strain_bloom_elite_alive():
 		if debug_log_crisis_timeline:
 			print("[GameManager] Strain Bloom failed (elite alive at timeout)")
-		_fail_run_immediately("Strain Bloom objective failed")
+		_fail_run_immediately("Containment hunter objective failed")
 		_clear_strain_bloom_state()
 		return
 	if debug_log_crisis_timeline:
@@ -646,6 +899,7 @@ func _clear_strain_bloom_state() -> void:
 	_strain_bloom_active = false
 	_strain_bloom_elite_killed = false
 	_strain_bloom_elite_target = null
+	_strain_bloom_crisis_id = ""
 
 func _configure_strain_bloom_elite(enemy_node: Node2D) -> void:
 	if enemy_node == null:
@@ -1057,7 +1311,7 @@ func _is_biohazard_leak_crisis_active() -> bool:
 		return false
 	var phase_name: String = String(crisis_director.call("get_phase"))
 	var crisis_id: String = String(crisis_director.call("get_active_crisis_id"))
-	return phase_name == "active" and crisis_id == "biohazard_leak"
+	return phase_name == "active" and (crisis_id == "decon_flood" or crisis_id == "protocol_omega_core")
 
 func _on_containment_sweep_player_contacted(_player_node: Node) -> void:
 	if run_ended:
@@ -1080,7 +1334,7 @@ func _fail_run_immediately(reason_text: String = "") -> void:
 	_pending_crisis_failure_audio = true
 	_last_run_end_reason = _resolve_failure_reason(reason_text)
 	if debug_log_crisis_timeline and not reason_text.is_empty():
-		print("[GameManager] Crisis failure: %s at %.1fs" % [reason_text, elapsed_seconds])
+		print("[GameManager] Event failure: %s at %.1fs" % [reason_text, elapsed_seconds])
 	if player == null:
 		return
 
@@ -1109,15 +1363,21 @@ func _update_crisis_debug_banner() -> void:
 
 	_apply_crisis_ui_accent(phase_name, crisis_id, phase_seconds_remaining)
 
+	var show_crisis_banner: bool = true
+	if crisis_debug_label == null:
+		show_crisis_banner = false
+	if not debug_show_crisis_banner:
+		show_crisis_banner = false
+	if crisis_director == null:
+		show_crisis_banner = false
+	elif not crisis_director.has_method("get_phase"):
+		show_crisis_banner = false
+
+	if crisis_backdrop != null:
+		crisis_backdrop.visible = show_crisis_banner
 	if crisis_debug_label == null:
 		return
-	if not debug_show_crisis_banner:
-		crisis_debug_label.visible = false
-		return
-	if crisis_director == null:
-		crisis_debug_label.visible = false
-		return
-	if not crisis_director.has_method("get_phase"):
+	if not show_crisis_banner:
 		crisis_debug_label.visible = false
 		return
 
@@ -1129,7 +1389,7 @@ func _update_crisis_debug_banner() -> void:
 
 	var objective_text: String = _get_crisis_objective_text(phase_name, crisis_id)
 	crisis_debug_label.visible = true
-	crisis_debug_label.text = "CRISIS: %s | %s\nObjective: %s" % [
+	crisis_debug_label.text = "EVENT: %s | %s\nObjective: %s" % [
 		phase_name.to_upper(),
 		timer_text,
 		objective_text
@@ -1141,22 +1401,33 @@ func _get_crisis_objective_text(phase_name: String, crisis_id: String) -> String
 			return "Prepare for incoming containment event"
 		"active":
 			match crisis_id:
-				"containment_sweep":
-					return "Evade containment sweep - %d damage on contact" % maxi(1, containment_sweep_contact_damage)
-				"strain_bloom":
+				"uv_sweep_grid":
+					return "Evade UV sweeps - %d damage on contact" % maxi(1, containment_sweep_contact_damage)
+				"hunter_deployment":
 					if _is_strain_bloom_elite_alive():
 						return "Kill elite before timer expires"
 					if _strain_bloom_elite_killed:
 						return "Elite down - hold until reward"
 					return "Locate and eliminate elite strain"
-				"biohazard_leak":
+				"decon_flood":
 					return "Avoid leak zones - heavy damage over time"
+				"quarantine_lattice":
+					return "Navigate lattice sweeps and keep moving"
+				"antiviral_drone_burst":
+					return "Eliminate hunters while dodging burst lanes"
+				"containment_seal":
+					var pylons_remaining: int = _get_active_containment_pylon_count()
+					var pylons_total: int = maxi(1, containment_seal_pylon_count)
+					var pylons_destroyed: int = maxi(0, pylons_total - pylons_remaining)
+					return "Destroy containment pylons (%d/%d)" % [pylons_destroyed, pylons_total]
+				"containment_warden":
+					return "Mid boss: eliminate the Warden"
 				_:
-					return "Survive active crisis"
+					return "Survive active event"
 		"reward":
-			return "Choose crisis reward"
+			return "Choose event reward"
 		"final":
-			return "Survive purge protocol: sweeps, leaks, elite hunters"
+			return "Final boss: survive OMEGA containment layers"
 		"victory":
 			return "Run clear - outbreak ascendant"
 		_:
@@ -1168,12 +1439,20 @@ func _get_crisis_accent_color(phase_name: String, crisis_id: String) -> Color:
 			return Color(0.63, 0.78, 0.87, 1.0)
 		"active":
 			match crisis_id:
-				"containment_sweep":
+				"uv_sweep_grid":
 					return Color(1.0, 0.58, 0.32, 1.0)
-				"strain_bloom":
+				"hunter_deployment":
 					return Color(0.60, 1.0, 0.36, 1.0)
-				"biohazard_leak":
+				"decon_flood":
 					return Color(0.48, 1.0, 0.52, 1.0)
+				"quarantine_lattice":
+					return Color(0.72, 0.85, 1.0, 1.0)
+				"antiviral_drone_burst":
+					return Color(1.0, 0.72, 0.38, 1.0)
+				"containment_seal":
+					return Color(1.0, 0.52, 0.45, 1.0)
+				"containment_warden":
+					return Color(1.0, 0.30, 0.30, 1.0)
 				_:
 					return Color(1.0, 0.78, 0.42, 1.0)
 		"reward":
@@ -1191,8 +1470,12 @@ func _apply_crisis_ui_accent(phase_name: String, crisis_id: String, phase_second
 			arena_tint_rect.color = _base_arena_tint_color
 		if timer_label != null:
 			timer_label.remove_theme_color_override("font_color")
+		if timer_backdrop != null:
+			timer_backdrop.self_modulate = Color(1, 1, 1, 1)
 		if crisis_debug_label != null:
 			crisis_debug_label.remove_theme_color_override("font_color")
+		if crisis_backdrop != null:
+			crisis_backdrop.self_modulate = Color(1, 1, 1, 1)
 		return
 
 	var accent_color: Color = _get_crisis_accent_color(phase_name, crisis_id)
@@ -1223,53 +1506,90 @@ func _apply_crisis_ui_accent(phase_name: String, crisis_id: String, phase_second
 	if timer_label != null:
 		var timer_mix: float = 0.0
 		if accent_strength > 0.001:
-			timer_mix = minf(0.75, accent_strength + 0.08)
+			timer_mix = minf(0.45, accent_strength + 0.05)
 		var timer_font_color: Color = Color(1.0, 1.0, 1.0, 1.0).lerp(accent_color, timer_mix)
 		timer_label.add_theme_color_override("font_color", timer_font_color)
+	if timer_backdrop != null:
+		var timer_panel_mix: float = minf(0.25, accent_strength + 0.03)
+		var timer_panel_modulate: Color = Color(1.0, 1.0, 1.0, 1.0).lerp(
+			Color(
+				lerpf(1.0, accent_color.r, 0.18),
+				lerpf(1.0, accent_color.g, 0.18),
+				lerpf(1.0, accent_color.b, 0.18),
+				1.0
+			),
+			timer_panel_mix
+		)
+		timer_backdrop.self_modulate = timer_panel_modulate
 
 	if crisis_debug_label != null:
-		var banner_font_color: Color = accent_color
-		banner_font_color.a = 0.95
+		var banner_font_color: Color = Color(0.95, 0.97, 1.0, 1.0).lerp(accent_color, 0.58)
+		banner_font_color.a = 0.98
 		crisis_debug_label.add_theme_color_override("font_color", banner_font_color)
+	if crisis_backdrop != null:
+		var crisis_panel_mix: float = minf(0.30, accent_strength + 0.05)
+		var crisis_panel_modulate: Color = Color(1.0, 1.0, 1.0, 1.0).lerp(
+			Color(
+				lerpf(1.0, accent_color.r, 0.22),
+				lerpf(1.0, accent_color.g, 0.22),
+				lerpf(1.0, accent_color.b, 0.22),
+				1.0
+			),
+			crisis_panel_mix
+		)
+		crisis_backdrop.self_modulate = crisis_panel_modulate
 
 func _on_crisis_started(crisis_id: String, is_final: bool, duration_seconds: float) -> void:
 	if is_final:
-		_play_sfx("final_crisis_start", -3.0, 0.82)
+		_play_sfx("sfx_boss_spawn", -3.0, 0.82)
 	else:
-		_play_sfx("crisis_start", -6.0, 0.9)
+		_play_sfx("sfx_event_start", -6.0, 0.9)
 
-	if is_final and crisis_id == "purge_protocol":
+	if is_final and crisis_id == "protocol_omega_core":
 		_start_final_crisis_composition(duration_seconds)
 		if final_crisis_intro_popup_enabled and not _final_crisis_intro_popup_shown:
 			_final_crisis_intro_popup_shown = true
 			_queue_runtime_popup(
-				"FINAL CRISIS STARTED",
-				"Purge protocol engaged. Survive sweeps, leaks, and elite hunters.",
+				"FINAL BOSS: OMEGA CORE",
+				"Containment core engaged. Survive layered sweeps, leaks, and elite hunters.",
 				true
 			)
-	if not is_final and crisis_id == "containment_sweep":
-		_spawn_containment_sweep(duration_seconds)
-	if not is_final and crisis_id == "biohazard_leak":
-		_spawn_biohazard_leaks(duration_seconds)
-	if not is_final and crisis_id == "strain_bloom":
-		_spawn_strain_bloom_elite()
+	if not is_final:
+		match crisis_id:
+			"uv_sweep_grid":
+				_spawn_containment_sweep(duration_seconds, 2, containment_sweep_spacing, 2)
+			"hunter_deployment":
+				_spawn_strain_bloom_elite(crisis_id)
+			"decon_flood":
+				_spawn_biohazard_leaks(duration_seconds)
+			"quarantine_lattice":
+				_spawn_containment_sweep(duration_seconds, 3, maxf(90.0, containment_sweep_spacing * 0.72), 2)
+			"antiviral_drone_burst":
+				_spawn_antiviral_drone_wave(maxi(2, antiviral_drone_wave_count))
+				_spawn_containment_sweep(duration_seconds, 1, containment_sweep_spacing, 1)
+			"containment_seal":
+				_spawn_containment_sweep(duration_seconds, 2, maxf(110.0, containment_sweep_spacing * 0.66), 2)
+				_start_containment_seal_objective(crisis_id)
+			"containment_warden":
+				_spawn_strain_bloom_elite(crisis_id)
+				_spawn_containment_sweep(duration_seconds, 2, containment_sweep_spacing, 2)
 
 	if not debug_log_crisis_timeline:
 		return
 	if is_final:
-		print("[GameManager] Final crisis started: %s (%.1fs)" % [crisis_id, duration_seconds])
+		print("[GameManager] Final event started: %s (%.1fs)" % [crisis_id, duration_seconds])
 	else:
-		print("[GameManager] Crisis started: %s (%.1fs)" % [crisis_id, duration_seconds])
+		print("[GameManager] Event started: %s (%.1fs)" % [crisis_id, duration_seconds])
 
 func _on_crisis_reward_started(crisis_id: String, duration_seconds: float) -> void:
-	if crisis_id == "biohazard_leak":
+	if crisis_id == "decon_flood":
 		_clear_biohazard_leaks()
 		call_deferred("_verify_biohazard_cleanup")
 	var reward_prompt_opened: bool = _open_crisis_reward_prompt(crisis_id)
-	_play_sfx("crisis_success", -4.5, 1.08)
+	_play_sfx("sfx_event_clear", -4.5, 1.08)
 	if not debug_log_crisis_timeline:
 		return
-	print("[GameManager] Crisis reward started: %s (%.1fs)" % [crisis_id, duration_seconds])
+	print("[GameManager] Event reward started: %s (%.1fs)" % [crisis_id, duration_seconds])
 	if reward_prompt_opened:
 		print("[GameManager] Reward prompt opened with %d options for %s" % [crisis_reward_options.size(), crisis_id])
 
@@ -1278,11 +1598,11 @@ func _on_final_crisis_completed() -> void:
 		return
 	_end_run_common()
 	_fade_out_music(1.1)
-	_play_sfx("victory", 1.5, 1.0)
+	_play_sfx("sfx_victory", 1.5, 1.0)
 	_show_victory()
 	if not debug_log_crisis_timeline:
 		return
-	print("[GameManager] Final crisis completed at %.1fs" % elapsed_seconds)
+	print("[GameManager] Final event completed at %.1fs" % elapsed_seconds)
 
 func _verify_biohazard_cleanup() -> void:
 	var leaks_left: int = 0
@@ -1397,7 +1717,7 @@ func _on_player_hp_changed(current_hp: int, max_hp: int) -> void:
 	if hp_label != null:
 		hp_label.text = "HP: %d/%d" % [current_hp, max_hp]
 	if _last_player_hp >= 0 and current_hp < _last_player_hp:
-		_play_sfx("player_hit")
+		_play_sfx("sfx_player_hit")
 	_last_player_hp = current_hp
 
 func _on_xp_changed(current_xp: int, xp_to_next_level: int) -> void:
@@ -1415,6 +1735,9 @@ func _on_level_changed(current_level: int) -> void:
 
 func _on_lineage_changed(_lineage_id: String, _lineage_name: String) -> void:
 	_refresh_lineage_labels()
+
+func _on_variant_changed(_variant_id: String, _variant_name: String) -> void:
+	_refresh_lineage_labels()
 	_refresh_metabolism_hud()
 
 func _on_mutation_applied(_mutation_id: String, _new_level: int) -> void:
@@ -1427,14 +1750,14 @@ func _refresh_lineage_labels() -> void:
 	var current_lineage_name: String = _get_current_lineage_name()
 
 	if lineage_label != null:
-		lineage_label.text = "Lineage: %s" % current_lineage_name
+		lineage_label.text = "Variant: %s" % current_lineage_name
 
 	_refresh_choice_panel_labels()
 
 func _refresh_choice_panel_labels() -> void:
 	if levelup_title_label != null:
 		if crisis_reward_selection_active:
-			levelup_title_label.text = "CRISIS REWARD"
+			levelup_title_label.text = "EVENT REWARD"
 		else:
 			levelup_title_label.text = "EVOLVE"
 
@@ -1442,59 +1765,147 @@ func _refresh_choice_panel_labels() -> void:
 		if crisis_reward_selection_active:
 			levelup_lineage_prompt_label.text = "Choose one adaptation"
 		elif lineage_selection_active:
-			levelup_lineage_prompt_label.text = "Choose your lineage"
+			levelup_lineage_prompt_label.text = "Choose your variant"
 		else:
-			levelup_lineage_prompt_label.text = "Choose your mutation"
+			levelup_lineage_prompt_label.text = "Choose your mutation or stat"
 
 	if levelup_help_label != null:
 		if crisis_reward_selection_active:
-			levelup_help_label.text = "Crisis bonus applies immediately for this run."
+			levelup_help_label.text = "Event bonus applies immediately for this run."
 		elif lineage_selection_active:
-			levelup_help_label.text = "Choose once. It grants a core mutation and biases future options."
+			levelup_help_label.text = "Choose once. It grants your starter spell and biases future options."
 		else:
-			levelup_help_label.text = "Tip: * marks options favored by your lineage."
+			levelup_help_label.text = "Gold titles indicate options aligned with your variant."
 
 func _refresh_metabolism_hud() -> void:
 	if metabolism_label == null:
 		return
-	var metabolism_level: int = 0
-	var metabolism_regen_per_second: float = 0.0
-	if mutation_system != null and mutation_system.has_method("get_mutation_level"):
-		metabolism_level = int(mutation_system.call("get_mutation_level", "metabolism"))
-	if mutation_system != null and mutation_system.has_method("get_metabolism_regen_per_second"):
-		metabolism_regen_per_second = float(mutation_system.call("get_metabolism_regen_per_second"))
-
-	var bonus_regen_per_second: float = _get_total_bonus_regen_per_second()
-	var total_regen_per_second: float = metabolism_regen_per_second + bonus_regen_per_second
-	if total_regen_per_second <= 0.0:
-		metabolism_label.visible = false
-		return
-
-	metabolism_label.visible = true
-	if bonus_regen_per_second > 0.0:
-		metabolism_label.text = "Regen: +%.1f/s (L%d + Bonus)" % [total_regen_per_second, metabolism_level]
-		return
-	metabolism_label.text = "Regen: +%.1f/s (L%d)" % [total_regen_per_second, metabolism_level]
+	metabolism_label.visible = false
 
 func _build_inventory_slot_stylebox(slot_style_kind: String) -> StyleBoxFlat:
 	var stylebox := StyleBoxFlat.new()
-	stylebox.bg_color = Color(0.050, 0.080, 0.112, 0.96)
-	stylebox.border_width_left = 1
-	stylebox.border_width_top = 1
-	stylebox.border_width_right = 1
-	stylebox.border_width_bottom = 1
+	stylebox.bg_color = Color(0.0, 0.0, 0.0, 0.0)
+	stylebox.border_width_left = 0
+	stylebox.border_width_top = 0
+	stylebox.border_width_right = 0
+	stylebox.border_width_bottom = 0
 	match slot_style_kind:
 		"reward":
-			stylebox.border_color = Color(0.86, 0.76, 0.42, 0.85)
+			stylebox.border_color = Color(0.86, 0.76, 0.42, 0.0)
 		"synergy":
-			stylebox.border_color = Color(0.56, 0.94, 0.76, 0.90)
+			stylebox.border_color = Color(0.56, 0.94, 0.76, 0.0)
 		_:
-			stylebox.border_color = Color(0.48, 0.80, 0.96, 0.85)
+			stylebox.border_color = Color(0.48, 0.80, 0.96, 0.0)
 	stylebox.corner_radius_top_left = 6
 	stylebox.corner_radius_top_right = 6
 	stylebox.corner_radius_bottom_right = 6
 	stylebox.corner_radius_bottom_left = 6
 	return stylebox
+
+func _get_icon_template_tint(template_kind: String) -> Color:
+	match template_kind:
+		"reward":
+			return Color(1.0, 1.0, 1.0, 0.95)
+		"synergy":
+			return Color(1.0, 1.0, 1.0, 0.95)
+		"lineage":
+			return Color(0.76, 0.90, 1.0, 0.95)
+		"favored":
+			return Color(1.0, 0.90, 0.56, 0.95)
+		_:
+			return Color(0.84, 0.94, 1.0, 0.95)
+
+func _ensure_icon_template_base(icon_rect: TextureRect) -> Dictionary:
+	if icon_rect == null:
+		return {}
+	if icon_rect.has_meta(ICON_TEMPLATE_BASE_META_KEY):
+		var existing_meta_variant: Variant = icon_rect.get_meta(ICON_TEMPLATE_BASE_META_KEY)
+		if existing_meta_variant is Dictionary:
+			return existing_meta_variant
+
+	var base_data: Dictionary = {
+		"anchor_left": icon_rect.anchor_left,
+		"anchor_top": icon_rect.anchor_top,
+		"anchor_right": icon_rect.anchor_right,
+		"anchor_bottom": icon_rect.anchor_bottom,
+		"offset_left": icon_rect.offset_left,
+		"offset_top": icon_rect.offset_top,
+		"offset_right": icon_rect.offset_right,
+		"offset_bottom": icon_rect.offset_bottom,
+		"grow_horizontal": icon_rect.grow_horizontal,
+		"grow_vertical": icon_rect.grow_vertical
+	}
+	icon_rect.set_meta(ICON_TEMPLATE_BASE_META_KEY, base_data)
+	return base_data
+
+func _apply_icon_template_rect_from_base(icon_rect: TextureRect, base_data: Dictionary, inset: float) -> void:
+	if icon_rect == null:
+		return
+	icon_rect.anchor_left = float(base_data.get("anchor_left", icon_rect.anchor_left))
+	icon_rect.anchor_top = float(base_data.get("anchor_top", icon_rect.anchor_top))
+	icon_rect.anchor_right = float(base_data.get("anchor_right", icon_rect.anchor_right))
+	icon_rect.anchor_bottom = float(base_data.get("anchor_bottom", icon_rect.anchor_bottom))
+	var grow_horizontal_value: int = int(base_data.get("grow_horizontal", int(icon_rect.grow_horizontal)))
+	var grow_vertical_value: int = int(base_data.get("grow_vertical", int(icon_rect.grow_vertical)))
+	icon_rect.grow_horizontal = grow_horizontal_value as Control.GrowDirection
+	icon_rect.grow_vertical = grow_vertical_value as Control.GrowDirection
+	icon_rect.offset_left = float(base_data.get("offset_left", icon_rect.offset_left)) + inset
+	icon_rect.offset_top = float(base_data.get("offset_top", icon_rect.offset_top)) + inset
+	icon_rect.offset_right = float(base_data.get("offset_right", icon_rect.offset_right)) - inset
+	icon_rect.offset_bottom = float(base_data.get("offset_bottom", icon_rect.offset_bottom)) - inset
+
+func _ensure_icon_background_for_rect(icon_rect: TextureRect) -> TextureRect:
+	if icon_rect == null:
+		return null
+	var parent_control := icon_rect.get_parent() as Control
+	if parent_control == null:
+		return null
+
+	var background_name: String = "%s%s" % [ICON_TEMPLATE_BG_NODE_PREFIX, icon_rect.name]
+	var background_rect: TextureRect = parent_control.get_node_or_null(NodePath(background_name)) as TextureRect
+	if background_rect == null:
+		background_rect = TextureRect.new()
+		background_rect.name = background_name
+		background_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		background_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		background_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		background_rect.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
+		parent_control.add_child(background_rect)
+
+	var icon_index: int = icon_rect.get_index()
+	var background_index: int = background_rect.get_index()
+	var target_index: int = icon_index
+	if background_index < icon_index:
+		target_index = maxi(0, icon_index - 1)
+	parent_control.move_child(background_rect, target_index)
+	return background_rect
+
+func _apply_icon_template(
+	icon_rect: TextureRect,
+	icon_texture: Texture2D,
+	template_kind: String,
+	icon_inset: float,
+	background_expand: float = ICON_TEMPLATE_BG_EXPAND
+) -> void:
+	if icon_rect == null:
+		return
+
+	var base_data: Dictionary = _ensure_icon_template_base(icon_rect)
+	var has_icon: bool = icon_texture != null
+	var background_rect: TextureRect = _ensure_icon_background_for_rect(icon_rect)
+	if background_rect != null:
+		_apply_icon_template_rect_from_base(background_rect, base_data, -background_expand)
+		background_rect.texture = ICON_BACKGROUND_TEXTURE
+		background_rect.modulate = _get_icon_template_tint(template_kind)
+		background_rect.visible = has_icon and ICON_BACKGROUND_TEXTURE != null
+
+	_apply_icon_template_rect_from_base(icon_rect, base_data, icon_inset)
+	icon_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	icon_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	icon_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	icon_rect.texture = icon_texture
+	icon_rect.modulate = Color(1.0, 1.0, 1.0, 0.98)
+	icon_rect.visible = has_icon
 
 func _sync_mutation_inventory_levels() -> void:
 	if mutation_system == null:
@@ -1604,7 +2015,7 @@ func _add_inventory_icon_slot(
 	entry_id: String
 ) -> void:
 	var slot := Panel.new()
-	slot.custom_minimum_size = Vector2(52.0, 52.0)
+	slot.custom_minimum_size = Vector2(RUN_INVENTORY_SLOT_SIZE, RUN_INVENTORY_SLOT_SIZE)
 	slot.mouse_filter = Control.MOUSE_FILTER_STOP
 	slot.add_theme_stylebox_override("panel", _build_inventory_slot_stylebox(slot_style_kind))
 	container.add_child(slot)
@@ -1612,15 +2023,12 @@ func _add_inventory_icon_slot(
 	var icon := TextureRect.new()
 	icon.anchor_right = 1.0
 	icon.anchor_bottom = 1.0
-	icon.offset_left = 4.0
-	icon.offset_top = 4.0
-	icon.offset_right = -4.0
-	icon.offset_bottom = -4.0
-	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	icon.texture = icon_texture
-	icon.modulate = Color(1.0, 1.0, 1.0, 0.95)
+	icon.offset_left = RUN_INVENTORY_ICON_PADDING
+	icon.offset_top = RUN_INVENTORY_ICON_PADDING
+	icon.offset_right = -RUN_INVENTORY_ICON_PADDING
+	icon.offset_bottom = -RUN_INVENTORY_ICON_PADDING
 	slot.add_child(icon)
+	_apply_icon_template(icon, icon_texture, slot_style_kind, ICON_TEMPLATE_INVENTORY_ICON_INSET)
 
 	if not value_text.strip_edges().is_empty():
 		var value_label := Label.new()
@@ -1629,10 +2037,10 @@ func _add_inventory_icon_slot(
 		value_label.anchor_top = 1.0
 		value_label.anchor_right = 1.0
 		value_label.anchor_bottom = 1.0
-		value_label.offset_left = -21.0
-		value_label.offset_top = -21.0
-		value_label.offset_right = -6.0
-		value_label.offset_bottom = -6.0
+		value_label.offset_left = -(RUN_INVENTORY_VALUE_INSET + RUN_INVENTORY_VALUE_BOX_SIZE)
+		value_label.offset_top = -(RUN_INVENTORY_VALUE_INSET + RUN_INVENTORY_VALUE_BOX_SIZE)
+		value_label.offset_right = -RUN_INVENTORY_VALUE_INSET
+		value_label.offset_bottom = -RUN_INVENTORY_VALUE_INSET
 		value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 		value_label.vertical_alignment = VERTICAL_ALIGNMENT_BOTTOM
 		value_label.add_theme_font_size_override("font_size", 16)
@@ -1803,7 +2211,7 @@ func _queue_run_intro_popup() -> void:
 		return
 
 	var popup_title: String = "OUTBREAK BRIEFING"
-	var popup_body: String = "Move with WASD.\nCollect biomass to level up.\nAt Level 2, choose your lineage (starter mutation).\nPick mutations to shape your build.\nSurvive crises and beat the final purge."
+	var popup_body: String = "Move with WASD.\nCollect biomass to level up.\nAt Level 2, choose your variant starter spell.\nPick mutations and stats to shape your build.\nSurvive containment events and defeat the final OMEGA boss."
 	_queue_runtime_popup(
 		popup_title,
 		popup_body,
@@ -1934,12 +2342,78 @@ func _build_synergy_popup_body_text(rule: Dictionary) -> String:
 	for effect_line in _build_synergy_effect_lines(rule):
 		effects.append(String(effect_line).replace("Effect: ", ""))
 	var effect_summary: String = " | ".join(effects)
+	var trigger_sources: Array[String] = _get_synergy_trigger_source_names(rule)
+	if trigger_sources.is_empty():
+		return effect_summary
+	var trigger_text: String = " + ".join(trigger_sources)
+	if effect_summary.is_empty():
+		return "Triggered by %s" % trigger_text
+	return "%s\nTriggered by %s" % [effect_summary, trigger_text]
+
+func _get_synergy_trigger_source_names(rule: Dictionary) -> Array[String]:
+	var trigger_names: Array[String] = []
 	var required_tags: Array[String] = _get_synergy_required_tag_ids(rule)
 	if required_tags.is_empty():
-		return effect_summary
-	if effect_summary.is_empty():
-		return "Triggered by %s" % " + ".join(required_tags)
-	return "%s\nTriggered by %s" % [effect_summary, " + ".join(required_tags)]
+		return trigger_names
+
+	var active_sources: Dictionary = _build_active_tag_sources()
+	for tag_id in required_tags:
+		var source_names: Array[String] = []
+		if active_sources.has(tag_id):
+			var source_variants: Array = active_sources.get(tag_id, [])
+			for source_value in source_variants:
+				var source_name_with_level: String = String(source_value).strip_edges()
+				if source_name_with_level.is_empty():
+					continue
+				var clean_source_name: String = _strip_level_suffix(source_name_with_level)
+				if source_names.has(clean_source_name):
+					continue
+				source_names.append(clean_source_name)
+
+		if source_names.is_empty():
+			trigger_names.append(_format_synergy_tag_display_name(tag_id))
+			continue
+
+		if source_names.size() == 1:
+			trigger_names.append(source_names[0])
+			continue
+
+		trigger_names.append("/".join(source_names))
+
+	return trigger_names
+
+func _strip_level_suffix(source_name_with_level: String) -> String:
+	var text_value: String = source_name_with_level.strip_edges()
+	var level_separator_index: int = text_value.rfind(" L")
+	if level_separator_index < 0:
+		return text_value
+	var suffix_text: String = text_value.substr(level_separator_index + 2).strip_edges()
+	if not suffix_text.is_valid_int():
+		return text_value
+	return text_value.substr(0, level_separator_index).strip_edges()
+
+func _format_synergy_tag_display_name(tag_id: String) -> String:
+	match tag_id:
+		"lytic_starter":
+			return "Lytic starter"
+		"lytic_core":
+			return "Lytic core"
+		"lytic_capstone":
+			return "Lytic capstone"
+		"pandemic_starter":
+			return "Pandemic starter"
+		"pandemic_core":
+			return "Pandemic core"
+		"pandemic_capstone":
+			return "Pandemic capstone"
+		"parasitic_starter":
+			return "Parasitic starter"
+		"parasitic_core":
+			return "Parasitic core"
+		"parasitic_capstone":
+			return "Parasitic capstone"
+		_:
+			return tag_id.replace("_", " ").capitalize()
 
 func _on_inventory_slot_mouse_entered(slot: Control, entry_kind: String, entry_id: String) -> void:
 	if slot == null or not is_instance_valid(slot):
@@ -2029,20 +2503,22 @@ func _get_mutation_max_level(mutation_id: String) -> int:
 func _get_mutation_module_instance(mutation_id: String) -> Node:
 	if mutation_system == null:
 		return null
+	if mutation_system.has_method("get_module_instance"):
+		return mutation_system.call("get_module_instance", mutation_id) as Node
 
 	var property_name: String = ""
 	match mutation_id:
-		"spikes":
+		"spikes", "razor_halo":
 			property_name = "spike_ring_instance"
-		"orbiters":
+		"orbiters", "virion_orbit":
 			property_name = "orbiter_instance"
-		"membrane":
+		"membrane", "protein_shell":
 			property_name = "membrane_instance"
-		"pulse_nova":
+		"pulse_nova", "lytic_burst":
 			property_name = "pulse_nova_instance"
-		"acid_trail":
+		"acid_trail", "infective_secretion":
 			property_name = "acid_trail_instance"
-		"metabolism":
+		"metabolism", "leech_tendril":
 			property_name = "metabolism_instance"
 		_:
 			return null
@@ -2085,113 +2561,37 @@ func _build_mutation_tooltip_text(mutation_id: String) -> String:
 	if level_value <= 0:
 		return "Not acquired in this run."
 
-	match mutation_id:
-		"spikes":
-			var spike_module: Node = _get_mutation_module_instance("spikes")
-			var spike_damage: int = _get_node_int_value(spike_module, "spike_damage", 8)
-			var spike_tick_seconds: float = _get_node_float_value(spike_module, "damage_interval_seconds", 0.2)
-			var spike_distance: float = _get_node_float_value(spike_module, "spike_distance", 36.0)
-			var spike_hit_radius: float = _get_node_float_value(spike_module, "spike_collision_radius", 8.0)
-			var spike_count: int = 4
-			match level_value:
-				2:
-					spike_count = 6
-				3:
-					spike_count = 8
-			return "Level: %d/%d\nDamage: %d every %.2fs\nSpike count: %d\nReach distance: %.0f\nHit radius: %.1f" % [
-				level_value,
-				_get_mutation_max_level("spikes"),
-				spike_damage,
-				spike_tick_seconds,
-				spike_count,
-				spike_distance,
-				spike_hit_radius
-			]
-		"orbiters":
-			var orbiter_module: Node = _get_mutation_module_instance("orbiters")
-			var orbiter_damage: int = _get_node_int_value(orbiter_module, "orbiter_damage", 6)
-			var orbiter_tick_seconds: float = _get_node_float_value(orbiter_module, "damage_interval_seconds", 0.2)
-			var orbiter_radius: float = _get_node_float_value(orbiter_module, "_current_orbit_radius", 30.0)
-			var orbiter_speed: float = _get_node_float_value(orbiter_module, "_current_orbit_speed_rps", 2.5)
-			var orbiter_count: int = 1 if level_value == 1 else 2
-			return "Level: %d/%d\nDamage: %d every %.2fs\nOrbiter count: %d\nOrbit radius: %.0f\nOrbit speed: %.2f rot/s" % [
-				level_value,
-				_get_mutation_max_level("orbiters"),
-				orbiter_damage,
-				orbiter_tick_seconds,
-				orbiter_count,
-				orbiter_radius,
-				orbiter_speed
-			]
-		"membrane":
-			var module_damage_multiplier: float = 1.0
-			var total_damage_multiplier: float = 1.0
-			if player != null:
-				module_damage_multiplier = clampf(float(player.get("_module_incoming_damage_multiplier")), 0.05, 1.0)
-				total_damage_multiplier = clampf(float(player.get("incoming_damage_multiplier")), 0.05, 1.0)
-			var membrane_reduction_pct: float = (1.0 - module_damage_multiplier) * 100.0
-			var total_reduction_pct: float = (1.0 - total_damage_multiplier) * 100.0
-			if absf(total_reduction_pct - membrane_reduction_pct) > 0.05:
-				return "Level: %d/%d\nMembrane reduction: %.1f%%\nTotal incoming reduction: %.1f%%" % [
-					level_value,
-					_get_mutation_max_level("membrane"),
-					membrane_reduction_pct,
-					total_reduction_pct
-				]
-			return "Level: %d/%d\nIncoming damage reduction: %.1f%%" % [
-				level_value,
-				_get_mutation_max_level("membrane"),
-				membrane_reduction_pct
-			]
-		"pulse_nova":
-			var pulse_module: Node = _get_mutation_module_instance("pulse_nova")
-			var pulse_damage: int = _get_node_int_value(pulse_module, "_pulse_damage", 8)
-			var pulse_radius: float = _get_node_float_value(pulse_module, "_pulse_radius", 80.0)
-			var pulse_interval: float = _get_node_float_value(pulse_module, "_pulse_interval_seconds", 1.85)
-			return "Level: %d/%d\nPulse damage: %d\nPulse radius: %.0f\nPulse interval: %.2fs" % [
-				level_value,
-				_get_mutation_max_level("pulse_nova"),
-				pulse_damage,
-				pulse_radius,
-				pulse_interval
-			]
-		"acid_trail":
-			var acid_module: Node = _get_mutation_module_instance("acid_trail")
-			var acid_damage: int = _get_node_int_value(acid_module, "_damage_per_tick", 3)
-			var acid_radius: float = _get_node_float_value(acid_module, "_trail_radius", 17.0)
-			var acid_tick_seconds: float = _get_node_float_value(acid_module, "_damage_tick_interval_seconds", 0.45)
-			var acid_spawn_interval: float = _get_node_float_value(acid_module, "_spawn_interval_seconds", 0.30)
-			var acid_lifetime: float = _get_node_float_value(acid_module, "_trail_lifetime_seconds", 2.1)
-			return "Level: %d/%d\nDOT: %d every %.2fs\nZone radius: %.1f\nSpawn interval: %.2fs\nZone lifetime: %.2fs" % [
-				level_value,
-				_get_mutation_max_level("acid_trail"),
-				acid_damage,
-				acid_tick_seconds,
-				acid_radius,
-				acid_spawn_interval,
-				acid_lifetime
-			]
-		"metabolism":
-			var module_regen: float = 0.0
-			if mutation_system != null and mutation_system.has_method("get_metabolism_regen_per_second"):
-				module_regen = maxf(0.0, float(mutation_system.call("get_metabolism_regen_per_second")))
-			var bonus_regen: float = maxf(0.0, _get_total_bonus_regen_per_second())
-			var total_regen: float = module_regen + bonus_regen
-			if bonus_regen > 0.0:
-				return "Level: %d/%d\nMutation regen: +%.1f HP/s\nBonus regen: +%.1f HP/s\nTotal regen: +%.1f HP/s" % [
-					level_value,
-					_get_mutation_max_level("metabolism"),
-					module_regen,
-					bonus_regen,
-					total_regen
-				]
-			return "Level: %d/%d\nPassive regen: +%.1f HP/s" % [
-				level_value,
-				_get_mutation_max_level("metabolism"),
-				module_regen
-			]
-		_:
-			return "Level: %d/%d" % [level_value, _get_mutation_max_level(mutation_id)]
+	var mutation_defs: Dictionary = MUTATIONS_DATA.get_all()
+	var mutation_def: Dictionary = mutation_defs.get(mutation_id, {})
+	var max_level_value: int = _get_mutation_max_level(mutation_id)
+	var lines: Array[String] = []
+	lines.append("Level: %d/%d" % [level_value, max_level_value])
+
+	var description_text: String = String(mutation_def.get("description", "")).strip_edges()
+	if not description_text.is_empty():
+		lines.append(description_text)
+
+	var gain_summary: String = _build_mutation_gain_summary_for_level(mutation_id, level_value)
+	if not gain_summary.is_empty():
+		lines.append(gain_summary)
+
+	if mutation_id == "leech_tendril" and mutation_system != null and mutation_system.has_method("get_metabolism_regen_per_second"):
+		lines.append("Current drain regen: +%.1f HP/s" % float(mutation_system.call("get_metabolism_regen_per_second")))
+	if mutation_id == "protein_shell" and player != null:
+		var incoming_multiplier: float = clampf(float(player.get("incoming_damage_multiplier")), 0.05, 1.0)
+		lines.append("Current total reduction: %.1f%%" % ((1.0 - incoming_multiplier) * 100.0))
+	if mutation_id == "host_override":
+		var host_count: int = 0
+		for host_variant in get_tree().get_nodes_in_group("allied_hosts"):
+			var host_node := host_variant as Node
+			if host_node == null:
+				continue
+			if not is_instance_valid(host_node):
+				continue
+			host_count += 1
+		lines.append("Active converted hosts: %d" % host_count)
+
+	return "\n".join(lines)
 
 func _get_reward_display_name(reward_id: String) -> String:
 	var entry: Dictionary = _run_reward_inventory.get(reward_id, {})
@@ -2216,59 +2616,20 @@ func _build_reward_tooltip_text(reward_id: String) -> String:
 		lines.append(description)
 
 	match reward_id:
-		"sweep_breach_lenses":
-			var this_reward_bonus_pct: float = (pow(1.15, float(count_value)) - 1.0) * 100.0
-			lines.append("This reward total: +%.1f%% module damage" % this_reward_bonus_pct)
+		"focused_instability", "lance_overclock", "containment_breach", "epidemic_catalyst", "viral_density":
 			lines.append("Run total module damage: +%.1f%%" % ((_reward_module_damage_multiplier - 1.0) * 100.0))
-		"sweep_phase_ducts":
-			var this_move_bonus_pct: float = (pow(1.12, float(count_value)) - 1.0) * 100.0
-			lines.append("This reward total: +%.1f%% movement speed" % this_move_bonus_pct)
+		"kinetic_reframing", "adaptive_shelling":
 			lines.append("Run total movement speed: +%.1f%%" % ((_reward_move_speed_multiplier - 1.0) * 100.0))
 			if player != null:
 				lines.append("Current move speed: %.1f" % float(player.get("move_speed")))
-		"sweep_reactive_shell":
-			var this_reduction_pct: float = (1.0 - pow(0.88, float(count_value))) * 100.0
-			lines.append("This reward total: %.1f%% less incoming dmg" % this_reduction_pct)
-			lines.append("Run external reduction: %.1f%%" % ((1.0 - _reward_external_damage_multiplier) * 100.0))
-			if player != null:
-				lines.append("Current total reduction: %.1f%%" % ((1.0 - float(player.get("incoming_damage_multiplier"))) * 100.0))
-		"bloom_overclock_core":
-			var overclock_bonus_pct: float = (pow(1.20, float(count_value)) - 1.0) * 100.0
-			lines.append("This reward total: +%.1f%% module damage" % overclock_bonus_pct)
-			lines.append("Run total module damage: +%.1f%%" % ((_reward_module_damage_multiplier - 1.0) * 100.0))
-		"bloom_hunters_gyro":
-			var gyro_bonus_pct: float = (pow(1.25, float(count_value)) - 1.0) * 100.0
-			lines.append("This reward total: +%.1f%% orbiter speed" % gyro_bonus_pct)
-			lines.append("Run total orbiter speed: +%.1f%%" % ((_reward_orbiter_speed_multiplier - 1.0) * 100.0))
-		"bloom_adaptive_skin":
-			lines.append("This reward total: +%d max HP" % (count_value * 15))
-			lines.append("Run bonus max HP: +%d" % _reward_bonus_max_hp_flat)
-			if player != null:
-				lines.append("Current max HP: %d" % int(player.get("max_hp")))
-		"leak_detox_glands":
-			lines.append("This reward total: +%.1f HP/s regen" % (2.0 * float(count_value)))
+		"metabolic_surge":
+			lines.append("Run orbiter speed bonus: +%.1f%%" % ((_reward_orbiter_speed_multiplier - 1.0) * 100.0))
+			lines.append("Run secretion lifetime bonus: +%.1f%%" % ((_reward_acid_lifetime_multiplier - 1.0) * 100.0))
+		"hemotrophic_loop":
 			lines.append("Run bonus regen: +%.1f HP/s" % _get_total_bonus_regen_per_second())
-		"leak_acid_recycler":
-			var recycler_bonus_pct: float = (pow(1.30, float(count_value)) - 1.0) * 100.0
-			lines.append("This reward total: +%.1f%% acid lifetime" % recycler_bonus_pct)
-			lines.append("Run acid lifetime bonus: +%.1f%%" % ((_reward_acid_lifetime_multiplier - 1.0) * 100.0))
-		"leak_nova_condenser":
-			var condenser_bonus_pct: float = (pow(1.20, float(count_value)) - 1.0) * 100.0
-			lines.append("This reward total: +%.1f%% pulse radius" % condenser_bonus_pct)
-			lines.append("Run pulse radius bonus: +%.1f%%" % ((_reward_pulse_radius_multiplier - 1.0) * 100.0))
-		"fallback_hardened_membrane":
-			lines.append("This reward total: +%d max HP" % (count_value * 10))
 			lines.append("Run bonus max HP: +%d" % _reward_bonus_max_hp_flat)
-		"fallback_spike_density":
-			var density_bonus_pct: float = (pow(1.10, float(count_value)) - 1.0) * 100.0
-			lines.append("This reward total: +%.1f%% module damage" % density_bonus_pct)
-			lines.append("Run total module damage: +%.1f%%" % ((_reward_module_damage_multiplier - 1.0) * 100.0))
-		"fallback_metabolic_burst":
-			var burst_bonus_pct: float = (pow(1.08, float(count_value)) - 1.0) * 100.0
-			lines.append("This reward total: +%.1f%% movement speed" % burst_bonus_pct)
-			lines.append("Run total movement speed: +%.1f%%" % ((_reward_move_speed_multiplier - 1.0) * 100.0))
 		_:
-			lines.append("Applies a run-wide crisis modifier.")
+			lines.append("Applies a run-wide event modifier.")
 
 	return "\n".join(lines)
 
@@ -2283,20 +2644,31 @@ func _build_synergy_tooltip_text(synergy_id: String) -> String:
 		lines.append(effect_line)
 
 	var required_tags: Array[String] = _get_synergy_required_tag_ids(rule)
+	var trigger_names: Array[String] = _get_synergy_trigger_source_names(rule)
 	if not required_tags.is_empty():
-		lines.append("Activation: %s" % " + ".join(required_tags))
+		if trigger_names.is_empty():
+			lines.append("Activation: %s" % " + ".join(required_tags))
+		else:
+			lines.append("Activation: %s" % " + ".join(trigger_names))
 		lines.append("Activated this run by:")
 		var current_sources: Dictionary = _build_active_tag_sources()
 		for tag_id in required_tags:
+			var tag_display_name: String = _format_synergy_tag_display_name(tag_id)
 			var source_names: Array[String] = []
 			if current_sources.has(tag_id):
 				var tag_source_values: Array = current_sources.get(tag_id, [])
 				for source_value in tag_source_values:
-					source_names.append(String(source_value))
+					var source_name_with_level: String = String(source_value).strip_edges()
+					if source_name_with_level.is_empty():
+						continue
+					var clean_source_name: String = _strip_level_suffix(source_name_with_level)
+					if source_names.has(clean_source_name):
+						continue
+					source_names.append(clean_source_name)
 			if source_names.is_empty():
-				lines.append("%s from: (missing)" % tag_id)
+				lines.append("%s from: (missing)" % tag_display_name)
 			else:
-				lines.append("%s from: %s" % [tag_id, ", ".join(source_names)])
+				lines.append("%s from: %s" % [tag_display_name, ", ".join(source_names)])
 
 	return "\n".join(lines)
 
@@ -2389,10 +2761,16 @@ func _connect_enemy_death(node: Node) -> void:
 	if not node.has_method("take_damage"):
 		return
 
-	var death_callable := Callable(self, "_on_enemy_died")
-	if node.is_connected("died", death_callable):
+	if node.has_signal("died_detailed"):
+		var detailed_callable := Callable(self, "_on_enemy_died_detailed")
+		if node.is_connected("died_detailed", detailed_callable):
+			return
+		node.connect("died_detailed", detailed_callable)
 		return
-	node.connect("died", death_callable)
+
+	var death_callable := Callable(self, "_on_enemy_died")
+	if not node.is_connected("died", death_callable):
+		node.connect("died", death_callable)
 
 func _connect_biomass_pickup(node: Node) -> void:
 	if node == null:
@@ -2411,23 +2789,42 @@ func _on_biomass_collected(amount: int) -> void:
 	if not xp_system.has_method("add_xp"):
 		return
 	xp_system.call("add_xp", amount)
-	_play_sfx("pickup")
+	_play_sfx("sfx_pickup_biomass")
 
 func _on_enemy_died(world_position: Vector2) -> void:
+	_handle_enemy_death(world_position, null)
+
+func _on_enemy_died_detailed(world_position: Vector2, enemy_node: Node) -> void:
+	_handle_enemy_death(world_position, enemy_node)
+
+func _handle_enemy_death(world_position: Vector2, enemy_node: Node) -> void:
 	if debug_log_drops:
 		print("Enemy died at ", world_position, " -> spawning biomass")
-	_play_sfx("enemy_death")
-	call_deferred("_spawn_biomass_pickup", world_position)
+	var is_elite_enemy: bool = false
+	if enemy_node != null and enemy_node.is_in_group("elite_enemies"):
+		is_elite_enemy = true
+	if is_elite_enemy:
+		_play_sfx("sfx_enemy_elite_death")
+	else:
+		_play_sfx("sfx_enemy_death")
+	call_deferred("_spawn_biomass_pickup", world_position, is_elite_enemy)
 
-func _spawn_biomass_pickup(world_position: Vector2) -> void:
+func _spawn_biomass_pickup(world_position: Vector2, is_elite_enemy: bool = false) -> void:
 	var pickup := BIOMASS_PICKUP_SCENE.instantiate() as Node2D
 	if pickup == null:
 		return
+
+	var base_xp_value: int = int(pickup.get("xp_value"))
+	var scaled_xp_value: int = maxi(1, int(round(float(base_xp_value) * maxf(0.1, biomass_xp_multiplier))))
+	if is_elite_enemy:
+		scaled_xp_value += maxi(0, elite_biomass_xp_bonus)
+	pickup.set("xp_value", scaled_xp_value)
+
 	add_child(pickup)
 	var offset := Vector2(randf_range(-10.0, 10.0), randf_range(-10.0, 10.0))
 	pickup.global_position = world_position + offset
 	if debug_log_drops:
-		print("Biomass spawned at ", pickup.global_position)
+		print("Biomass spawned at ", pickup.global_position, " (xp=", scaled_xp_value, ", elite=", is_elite_enemy, ")")
 
 func _on_player_died() -> void:
 	if run_ended:
@@ -2437,10 +2834,10 @@ func _on_player_died() -> void:
 	if _last_run_end_reason.is_empty():
 		_last_run_end_reason = _resolve_default_death_reason()
 	if _pending_crisis_failure_audio:
-		_play_sfx("crisis_fail", -2.0, 0.95)
+		_play_sfx("sfx_defeat", -2.0, 0.95)
 		_pending_crisis_failure_audio = false
 	else:
-		_play_sfx("player_death")
+		_play_sfx("sfx_defeat")
 	_stop_music()
 	_show_game_over()
 
@@ -2458,6 +2855,8 @@ func _end_run_common() -> void:
 		pause_menu_ui.visible = false
 	if crisis_debug_label != null:
 		crisis_debug_label.visible = false
+	if crisis_backdrop != null:
+		crisis_backdrop.visible = false
 	if game_over_ui != null:
 		game_over_ui.visible = false
 	if victory_ui != null:
@@ -2466,7 +2865,10 @@ func _end_run_common() -> void:
 	_stop_final_crisis_composition()
 	_clear_containment_sweep()
 	_clear_biohazard_leaks()
+	_clear_antiviral_drones()
+	_clear_containment_pylons()
 	_clear_strain_bloom_state()
+	_containment_seal_active = false
 	run_ended = true
 	_set_gameplay_active(false)
 
@@ -2503,7 +2905,7 @@ func _set_gameplay_active(active: bool) -> void:
 
 func _show_game_over() -> void:
 	if game_over_stats_label != null:
-		game_over_stats_label.text = "Time: %ds | Level: %d | Lineage: %s" % [
+		game_over_stats_label.text = "Time: %ds | Level: %d | Variant: %s" % [
 			int(elapsed_seconds),
 			level_reached,
 			_get_current_lineage_name()
@@ -2517,8 +2919,10 @@ func _show_game_over() -> void:
 func _resolve_failure_reason(reason_text: String) -> String:
 	var normalized_reason: String = reason_text.strip_edges().to_lower()
 	match normalized_reason:
-		"strain bloom objective failed":
-			return "Elite survived the Strain Bloom timer."
+		"containment hunter objective failed":
+			return "Containment hunter objective failed."
+		"containment seal objective failed":
+			return "Containment seal objective failed."
 		_:
 			if reason_text.strip_edges().is_empty():
 				return _resolve_default_death_reason()
@@ -2534,20 +2938,26 @@ func _resolve_default_death_reason() -> String:
 
 	if phase_name == "active":
 		match crisis_id:
-			"containment_sweep":
-				return "Caught by containment sweep."
-			"strain_bloom":
-				return "Overwhelmed during Strain Bloom."
-			"biohazard_leak":
+			"uv_sweep_grid":
+				return "Caught by UV sweep."
+			"hunter_deployment", "containment_warden":
+				return "Eliminated during hunter deployment."
+			"decon_flood":
 				return "Severe contamination exposure."
+			"quarantine_lattice":
+				return "Trapped in quarantine lattice."
+			"antiviral_drone_burst":
+				return "Hit by antiviral burst."
+			"containment_seal":
+				return "Sealed by containment protocol."
 	if phase_name == "final":
-		return "Contained during Purge Protocol."
+		return "Contained by Protocol OMEGA."
 	return "Overwhelmed by hostile strains."
 
 func _show_victory() -> void:
-	_apply_crisis_ui_accent("victory", "purge_protocol", 0.0)
+	_apply_crisis_ui_accent("victory", "protocol_omega_core", 0.0)
 	if victory_stats_label != null:
-		victory_stats_label.text = "Time: %ds | Level: %d | Lineage: %s" % [
+		victory_stats_label.text = "Time: %ds | Level: %d | Variant: %s" % [
 			int(elapsed_seconds),
 			level_reached,
 			_get_current_lineage_name()
@@ -2612,7 +3022,10 @@ func _queue_pending_levelup(reason: String = "") -> void:
 func _on_levelup_choice_pressed(choice_index: int) -> void:
 	if run_ended:
 		return
-	_play_sfx("ui_click")
+	if lineage_selection_active:
+		_play_sfx("sfx_variant_pick")
+	else:
+		_play_sfx("sfx_ui_click")
 
 	if crisis_reward_selection_active:
 		var reward_applied: bool = _apply_crisis_reward_choice(choice_index)
@@ -2647,7 +3060,7 @@ func _on_game_over_main_menu_pressed() -> void:
 		game_over_main_menu_button.disabled = true
 	if victory_main_menu_button != null:
 		victory_main_menu_button.disabled = true
-	_play_sfx("ui_click")
+	_play_sfx("sfx_ui_click")
 	call_deferred("_go_to_main_menu_deferred")
 
 func _on_pause_resume_pressed() -> void:
@@ -2659,10 +3072,10 @@ func _on_pause_options_pressed() -> void:
 		pause_options_panel.visible = should_show_options
 		if should_show_options:
 			_refresh_audio_controls_from_manager()
-	_play_sfx("ui_click")
+	_play_sfx("sfx_ui_click")
 
 func _on_pause_main_menu_pressed() -> void:
-	_play_sfx("ui_click")
+	_play_sfx("sfx_ui_click")
 	run_paused_for_menu = false
 	if pause_menu_ui != null:
 		pause_menu_ui.visible = false
@@ -2675,9 +3088,10 @@ func _open_pause_menu() -> void:
 	_set_gameplay_active(false)
 	if pause_options_panel != null:
 		pause_options_panel.visible = false
+	_refresh_pause_stats_panel()
 	if pause_menu_ui != null:
 		pause_menu_ui.visible = true
-	_play_sfx("ui_click")
+	_play_sfx("sfx_ui_click")
 
 func _close_pause_menu(play_click_sound: bool = true) -> void:
 	if not run_paused_for_menu:
@@ -2689,7 +3103,7 @@ func _close_pause_menu(play_click_sound: bool = true) -> void:
 	if pause_options_panel != null:
 		pause_options_panel.visible = false
 	if play_click_sound:
-		_play_sfx("ui_click")
+		_play_sfx("sfx_ui_click")
 
 	var opened_levelup_prompt: bool = false
 	if pending_levelup_count > 0 and not run_ended:
@@ -2700,6 +3114,187 @@ func _close_pause_menu(play_click_sound: bool = true) -> void:
 
 	if not opened_levelup_prompt:
 		_set_gameplay_active(true)
+
+func _refresh_pause_stats_panel() -> void:
+	if pause_stats_text == null:
+		return
+
+	var hp_current: int = 0
+	var hp_max: int = 0
+	var move_speed_value: float = 0.0
+	var incoming_damage_multiplier_value: float = 1.0
+	var pickup_radius_multiplier_value: float = 1.0
+	if player != null:
+		hp_current = int(player.get("current_hp"))
+		hp_max = maxi(1, int(player.get("max_hp")))
+		move_speed_value = float(player.get("move_speed"))
+		incoming_damage_multiplier_value = clampf(float(player.get("incoming_damage_multiplier")), 0.05, 1.0)
+		if player.has_method("get_pickup_radius_multiplier"):
+			pickup_radius_multiplier_value = maxf(0.1, float(player.call("get_pickup_radius_multiplier")))
+
+	var xp_current: int = 0
+	var xp_to_next: int = 1
+	if xp_system != null:
+		xp_current = int(xp_system.get("current_xp"))
+		xp_to_next = maxi(1, int(xp_system.get("xp_to_next_level")))
+
+	var event_snapshot: Dictionary = _get_pause_event_snapshot()
+	var phase_name: String = String(event_snapshot.get("phase_name", "idle"))
+	var phase_time_remaining: float = maxf(0.0, float(event_snapshot.get("phase_time_remaining", 0.0)))
+	var next_event_seconds: float = maxf(0.0, float(event_snapshot.get("next_event_seconds", 0.0)))
+	var objective_text: String = String(event_snapshot.get("objective", "--"))
+
+	var damage_reduction_percent: float = maxf(0.0, (1.0 - incoming_damage_multiplier_value) * 100.0)
+	var rewards_collected_count: int = _get_pause_total_reward_stack_count()
+	var active_synergy_count: int = _active_tag_synergy_ids.size()
+	var build_count: int = _get_pause_total_build_count()
+
+	var lines: Array[String] = []
+	lines.append("[table=2]")
+	_append_pause_stats_heading(lines, "RUN OVERVIEW")
+	_append_pause_stats_row(lines, "Time", "%ds" % int(elapsed_seconds))
+	_append_pause_stats_row(lines, "Variant", _get_current_lineage_name())
+	_append_pause_stats_row(lines, "Level", str(level_reached))
+	_append_pause_stats_row(lines, "XP", "%d / %d" % [xp_current, xp_to_next])
+	_append_pause_stats_row(lines, "Build Entries", str(build_count))
+	_append_pause_stats_row(lines, "Reward Stacks", str(rewards_collected_count))
+	_append_pause_stats_row(lines, "Active Synergies", str(active_synergy_count))
+	_append_pause_stats_spacer(lines)
+
+	_append_pause_stats_heading(lines, "SURVIVAL")
+	_append_pause_stats_row(lines, "HP", "%d / %d" % [hp_current, hp_max])
+	_append_pause_stats_row(lines, "Move Speed", "%.1f" % move_speed_value)
+	_append_pause_stats_row(lines, "Incoming Damage", "x%.2f (%.1f%% reduced)" % [incoming_damage_multiplier_value, damage_reduction_percent])
+	_append_pause_stats_row(lines, "Pickup Radius", "x%.2f" % pickup_radius_multiplier_value)
+	_append_pause_stats_row(lines, "Bonus Regen", "+%.1f HP/s" % _get_total_bonus_regen_per_second())
+	_append_pause_stats_spacer(lines)
+
+	_append_pause_stats_heading(lines, "MULTIPLIERS")
+	_append_pause_stats_row(lines, "Module Damage", "x%.2f" % _get_preview_module_damage_multiplier())
+	_append_pause_stats_row(lines, "Orbiter Speed", "x%.2f" % _get_preview_orbiter_speed_multiplier())
+	_append_pause_stats_row(lines, "Pulse Radius", "x%.2f" % _get_preview_pulse_radius_multiplier())
+	_append_pause_stats_row(lines, "Trail Lifetime", "x%.2f" % _get_preview_acid_lifetime_multiplier())
+	_append_pause_stats_spacer(lines)
+
+	_append_pause_stats_heading(lines, "STAT LEVELS")
+	_append_pause_stats_row(lines, "Cytotoxicity", "L%d" % _get_pause_stat_level("offense_boost"))
+	_append_pause_stats_row(lines, "Reinforced Envelope", "L%d" % _get_pause_stat_level("defense_boost"))
+	_append_pause_stats_row(lines, "Collector Tendrils", "L%d" % _get_pause_stat_level("pickup_radius_boost"))
+	_append_pause_stats_row(lines, "Motility Shift", "L%d" % _get_pause_stat_level("move_speed_boost"))
+	_append_pause_stats_row(lines, "Replication Tempo", "L%d" % _get_pause_stat_level("cooldown_boost"))
+	_append_pause_stats_row(lines, "Viral Mass", "L%d" % _get_pause_stat_level("vitality_boost"))
+	_append_pause_stats_spacer(lines)
+
+	_append_pause_stats_heading(lines, "MODULE LEVELS")
+	var has_any_module: bool = false
+	for mutation_id in INVENTORY_MUTATION_IDS:
+		var module_level: int = _get_pause_mutation_level(mutation_id)
+		if module_level <= 0:
+			continue
+		has_any_module = true
+		_append_pause_stats_row(lines, _get_mutation_display_name(mutation_id), "L%d" % module_level)
+	if not has_any_module:
+		_append_pause_stats_row(lines, "Modules", "None")
+	_append_pause_stats_spacer(lines)
+
+	_append_pause_stats_heading(lines, "EVENT STATUS")
+	_append_pause_stats_row(lines, "Phase", _format_pause_phase_name(phase_name))
+	if phase_name == "idle":
+		_append_pause_stats_row(lines, "Next Event", "in %.1fs" % next_event_seconds)
+	else:
+		_append_pause_stats_row(lines, "Time Remaining", "%.1fs" % phase_time_remaining)
+	_append_pause_stats_row(lines, "Objective", objective_text)
+	lines.append("[/table]")
+
+	pause_stats_text.text = "\n".join(lines)
+
+func _append_pause_stats_row(lines: Array[String], stat_label: String, stat_value: String) -> void:
+	var safe_label: String = _sanitize_pause_stats_text(stat_label)
+	var safe_value: String = _sanitize_pause_stats_text(stat_value)
+	lines.append(
+		"[cell][color=#7fa6bc]%s[/color][/cell][cell][right][color=#eaf5ff][b]%s[/b][/color][/right][/cell]" % [
+			safe_label,
+			safe_value
+		]
+	)
+
+func _append_pause_stats_heading(lines: Array[String], heading_text: String) -> void:
+	var safe_heading: String = _sanitize_pause_stats_text(heading_text)
+	lines.append("[cell][color=#a6d7f0][b]%s[/b][/color][/cell][cell][/cell]" % safe_heading)
+
+func _append_pause_stats_spacer(lines: Array[String]) -> void:
+	lines.append("[cell] [/cell][cell] [/cell]")
+
+func _sanitize_pause_stats_text(source_text: String) -> String:
+	return source_text.replace("[", "(").replace("]", ")")
+
+func _get_pause_stat_level(stat_id: String) -> int:
+	if mutation_system == null:
+		return 0
+	if not mutation_system.has_method("get_stat_level"):
+		return 0
+	return maxi(0, int(mutation_system.call("get_stat_level", stat_id)))
+
+func _get_pause_mutation_level(mutation_id: String) -> int:
+	if mutation_system == null:
+		return 0
+	if not mutation_system.has_method("get_mutation_level"):
+		return 0
+	return maxi(0, int(mutation_system.call("get_mutation_level", mutation_id)))
+
+func _get_pause_total_build_count() -> int:
+	var count_value: int = 0
+	for mutation_id in INVENTORY_MUTATION_IDS:
+		if _get_pause_mutation_level(mutation_id) > 0:
+			count_value += 1
+	return count_value
+
+func _get_pause_total_reward_stack_count() -> int:
+	var total_stacks: int = 0
+	for reward_id in _run_reward_inventory_order:
+		if not _run_reward_inventory.has(reward_id):
+			continue
+		var reward_entry: Dictionary = _run_reward_inventory.get(reward_id, {})
+		total_stacks += maxi(0, int(reward_entry.get("count", 0)))
+	return total_stacks
+
+func _get_pause_event_snapshot() -> Dictionary:
+	var phase_name: String = "idle"
+	var crisis_id: String = ""
+	var phase_time_remaining: float = 0.0
+	var next_event_seconds: float = 0.0
+	if crisis_director != null:
+		if crisis_director.has_method("get_phase"):
+			phase_name = String(crisis_director.call("get_phase"))
+		if crisis_director.has_method("get_active_crisis_id"):
+			crisis_id = String(crisis_director.call("get_active_crisis_id"))
+		if crisis_director.has_method("get_phase_time_remaining"):
+			phase_time_remaining = float(crisis_director.call("get_phase_time_remaining"))
+		if crisis_director.has_method("get_time_until_next_crisis"):
+			next_event_seconds = float(crisis_director.call("get_time_until_next_crisis", elapsed_seconds))
+	return {
+		"phase_name": phase_name,
+		"phase_time_remaining": phase_time_remaining,
+		"next_event_seconds": next_event_seconds,
+		"objective": _get_crisis_objective_text(phase_name, crisis_id)
+	}
+
+func _format_pause_phase_name(phase_name: String) -> String:
+	var trimmed_phase_name: String = phase_name.strip_edges()
+	if trimmed_phase_name.is_empty():
+		return "Idle"
+	var phase_words: PackedStringArray = trimmed_phase_name.replace("_", " ").split(" ", false)
+	if phase_words.is_empty():
+		return trimmed_phase_name.capitalize()
+	var titled_words: Array[String] = []
+	for raw_word in phase_words:
+		var word_text: String = String(raw_word)
+		if word_text.is_empty():
+			continue
+		titled_words.append(word_text.capitalize())
+	if titled_words.is_empty():
+		return trimmed_phase_name.capitalize()
+	return " ".join(titled_words)
 
 func _go_to_main_menu_deferred() -> void:
 	var main_menu_scene_path: String = "res://scenes/main_menu.tscn"
@@ -2729,7 +3324,7 @@ func _set_choice_button_text(button: Button, icon: TextureRect, rich_text: RichT
 	if index >= options.size():
 		button.text = "No Mutation"
 		if icon != null:
-			icon.visible = false
+			_apply_icon_template(icon, null, "choice", ICON_TEMPLATE_CHOICE_ICON_INSET)
 		if rich_text != null:
 			rich_text.text = "[center]No Mutation[/center]"
 		return
@@ -2737,7 +3332,7 @@ func _set_choice_button_text(button: Button, icon: TextureRect, rich_text: RichT
 	if not (options[index] is Dictionary):
 		button.text = "No Mutation"
 		if icon != null:
-			icon.visible = false
+			_apply_icon_template(icon, null, "choice", ICON_TEMPLATE_CHOICE_ICON_INSET)
 		if rich_text != null:
 			rich_text.text = "[center]No Mutation[/center]"
 		return
@@ -2756,15 +3351,16 @@ func _set_choice_icon(icon: TextureRect, option: Dictionary) -> void:
 
 	var mutation_id: String = String(option.get("id", ""))
 	var icon_id: String = String(option.get("icon_id", mutation_id))
+	var template_kind: String = "mutation"
+	if _is_crisis_reward_option(option):
+		template_kind = "reward"
 	if icon_id.is_empty() or not MUTATION_ICON_BY_ID.has(icon_id):
-		icon.texture = null
-		icon.visible = false
+		_apply_icon_template(icon, null, template_kind, ICON_TEMPLATE_CHOICE_ICON_INSET)
 		return
 
 	var icon_texture_variant: Variant = MUTATION_ICON_BY_ID.get(icon_id, null)
 	var icon_texture: Texture2D = icon_texture_variant as Texture2D
-	icon.texture = icon_texture
-	icon.visible = icon_texture != null
+	_apply_icon_template(icon, icon_texture, template_kind, ICON_TEMPLATE_CHOICE_ICON_INSET)
 
 func _get_spike_count_for_level(level_value: int) -> int:
 	match level_value:
@@ -2901,35 +3497,75 @@ func _build_mutation_gain_summary_for_level(mutation_id: String, level_value: in
 	var clamped_level: int = clampi(level_value, 1, 3)
 	var module_damage_multiplier: float = _get_preview_module_damage_multiplier()
 	match mutation_id:
-		"spikes":
-			var spike_count: int = _get_spike_count_for_level(clamped_level)
-			var spike_damage: int = maxi(1, int(round(8.0 * module_damage_multiplier)))
-			return "Gain: %d spikes | %d dmg every 0.20s" % [spike_count, spike_damage]
-		"orbiters":
-			var orbiter_count: int = _get_orbiter_count_for_level(clamped_level)
-			var orbiter_damage: int = maxi(1, int(round(6.0 * module_damage_multiplier)))
-			var orbiter_speed: float = 2.5
-			if clamped_level >= 3:
-				orbiter_speed *= 1.5
-			orbiter_speed *= _get_preview_orbiter_speed_multiplier()
-			return "Gain: %d cells | %d dmg every 0.20s | %.2f rot/s" % [orbiter_count, orbiter_damage, orbiter_speed]
-		"membrane":
-			var membrane_reduction: float = _get_membrane_reduction_for_level(clamped_level)
-			return "Gain: %.0f%% less incoming damage" % membrane_reduction
-		"pulse_nova":
-			var pulse_damage: int = maxi(1, int(round(float(_get_pulse_damage_for_level(clamped_level)) * module_damage_multiplier)))
-			var pulse_radius: float = _get_pulse_radius_for_level(clamped_level) * _get_preview_pulse_radius_multiplier()
-			var pulse_interval: float = _get_pulse_interval_for_level(clamped_level)
-			return "Gain: %d pulse dmg | %.0f range | every %.2fs" % [pulse_damage, pulse_radius, pulse_interval]
-		"acid_trail":
-			var acid_damage: int = maxi(1, int(round(float(_get_acid_damage_for_level(clamped_level)) * module_damage_multiplier)))
-			var acid_tick_interval: float = _get_acid_tick_interval_for_level(clamped_level)
-			var acid_radius: float = _get_acid_radius_for_level(clamped_level)
-			var acid_lifetime: float = _get_acid_lifetime_for_level(clamped_level) * _get_preview_acid_lifetime_multiplier()
-			return "Gain: %d DOT every %.2fs | %.1f radius | %.2fs duration" % [acid_damage, acid_tick_interval, acid_radius, acid_lifetime]
-		"metabolism":
-			var regen_per_second: float = _get_metabolism_regen_for_level(clamped_level)
-			return "Gain: +%.1f HP/s passive regen" % regen_per_second
+		"proto_pulse":
+			var proto_damage: int = maxi(1, int(round((6.0 + float(clamped_level - 1) * 1.5) * module_damage_multiplier)))
+			var proto_radius: float = (72.0 + float(clamped_level - 1) * 12.0) * _get_preview_pulse_radius_multiplier()
+			return "Gain: %d pulse dmg | %.0f range" % [proto_damage, proto_radius]
+		"razor_halo":
+			var blade_count: int = _get_spike_count_for_level(clamped_level)
+			var blade_damage: int = maxi(1, int(round(8.0 * module_damage_multiplier)))
+			return "Gain: %d blades | %d contact dmg every 0.20s" % [blade_count, blade_damage]
+		"puncture_lance":
+			var lance_hits: int = clampi(clamped_level, 1, 3)
+			var lance_damage: int = maxi(1, int(round((12.0 + float(clamped_level - 1) * 3.0) * module_damage_multiplier)))
+			return "Gain: %d lances/volley | %d pierce dmg" % [lance_hits, lance_damage]
+		"lytic_burst":
+			var burst_damage: int = maxi(1, int(round(float(_get_pulse_damage_for_level(clamped_level)) * 1.25 * module_damage_multiplier)))
+			var burst_radius: float = (_get_pulse_radius_for_level(clamped_level) + 20.0) * _get_preview_pulse_radius_multiplier()
+			return "Gain: burst %d dmg | %.0f radius" % [burst_damage, burst_radius]
+		"infective_secretion":
+			var secretion_damage: int = maxi(1, int(round(float(_get_acid_damage_for_level(clamped_level)) * module_damage_multiplier)))
+			var secretion_lifetime: float = _get_acid_lifetime_for_level(clamped_level) * _get_preview_acid_lifetime_multiplier()
+			return "Gain: infection %d DOT | %.2fs trail uptime" % [secretion_damage, secretion_lifetime]
+		"virion_orbit":
+			var virion_count: int = _get_orbiter_count_for_level(clamped_level)
+			var virion_damage: int = maxi(1, int(round(6.0 * module_damage_multiplier)))
+			return "Gain: %d virions | %d contact dmg + infection" % [virion_count, virion_damage]
+		"chain_bloom":
+			var bloom_damage: int = maxi(1, int(round((9.0 + float(clamped_level - 1) * 3.0) * module_damage_multiplier)))
+			var bloom_radius: float = 90.0 + float(clamped_level - 1) * 26.0
+			return "Gain: infected deaths bloom | %d dmg in %.0f radius" % [bloom_damage, bloom_radius]
+		"leech_tendril":
+			var leech_damage: int = maxi(1, int(round((4.0 + float(clamped_level - 1) * 1.5) * module_damage_multiplier)))
+			var leech_heal: int = 2 + maxi(0, clamped_level - 1)
+			return "Gain: drain %d dmg tick | heal %d per tether tick" % [leech_damage, leech_heal]
+		"protein_shell":
+			var shell_reduction: float = _get_membrane_reduction_for_level(clamped_level) - 3.0
+			return "Gain: %.0f%% less incoming damage" % maxf(8.0, shell_reduction)
+		"host_override":
+			var threshold_pct: int = 25 + ((clamped_level - 1) * 15)
+			var hosts_cap: int = 1 + maxi(0, clamped_level - 1)
+			return "Gain: convert enemies under %d%% HP | up to %d hosts" % [threshold_pct, hosts_cap]
+		"offense_boost":
+			return "Gain: +%d%% module/spell damage" % (clamped_level * 8)
+		"defense_boost":
+			match clamped_level:
+				1:
+					return "Gain: 8% less incoming damage"
+				2:
+					return "Gain: 15% less incoming damage"
+				_:
+					return "Gain: 22% less incoming damage"
+		"pickup_radius_boost":
+			match clamped_level:
+				1:
+					return "Gain: +35% pickup radius"
+				2:
+					return "Gain: +70% pickup radius"
+				_:
+					return "Gain: +110% pickup radius"
+		"move_speed_boost":
+			return "Gain: +%d%% movement speed" % (clamped_level * 6)
+		"cooldown_boost":
+			return "Gain: -%d%% global cooldowns" % (clamped_level * 6)
+		"vitality_boost":
+			match clamped_level:
+				1:
+					return "Gain: +15 max HP and instant heal"
+				2:
+					return "Gain: +30 max HP and instant heal"
+				_:
+					return "Gain: +50 max HP and instant heal"
 		_:
 			return ""
 
@@ -2954,9 +3590,6 @@ func _format_mutation_option_text(option: Dictionary) -> String:
 	var mutation_id: String = String(option.get("id", "")).strip_edges().to_lower()
 	var summary_text: String = _build_mutation_option_description_text(option)
 	var gain_text: String = _build_mutation_gain_summary_for_level(mutation_id, next_level)
-	var favored: bool = bool(option.get("is_favored", false))
-	if favored:
-		mutation_name = "* " + mutation_name
 	if summary_text.is_empty() and gain_text.is_empty():
 		return "%s L%d" % [mutation_name, next_level]
 	if gain_text.is_empty():
@@ -2982,8 +3615,6 @@ func _format_mutation_option_bbcode(option: Dictionary) -> String:
 	var gain_text: String = _build_mutation_gain_summary_for_level(mutation_id, next_level)
 	var favored: bool = bool(option.get("is_favored", false))
 	var title_text: String = "%s L%d" % [mutation_name, next_level]
-	if favored:
-		title_text = "* " + title_text
 	if summary_text.is_empty() and gain_text.is_empty():
 		if favored:
 			return "[center][b][color=#ffd966]%s[/color][/b][/center]" % [title_text]
@@ -3008,49 +3639,57 @@ func _should_prompt_lineage_now() -> bool:
 		return false
 	if mutation_system == null:
 		return false
-	if not mutation_system.has_method("get_current_lineage_id"):
+	var getter_name: String = ""
+	if mutation_system.has_method("get_current_variant_id"):
+		getter_name = "get_current_variant_id"
+	elif mutation_system.has_method("get_current_lineage_id"):
+		getter_name = "get_current_lineage_id"
+	if getter_name.is_empty():
 		return false
 
-	var lineage_id_variant: Variant = mutation_system.call("get_current_lineage_id")
+	var lineage_id_variant: Variant = mutation_system.call(getter_name)
 	var current_lineage_id: String = String(lineage_id_variant)
 	return current_lineage_id.is_empty()
 
 func _set_lineage_choice_button_texts() -> void:
 	_set_levelup_mode(true)
 	_refresh_choice_panel_labels()
+	_set_lineage_choice_icon(lineage_choice_1_icon, VARIANT_ICON_LYTIC)
+	_set_lineage_choice_icon(lineage_choice_2_icon, VARIANT_ICON_PANDEMIC)
+	_set_lineage_choice_icon(lineage_choice_3_icon, VARIANT_ICON_PARASITIC)
 	_set_lineage_choice_text(
 		lineage_choice_1,
 		lineage_choice_1_text,
-		"Predator",
-		"Aggressive close-range pressure",
-		_build_lineage_starter_text("predator"),
-		"Favored rolls: Spikes, Pulse Nova, Acid Trail"
+		"Lytic Strain",
+		"Burst hunter: close-range pressure and target deletion",
+		_build_lineage_starter_text("lytic"),
+		"Favored rolls: Razor Halo, Puncture Lance, Lytic Burst"
 	)
 	_set_lineage_choice_text(
 		lineage_choice_2,
 		lineage_choice_2_text,
-		"Swarm",
-		"Orbit and area control growth",
-		_build_lineage_starter_text("swarm"),
-		"Favored rolls: Orbiters, Pulse Nova, Metabolism"
+		"Pandemic Strain",
+		"Contagion spread: infect, propagate, collapse packs",
+		_build_lineage_starter_text("pandemic"),
+		"Favored rolls: Infective Secretion, Virion Orbit, Chain Bloom"
 	)
 	_set_lineage_choice_text(
 		lineage_choice_3,
 		lineage_choice_3_text,
-		"Bulwark",
-		"Defensive sustain and spacing",
-		_build_lineage_starter_text("bulwark"),
-		"Favored rolls: Membrane, Spikes, Metabolism"
+		"Parasitic Strain",
+		"Drain/control: out-sustain and convert weakened hosts",
+		_build_lineage_starter_text("parasitic"),
+		"Favored rolls: Leech Tendril, Protein Shell, Host Override"
 	)
 
 func _build_lineage_starter_text(lineage_id: String) -> String:
 	match lineage_id:
-		"predator":
-			return "Starter: Pulse Nova L1 - %s" % _build_mutation_gain_summary_for_level("pulse_nova", 1)
-		"swarm":
-			return "Starter: Orbiters L1 - %s" % _build_mutation_gain_summary_for_level("orbiters", 1)
-		"bulwark":
-			return "Starter: Membrane L1 - %s" % _build_mutation_gain_summary_for_level("membrane", 1)
+		"lytic":
+			return "Starter: Razor Halo L1 - %s" % _build_mutation_gain_summary_for_level("razor_halo", 1)
+		"pandemic":
+			return "Starter: Infective Secretion L1 - %s" % _build_mutation_gain_summary_for_level("infective_secretion", 1)
+		"parasitic":
+			return "Starter: Leech Tendril L1 - %s" % _build_mutation_gain_summary_for_level("leech_tendril", 1)
 		_:
 			return "Starter: None"
 
@@ -3070,6 +3709,11 @@ func _set_lineage_choice_text(
 	button.text = ""
 	rich_text.text = _format_lineage_choice_bbcode(title_text, description_text, starter_text, favored_text)
 
+func _set_lineage_choice_icon(icon_rect: TextureRect, icon_texture: Texture2D) -> void:
+	if icon_rect == null:
+		return
+	_apply_icon_template(icon_rect, icon_texture, "lineage", ICON_TEMPLATE_LINEAGE_ICON_INSET)
+
 func _format_lineage_choice_bbcode(title_text: String, description_text: String, starter_text: String, favored_text: String) -> String:
 	return "[center][b]%s[/b]\n%s\n[color=#9ec4d6]%s[/color]\n[color=#7fa4b6]%s[/color][/center]" % [
 		title_text,
@@ -3081,13 +3725,18 @@ func _format_lineage_choice_bbcode(title_text: String, description_text: String,
 func _apply_lineage_choice(choice_index: int) -> bool:
 	if mutation_system == null:
 		return false
-	if not mutation_system.has_method("choose_lineage"):
+	var chooser_name: String = ""
+	if mutation_system.has_method("choose_variant"):
+		chooser_name = "choose_variant"
+	elif mutation_system.has_method("choose_lineage"):
+		chooser_name = "choose_lineage"
+	if chooser_name.is_empty():
 		return false
 	if choice_index < 0 or choice_index >= LINEAGE_CHOICES.size():
 		return false
 
 	var lineage_id: String = LINEAGE_CHOICES[choice_index]
-	var applied: bool = bool(mutation_system.call("choose_lineage", lineage_id))
+	var applied: bool = bool(mutation_system.call(chooser_name, lineage_id))
 	if not applied:
 		return false
 	lineage_selection_active = false
@@ -3102,9 +3751,13 @@ func _set_levelup_mode(lineage_mode: bool) -> void:
 		lineage_bottom_padding.visible = lineage_mode
 
 func _get_current_lineage_name() -> String:
-	if mutation_system != null and mutation_system.has_method("get_current_lineage_name"):
-		var lineage_name_variant: Variant = mutation_system.call("get_current_lineage_name")
-		return String(lineage_name_variant)
+	if mutation_system != null:
+		if mutation_system.has_method("get_current_variant_name"):
+			var variant_name_variant: Variant = mutation_system.call("get_current_variant_name")
+			return String(variant_name_variant)
+		if mutation_system.has_method("get_current_lineage_name"):
+			var lineage_name_variant: Variant = mutation_system.call("get_current_lineage_name")
+			return String(lineage_name_variant)
 	return "None"
 
 func _debug_grant_xp() -> void:
@@ -3115,8 +3768,17 @@ func _debug_grant_xp() -> void:
 	if not xp_system.has_method("add_xp"):
 		return
 
-	xp_system.call("add_xp", debug_grant_xp_amount)
-	print("Debug XP granted: +", debug_grant_xp_amount)
+	var granted_xp: int = debug_grant_xp_amount
+	var current_xp_variant: Variant = xp_system.get("current_xp")
+	var xp_to_next_variant: Variant = xp_system.get("xp_to_next_level")
+	if current_xp_variant != null and xp_to_next_variant != null:
+		var current_xp_value: int = int(current_xp_variant)
+		var xp_to_next_value: int = int(xp_to_next_variant)
+		if xp_to_next_value > 0:
+			granted_xp = maxi(1, xp_to_next_value - current_xp_value)
+
+	xp_system.call("add_xp", granted_xp)
+	print("Debug XP granted: +", granted_xp)
 
 func _debug_fast_forward_time() -> void:
 	if not _can_use_debug_xp_cheat():
@@ -3160,7 +3822,7 @@ func _debug_force_next_crisis() -> void:
 	var jumped: bool = bool(crisis_director.call("debug_force_next_active_crisis", elapsed_seconds))
 	if jumped:
 		_update_crisis_debug_banner()
-		print("Debug crisis jump: moved to next active crisis")
+		print("Debug event jump: moved to next active event")
 
 func _debug_jump_to_final_crisis_threshold() -> void:
 	if not _can_use_debug_xp_cheat():
@@ -3186,7 +3848,7 @@ func _debug_jump_to_final_crisis_threshold() -> void:
 	_tick_crisis_director(0.1)
 	_tick_biohazard_leak_spawner(0.1)
 	_update_crisis_debug_banner()
-	print("Debug jump: moved to final crisis threshold at %.1fs" % elapsed_seconds)
+	print("Debug jump: moved to final event threshold at %.1fs" % elapsed_seconds)
 
 func _can_use_debug_xp_cheat() -> bool:
 	if not debug_allow_grant_xp:
@@ -3196,11 +3858,17 @@ func _can_use_debug_xp_cheat() -> bool:
 	return OS.has_feature("dev_cheats")
 
 func _play_sfx(event_id: String, volume_db_offset: float = 0.0, pitch_scale: float = 1.0) -> void:
+	if _sfx_reentry_guard:
+		return
 	if audio_manager == null:
+		return
+	if audio_manager == self:
 		return
 	if not audio_manager.has_method("play_sfx"):
 		return
+	_sfx_reentry_guard = true
 	audio_manager.call("play_sfx", event_id, volume_db_offset, pitch_scale)
+	_sfx_reentry_guard = false
 
 func _setup_audio_controls() -> void:
 	if pause_options_panel != null:
@@ -3360,72 +4028,72 @@ func _open_crisis_reward_prompt(crisis_id: String) -> bool:
 	_set_gameplay_active(false)
 	if levelup_ui != null:
 		levelup_ui.visible = true
-	_play_sfx("levelup")
+	_play_sfx("sfx_levelup")
 	return true
 
 func _build_crisis_reward_options(crisis_id: String) -> Array:
 	match crisis_id:
-		"containment_sweep":
+		"uv_sweep_grid", "quarantine_lattice":
 			return [
 				_build_crisis_reward_option(
-					"sweep_breach_lenses",
-					"Breach Lenses",
-					"+15% module damage for this run.",
-					"spikes"
+					"focused_instability",
+					"Focused Instability",
+					"+15% module damage, but take 8% more incoming damage.",
+					"offense_boost"
 				),
 				_build_crisis_reward_option(
-					"sweep_phase_ducts",
-					"Phase Ducts",
-					"+12% movement speed for this run.",
-					"metabolism"
+					"kinetic_reframing",
+					"Kinetic Reframing",
+					"+12% movement speed and +20% pickup radius.",
+					"move_speed_boost"
 				),
 				_build_crisis_reward_option(
-					"sweep_reactive_shell",
-					"Reactive Shell",
-					"-12% incoming damage for this run.",
-					"membrane"
+					"adaptive_shelling",
+					"Adaptive Shelling",
+					"-12% incoming damage, -4% movement speed.",
+					"defense_boost"
 				)
 			]
-		"strain_bloom":
+		"hunter_deployment", "containment_warden":
 			return [
 				_build_crisis_reward_option(
-					"bloom_overclock_core",
-					"Overclock Core",
-					"+20% contact damage for this run.",
-					"pulse_nova"
+					"lance_overclock",
+					"Lance Overclock",
+					"+18% Puncture Lance cadence and +10% module damage.",
+					"puncture_lance"
 				),
 				_build_crisis_reward_option(
-					"bloom_hunters_gyro",
-					"Hunter's Gyro",
-					"+25% orbiter speed for this run.",
-					"orbiters"
+					"metabolic_surge",
+					"Metabolic Surge",
+					"-12% global cooldowns for modules.",
+					"cooldown_boost"
 				),
 				_build_crisis_reward_option(
-					"bloom_adaptive_skin",
-					"Adaptive Skin",
-					"+15 max HP for this run.",
-					"membrane"
+					"containment_breach",
+					"Containment Breach",
+					"+10% favored-roll weight and +8% module damage.",
+					"proto_pulse"
 				)
 			]
-		"biohazard_leak":
+		"decon_flood", "antiviral_drone_burst", "containment_seal":
 			return [
 				_build_crisis_reward_option(
-					"leak_detox_glands",
-					"Detox Glands",
-					"+2.0 HP regen per second for this run.",
-					"metabolism"
+					"epidemic_catalyst",
+					"Epidemic Catalyst",
+					"+25% infection spread radius and +10% module damage.",
+					"chain_bloom"
 				),
 				_build_crisis_reward_option(
-					"leak_acid_recycler",
-					"Acid Recycler",
-					"+30% acid trail uptime for this run.",
-					"acid_trail"
+					"viral_density",
+					"Viral Density",
+					"Infected targets take extra damage and trails last longer.",
+					"infective_secretion"
 				),
 				_build_crisis_reward_option(
-					"leak_nova_condenser",
-					"Nova Condenser",
-					"+20% pulse nova radius for this run.",
-					"pulse_nova"
+					"hemotrophic_loop",
+					"Hemotrophic Loop",
+					"+1.8 HP regen/s and +15 max HP.",
+					"leech_tendril"
 				)
 			]
 		_:
@@ -3434,19 +4102,19 @@ func _build_crisis_reward_options(crisis_id: String) -> Array:
 					"fallback_hardened_membrane",
 					"Hardened Membrane",
 					"+10 max HP for this run.",
-					"membrane"
+					"protein_shell"
 				),
 				_build_crisis_reward_option(
 					"fallback_spike_density",
 					"Spike Density",
 					"+10% module damage for this run.",
-					"spikes"
+					"razor_halo"
 				),
 				_build_crisis_reward_option(
 					"fallback_metabolic_burst",
 					"Metabolic Burst",
 					"+8% movement speed for this run.",
-					"metabolism"
+					"leech_tendril"
 				)
 			]
 
@@ -3468,7 +4136,7 @@ func _apply_crisis_reward_choice(choice_index: int) -> bool:
 
 	var reward_option: Dictionary = crisis_reward_options[choice_index]
 	var reward_id: String = String(reward_option.get("id", ""))
-	var reward_name: String = String(reward_option.get("name", "Crisis Reward"))
+	var reward_name: String = String(reward_option.get("name", "Event Reward"))
 	var reward_icon_id: String = String(reward_option.get("icon_id", ""))
 	var reward_description: String = String(reward_option.get("description", ""))
 	var reward_applied: bool = _apply_crisis_reward_effect(reward_id)
@@ -3479,29 +4147,37 @@ func _apply_crisis_reward_choice(choice_index: int) -> bool:
 	_apply_runtime_reward_effects()
 	_refresh_metabolism_hud()
 	if debug_log_crisis_timeline:
-		print("[GameManager] Crisis reward selected: %s (%s)" % [reward_name, reward_id])
+		print("[GameManager] Event reward selected: %s (%s)" % [reward_name, reward_id])
 	return true
 
 func _apply_crisis_reward_effect(reward_id: String) -> bool:
 	match reward_id:
-		"sweep_breach_lenses":
+		"focused_instability":
 			_reward_module_damage_multiplier *= 1.15
-		"sweep_phase_ducts":
+			_reward_external_damage_multiplier *= 1.08
+		"kinetic_reframing":
 			_reward_move_speed_multiplier *= 1.12
-		"sweep_reactive_shell":
+		"adaptive_shelling":
 			_reward_external_damage_multiplier *= 0.88
-		"bloom_overclock_core":
-			_reward_module_damage_multiplier *= 1.20
-		"bloom_hunters_gyro":
-			_reward_orbiter_speed_multiplier *= 1.25
-		"bloom_adaptive_skin":
+			_reward_move_speed_multiplier *= 0.96
+		"lance_overclock":
+			_reward_module_damage_multiplier *= 1.10
+			_reward_pulse_radius_multiplier *= 1.05
+		"metabolic_surge":
+			_reward_orbiter_speed_multiplier *= 1.12
+			_reward_acid_lifetime_multiplier *= 1.08
+		"containment_breach":
+			_reward_module_damage_multiplier *= 1.08
+			_reward_move_speed_multiplier *= 1.04
+		"epidemic_catalyst":
+			_reward_acid_lifetime_multiplier *= 1.20
+			_reward_module_damage_multiplier *= 1.10
+		"viral_density":
+			_reward_module_damage_multiplier *= 1.10
+			_reward_pulse_radius_multiplier *= 1.10
+		"hemotrophic_loop":
+			_reward_passive_regen_per_second += 1.8
 			_reward_bonus_max_hp_flat += 15
-		"leak_detox_glands":
-			_reward_passive_regen_per_second += 2.0
-		"leak_acid_recycler":
-			_reward_acid_lifetime_multiplier *= 1.30
-		"leak_nova_condenser":
-			_reward_pulse_radius_multiplier *= 1.20
 		"fallback_hardened_membrane":
 			_reward_bonus_max_hp_flat += 10
 		"fallback_spike_density":
@@ -3688,7 +4364,7 @@ func _complete_reward_phase_if_active() -> void:
 		return
 	var completed_early: bool = bool(crisis_director.call("complete_reward_phase_early"))
 	if debug_log_crisis_timeline and completed_early:
-		print("[GameManager] Crisis reward phase completed early via selection")
+		print("[GameManager] Event reward phase completed early via selection")
 
 func _open_levelup_prompt(play_sound: bool = true) -> bool:
 	if run_ended:
@@ -3715,7 +4391,7 @@ func _open_levelup_prompt(play_sound: bool = true) -> bool:
 
 	run_paused_for_levelup = true
 	if play_sound:
-		_play_sfx("levelup")
+		_play_sfx("sfx_levelup")
 	_set_gameplay_active(false)
 	if levelup_ui != null:
 		levelup_ui.visible = true

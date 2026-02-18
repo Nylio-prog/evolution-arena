@@ -5,49 +5,46 @@ signal crisis_started(crisis_id: String, is_final: bool, duration_seconds: float
 signal crisis_reward_started(crisis_id: String, duration_seconds: float)
 signal final_crisis_completed()
 
-const CRISIS_TYPES: Array[String] = [
-	"containment_sweep",
-	"strain_bloom",
-	"biohazard_leak"
+const EVENT_SCHEDULE: Array[Dictionary] = [
+	{"id": "uv_sweep_grid", "start": 50.0, "duration": 14.0, "reward": 5.0, "final": false},
+	{"id": "hunter_deployment", "start": 105.0, "duration": 16.0, "reward": 5.0, "final": false},
+	{"id": "decon_flood", "start": 160.0, "duration": 17.0, "reward": 5.0, "final": false},
+	{"id": "containment_warden", "start": 220.0, "duration": 24.0, "reward": 6.0, "final": false},
+	{"id": "quarantine_lattice", "start": 275.0, "duration": 15.0, "reward": 5.0, "final": false},
+	{"id": "antiviral_drone_burst", "start": 330.0, "duration": 15.0, "reward": 5.0, "final": false},
+	{"id": "containment_seal", "start": 385.0, "duration": 17.0, "reward": 5.0, "final": false},
+	{"id": "protocol_omega_core", "start": 450.0, "duration": 30.0, "reward": 0.0, "final": true}
 ]
 
 @export var debug_log_state: bool = true
-@export var first_crisis_delay_seconds: float = 40.0
-@export var crisis_interval_seconds: float = 38.0
-@export var crisis_duration_seconds: float = 15.0
-@export var reward_duration_seconds: float = 5.5
-@export var final_crisis_start_seconds: float = 240.0
-@export var final_crisis_duration_seconds: float = 28.0
 
 var _phase: String = "idle"
 var _active_crisis_id: String = ""
 var _is_final_crisis: bool = false
 var _phase_elapsed_seconds: float = 0.0
-var _next_regular_crisis_start_seconds: float = 0.0
-var _next_crisis_index: int = 0
+var _active_duration_seconds: float = 0.0
+var _active_reward_duration_seconds: float = 0.0
+var _next_event_index: int = 0
 var _final_crisis_completed: bool = false
-var _final_crisis_started: bool = false
 
 func reset_runtime_state() -> void:
 	_phase = "idle"
 	_active_crisis_id = ""
 	_is_final_crisis = false
 	_phase_elapsed_seconds = 0.0
-	_next_regular_crisis_start_seconds = first_crisis_delay_seconds
-	_next_crisis_index = 0
+	_active_duration_seconds = 0.0
+	_active_reward_duration_seconds = 0.0
+	_next_event_index = 0
 	_final_crisis_completed = false
-	_final_crisis_started = false
 
 func tick(delta: float, run_elapsed_seconds: float) -> void:
 	if delta <= 0.0:
 		return
 	if _final_crisis_completed:
 		return
-	if _try_start_final_crisis(run_elapsed_seconds):
-		return
 
 	if _phase == "idle":
-		_process_idle(delta, run_elapsed_seconds)
+		_process_idle(run_elapsed_seconds)
 		return
 
 	_phase_elapsed_seconds += delta
@@ -69,53 +66,46 @@ func get_active_crisis_id() -> String:
 
 func get_phase_time_remaining() -> float:
 	match _phase:
-		"active":
-			return maxf(0.0, crisis_duration_seconds - _phase_elapsed_seconds)
-		"reward":
-			return maxf(0.0, reward_duration_seconds - _phase_elapsed_seconds)
-		"final":
-			return maxf(0.0, final_crisis_duration_seconds - _phase_elapsed_seconds)
+		"active", "reward", "final":
+			return maxf(0.0, _active_duration_seconds - _phase_elapsed_seconds)
 		_:
 			return 0.0
 
 func get_time_until_next_crisis(run_elapsed_seconds: float) -> float:
 	if _phase != "idle":
 		return 0.0
-	if _final_crisis_completed or _final_crisis_started:
+	if _next_event_index >= EVENT_SCHEDULE.size():
 		return 0.0
-
-	var time_until_final: float = maxf(0.0, final_crisis_start_seconds - run_elapsed_seconds)
-	var time_until_regular: float = maxf(0.0, _next_regular_crisis_start_seconds - run_elapsed_seconds)
-	if _next_regular_crisis_start_seconds < final_crisis_start_seconds:
-		return minf(time_until_regular, time_until_final)
-	return time_until_final
+	var next_event: Dictionary = EVENT_SCHEDULE[_next_event_index]
+	return maxf(0.0, float(next_event.get("start", 0.0)) - run_elapsed_seconds)
 
 func get_final_crisis_start_seconds() -> float:
-	return final_crisis_start_seconds
+	for event_def in EVENT_SCHEDULE:
+		if bool(event_def.get("final", false)):
+			return float(event_def.get("start", 0.0))
+	return 450.0
 
 func debug_force_next_active_crisis(run_elapsed_seconds: float) -> bool:
 	if _final_crisis_completed:
 		return false
-	if _final_crisis_started:
-		return false
-	if _phase == "final" or _phase == "victory":
+	if _next_event_index >= EVENT_SCHEDULE.size() and _phase == "idle":
 		return false
 
-	# Force-exit any non-idle regular phase without running full objective/reward timing.
 	if _phase == "active" or _phase == "reward":
-		_phase = "idle"
-		_phase_elapsed_seconds = 0.0
-		_active_crisis_id = ""
-		_is_final_crisis = false
-		_emit_phase_changed("idle", "")
+		_enter_idle_phase()
 
-	if run_elapsed_seconds >= final_crisis_start_seconds:
-		_start_crisis("purge_protocol", true)
+	if _next_event_index >= EVENT_SCHEDULE.size():
+		return false
+
+	var event_def: Dictionary = EVENT_SCHEDULE[_next_event_index]
+	var event_start: float = float(event_def.get("start", 0.0))
+	if run_elapsed_seconds < event_start:
+		_start_event(event_def)
+		_next_event_index += 1
 		return true
 
-	var crisis_id: String = _get_next_regular_crisis_id()
-	_start_crisis(crisis_id, false)
-	_next_regular_crisis_start_seconds = maxf(_next_regular_crisis_start_seconds, run_elapsed_seconds + crisis_interval_seconds)
+	_start_event(event_def)
+	_next_event_index += 1
 	return true
 
 func complete_active_crisis_early(expected_crisis_id: String = "") -> bool:
@@ -126,103 +116,88 @@ func complete_active_crisis_early(expected_crisis_id: String = "") -> bool:
 	if not expected_crisis_id.is_empty() and _active_crisis_id != expected_crisis_id:
 		return false
 
-	var completed_crisis_id: String = _active_crisis_id
-	_enter_reward_phase()
-	if debug_log_state:
-		print("[CrisisDirector] Crisis completed early: %s" % completed_crisis_id)
+	_enter_reward_phase(_active_reward_duration_seconds)
 	return true
 
 func complete_reward_phase_early() -> bool:
 	if _phase != "reward":
 		return false
 	_enter_idle_phase()
-	if debug_log_state:
-		print("[CrisisDirector] Reward phase completed early")
 	return true
 
-func _process_idle(_delta: float, run_elapsed_seconds: float) -> void:
-	if run_elapsed_seconds < _next_regular_crisis_start_seconds:
+func _process_idle(run_elapsed_seconds: float) -> void:
+	if _next_event_index >= EVENT_SCHEDULE.size():
 		return
-
-	var crisis_id: String = _get_next_regular_crisis_id()
-	_start_crisis(crisis_id, false)
-	_next_regular_crisis_start_seconds += crisis_interval_seconds
+	var next_event: Dictionary = EVENT_SCHEDULE[_next_event_index]
+	var start_time: float = float(next_event.get("start", 0.0))
+	if run_elapsed_seconds < start_time:
+		return
+	_start_event(next_event)
+	_next_event_index += 1
 
 func _process_active() -> void:
-	if _phase_elapsed_seconds < crisis_duration_seconds:
+	if _phase_elapsed_seconds < _active_duration_seconds:
 		return
-
-	_enter_reward_phase()
+	if _active_reward_duration_seconds > 0.0:
+		_enter_reward_phase(_active_reward_duration_seconds)
+		return
+	_enter_idle_phase()
 
 func _process_reward() -> void:
-	if _phase_elapsed_seconds < reward_duration_seconds:
+	if _phase_elapsed_seconds < _active_duration_seconds:
 		return
-
 	_enter_idle_phase()
 
 func _process_final() -> void:
-	if _phase_elapsed_seconds < final_crisis_duration_seconds:
+	if _phase_elapsed_seconds < _active_duration_seconds:
 		return
-
 	_phase = "victory"
 	_final_crisis_completed = true
 	_emit_phase_changed("victory", _active_crisis_id)
 	if debug_log_state:
-		print("[CrisisDirector] Final crisis completed -> victory")
+		print("[EventDirector] Final event completed -> victory")
 	final_crisis_completed.emit()
 
-func _try_start_final_crisis(run_elapsed_seconds: float) -> bool:
-	if _final_crisis_completed or _final_crisis_started:
-		return false
-	if run_elapsed_seconds < final_crisis_start_seconds:
-		return false
-	_start_crisis("purge_protocol", true)
-	return true
-
-func _start_crisis(crisis_id: String, is_final: bool) -> void:
+func _start_event(event_def: Dictionary) -> void:
+	_active_crisis_id = String(event_def.get("id", ""))
+	_is_final_crisis = bool(event_def.get("final", false))
 	_phase_elapsed_seconds = 0.0
-	_active_crisis_id = crisis_id
-	_is_final_crisis = is_final
+	_active_duration_seconds = maxf(1.0, float(event_def.get("duration", 10.0)))
+	_active_reward_duration_seconds = maxf(0.0, float(event_def.get("reward", 0.0)))
 
-	if is_final:
-		_final_crisis_started = true
-		_next_regular_crisis_start_seconds = INF
+	if _is_final_crisis:
 		_phase = "final"
 		_emit_phase_changed("final", _active_crisis_id)
-		crisis_started.emit(_active_crisis_id, true, final_crisis_duration_seconds)
+		crisis_started.emit(_active_crisis_id, true, _active_duration_seconds)
 		if debug_log_state:
-			print("[CrisisDirector] Final crisis started: %s (%.1fs)" % [_active_crisis_id, final_crisis_duration_seconds])
+			print("[EventDirector] Final event started: %s (%.1fs)" % [_active_crisis_id, _active_duration_seconds])
 		return
 
 	_phase = "active"
 	_emit_phase_changed("active", _active_crisis_id)
-	crisis_started.emit(_active_crisis_id, false, crisis_duration_seconds)
+	crisis_started.emit(_active_crisis_id, false, _active_duration_seconds)
 	if debug_log_state:
-		print("[CrisisDirector] Crisis started: %s (%.1fs)" % [_active_crisis_id, crisis_duration_seconds])
+		print("[EventDirector] Event started: %s (%.1fs)" % [_active_crisis_id, _active_duration_seconds])
 
-func _enter_reward_phase() -> void:
+func _enter_reward_phase(duration_seconds: float) -> void:
 	_phase = "reward"
 	_phase_elapsed_seconds = 0.0
+	_active_duration_seconds = maxf(0.1, duration_seconds)
 	_emit_phase_changed("reward", _active_crisis_id)
-	crisis_reward_started.emit(_active_crisis_id, reward_duration_seconds)
+	crisis_reward_started.emit(_active_crisis_id, _active_duration_seconds)
 	if debug_log_state:
-		print("[CrisisDirector] Reward phase: %s (%.1fs)" % [_active_crisis_id, reward_duration_seconds])
+		print("[EventDirector] Reward phase: %s (%.1fs)" % [_active_crisis_id, _active_duration_seconds])
 
 func _enter_idle_phase() -> void:
 	_phase = "idle"
 	_phase_elapsed_seconds = 0.0
+	_active_duration_seconds = 0.0
+	_active_reward_duration_seconds = 0.0
 	_active_crisis_id = ""
 	_is_final_crisis = false
 	_emit_phase_changed("idle", "")
 	if debug_log_state:
-		print("[CrisisDirector] Back to idle")
-
-func _get_next_regular_crisis_id() -> String:
-	if CRISIS_TYPES.is_empty():
-		return "containment_sweep"
-	var crisis_id: String = CRISIS_TYPES[_next_crisis_index]
-	_next_crisis_index = (_next_crisis_index + 1) % CRISIS_TYPES.size()
-	return crisis_id
+		print("[EventDirector] Back to idle")
 
 func _emit_phase_changed(phase_name: String, crisis_id: String) -> void:
 	crisis_phase_changed.emit(phase_name, crisis_id)
