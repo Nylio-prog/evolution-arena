@@ -2,7 +2,7 @@ extends Node2D
 
 const SPIKE_SPRITE_TEXTURE: Texture2D = preload("res://art/sprites/modules/razor_halo_blade.png")
 
-@export var spike_damage: int = 8
+@export var spike_damage: int = 7
 @export var spike_distance: float = 42.0
 @export var spike_collision_radius: float = 14.0
 @export var spike_color: Color = Color(0.95, 0.95, 0.95, 1.0)

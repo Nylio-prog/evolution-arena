@@ -379,6 +379,7 @@ var _enemy_difficulty_damage_multiplier: float = 1.0
 @export var strain_bloom_elite_spawn_radius_max: float = 280.0
 @export var strain_bloom_elite_speed_multiplier: float = 1.45
 @export var strain_bloom_elite_hp_multiplier: float = 14.0
+@export var strain_bloom_first_elite_hp_ratio: float = 0.3333
 @export var strain_bloom_elite_damage_multiplier: float = 4.0
 @export var strain_bloom_elite_scale_multiplier: float = 2.0
 @export var strain_bloom_elite_tint: Color = Color(0.62, 1.0, 0.22, 1.0)
@@ -1219,7 +1220,7 @@ func _spawn_strain_bloom_elite(crisis_id: String = "hunter_deployment") -> void:
 		spawn_parent = self
 	spawn_parent.add_child(elite_node)
 
-	_configure_strain_bloom_elite(elite_node)
+	_configure_strain_bloom_elite(elite_node, crisis_id)
 	_connect_enemy_death(elite_node)
 	_connect_strain_bloom_elite(elite_node)
 	_strain_bloom_active = true
@@ -1281,12 +1282,15 @@ func _clear_strain_bloom_state() -> void:
 	_strain_bloom_elite_target = null
 	_strain_bloom_crisis_id = ""
 
-func _configure_strain_bloom_elite(enemy_node: Node2D) -> void:
+func _configure_strain_bloom_elite(enemy_node: Node2D, crisis_id: String = "") -> void:
 	if enemy_node == null:
 		return
 
 	var speed_multiplier: float = maxf(0.1, strain_bloom_elite_speed_multiplier)
 	var hp_multiplier: float = maxf(0.1, strain_bloom_elite_hp_multiplier)
+	if crisis_id == "hunter_deployment":
+		var first_elite_ratio: float = clampf(strain_bloom_first_elite_hp_ratio, 0.1, 1.0)
+		hp_multiplier = maxf(0.1, hp_multiplier * first_elite_ratio)
 	var damage_multiplier: float = maxf(0.1, strain_bloom_elite_damage_multiplier)
 	var scale_multiplier: float = maxf(0.1, strain_bloom_elite_scale_multiplier)
 

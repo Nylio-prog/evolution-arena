@@ -70,10 +70,12 @@ func get_regen_per_second_estimate() -> float:
 		return 0.0
 	var targets: int = _get_tether_target_count()
 	var heal_per_tick: int = _get_effective_heal_per_tick()
+	var max_total_heal_per_tick: int = _get_effective_max_total_heal_per_tick()
 	var tick_interval: float = _get_effective_tick_interval_seconds()
 	if tick_interval <= 0.0:
 		return 0.0
-	return (float(targets) * float(heal_per_tick)) / tick_interval
+	var total_heal_per_tick: int = mini(targets * heal_per_tick, max_total_heal_per_tick)
+	return float(total_heal_per_tick) / tick_interval
 
 func _get_effective_tick_interval_seconds() -> float:
 	if tendril_level <= 0:
@@ -134,8 +136,23 @@ func _get_effective_heal_per_tick() -> int:
 		4:
 			return maxi(1, base_heal_per_tick + 1)
 		5:
-			return maxi(1, base_heal_per_tick + 2)
+			return maxi(1, base_heal_per_tick + 1)
 	return 0
+
+func _get_effective_max_total_heal_per_tick() -> int:
+	match tendril_level:
+		1:
+			return 1
+		2:
+			return 1
+		3:
+			return 2
+		4:
+			return 2
+		5:
+			return 3
+		_:
+			return 0
 
 func _get_tether_target_count() -> int:
 	match tendril_level:
@@ -174,6 +191,10 @@ func _apply_drain_tick() -> void:
 		return
 
 	candidates.sort_custom(func(a: Node2D, b: Node2D) -> bool:
+		var a_priority: int = _get_target_priority(a)
+		var b_priority: int = _get_target_priority(b)
+		if a_priority != b_priority:
+			return a_priority > b_priority
 		return origin.distance_squared_to(a.global_position) < origin.distance_squared_to(b.global_position)
 	)
 
@@ -193,6 +214,7 @@ func _apply_drain_tick() -> void:
 		applied_heal += heal_amount
 
 	if applied_heal > 0 and owner_player.has_method("heal"):
+		applied_heal = mini(applied_heal, _get_effective_max_total_heal_per_tick())
 		owner_player.call("heal", applied_heal)
 	if applied_heal > 0 and _drain_sfx_cooldown_left <= 0.0:
 		_play_sfx("sfx_leech_tendril_loop", -9.0, randf_range(0.96, 1.04))
@@ -202,6 +224,17 @@ func _apply_drain_tick() -> void:
 		_stop_drain_sfx_if_needed()
 	if debug_log_drain and applied_heal > 0:
 		print("Leech Tendril healed ", applied_heal, " HP")
+
+func _get_target_priority(target_node: Node2D) -> int:
+	if target_node == null:
+		return 0
+	if target_node.is_in_group("boss_enemies"):
+		return 300
+	if target_node.is_in_group("elite_enemies"):
+		return 200
+	if target_node.has_method("is_elite_enemy") and bool(target_node.call("is_elite_enemy")):
+		return 200
+	return 100
 
 func _sync_tether_visual_pool() -> void:
 	var expected_count: int = _get_tether_target_count()
