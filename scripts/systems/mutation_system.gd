@@ -58,8 +58,8 @@ const STAT_DEFS: Dictionary = {
 	"pickup_radius_boost": {
 		"id": "pickup_radius_boost",
 		"name": "Collector Tendrils",
-		"short_by_level": {1: "+35% pickup", 2: "+70% pickup", 3: "+110% pickup"},
-		"description": "Increase pickup radius for biomass collection.",
+		"short_by_level": {1: "+60 pickup", 2: "+130 pickup", 3: "+220 pickup"},
+		"description": "Increase pickup radius for biomass collection by a flat amount.",
 		"icon_id": "stat_pickup",
 		"max_level": 3
 	},
@@ -91,7 +91,7 @@ const STAT_DEFS: Dictionary = {
 
 const OFFENSE_MULTIPLIER_BY_LEVEL: Dictionary = {0: 1.0, 1: 1.08, 2: 1.16, 3: 1.24}
 const DEFENSE_MULTIPLIER_BY_LEVEL: Dictionary = {0: 1.0, 1: 0.92, 2: 0.85, 3: 0.78}
-const PICKUP_MULTIPLIER_BY_LEVEL: Dictionary = {0: 1.0, 1: 1.35, 2: 1.70, 3: 2.10}
+const PICKUP_FLAT_BONUS_BY_LEVEL: Dictionary = {0: 0.0, 1: 60.0, 2: 130.0, 3: 220.0}
 const MOVE_MULTIPLIER_BY_LEVEL: Dictionary = {0: 1.0, 1: 1.06, 2: 1.12, 3: 1.18}
 const COOLDOWN_MULTIPLIER_BY_LEVEL: Dictionary = {0: 1.0, 1: 0.94, 2: 0.88, 3: 0.82}
 const VITALITY_HP_BONUS_BY_LEVEL: Dictionary = {0: 0, 1: 15, 2: 30, 3: 50}
@@ -130,7 +130,7 @@ var runtime_player_level: int = 1
 
 var _stat_damage_multiplier: float = 1.0
 var _stat_defense_multiplier: float = 1.0
-var _stat_pickup_multiplier: float = 1.0
+var _stat_pickup_flat_bonus: float = 0.0
 var _stat_move_speed_multiplier: float = 1.0
 var _stat_cooldown_multiplier: float = 1.0
 var _stat_bonus_max_hp: int = 0
@@ -598,7 +598,7 @@ func _apply_stat_effects_to_player() -> void:
 
 	_stat_damage_multiplier = float(OFFENSE_MULTIPLIER_BY_LEVEL.get(offense_level, 1.0))
 	_stat_defense_multiplier = float(DEFENSE_MULTIPLIER_BY_LEVEL.get(defense_level, 1.0))
-	_stat_pickup_multiplier = float(PICKUP_MULTIPLIER_BY_LEVEL.get(pickup_level, 1.0))
+	_stat_pickup_flat_bonus = float(PICKUP_FLAT_BONUS_BY_LEVEL.get(pickup_level, 0.0))
 	_stat_move_speed_multiplier = float(MOVE_MULTIPLIER_BY_LEVEL.get(move_level, 1.0))
 	_stat_cooldown_multiplier = float(COOLDOWN_MULTIPLIER_BY_LEVEL.get(cooldown_level, 1.0))
 	_stat_bonus_max_hp = int(VITALITY_HP_BONUS_BY_LEVEL.get(vitality_level, 0))
@@ -609,8 +609,8 @@ func _apply_stat_effects_to_player() -> void:
 		player.call("set_stat_max_hp_flat", _stat_bonus_max_hp)
 	if player.has_method("set_stat_incoming_damage_multiplier"):
 		player.call("set_stat_incoming_damage_multiplier", _stat_defense_multiplier)
-	if player.has_method("set_pickup_radius_multiplier"):
-		player.call("set_pickup_radius_multiplier", _stat_pickup_multiplier)
+	if player.has_method("set_pickup_radius_flat_bonus"):
+		player.call("set_pickup_radius_flat_bonus", _stat_pickup_flat_bonus)
 
 func _apply_runtime_modifiers_to_modules() -> void:
 	for mutation_id_variant in module_instances.keys():

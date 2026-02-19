@@ -4,6 +4,7 @@ signal crisis_phase_changed(new_phase: String, crisis_id: String)
 signal crisis_started(crisis_id: String, is_final: bool, duration_seconds: float)
 signal crisis_reward_started(crisis_id: String, duration_seconds: float)
 signal final_crisis_completed()
+signal final_crisis_failed(crisis_id: String)
 
 const EVENT_SCHEDULE: Array[Dictionary] = [
 	{"id": "uv_sweep_grid", "start": 50.0, "duration": 14.0, "reward": 5.0, "final": false},
@@ -13,7 +14,7 @@ const EVENT_SCHEDULE: Array[Dictionary] = [
 	{"id": "quarantine_lattice", "start": 275.0, "duration": 15.0, "reward": 5.0, "final": false},
 	{"id": "antiviral_drone_burst", "start": 330.0, "duration": 15.0, "reward": 5.0, "final": false},
 	{"id": "containment_seal", "start": 385.0, "duration": 17.0, "reward": 5.0, "final": false},
-	{"id": "protocol_omega_core", "start": 450.0, "duration": 30.0, "reward": 0.0, "final": true}
+	{"id": "protocol_omega_core", "start": 450.0, "duration": 60.0, "reward": 0.0, "final": true}
 ]
 
 @export var debug_log_state: bool = true
@@ -125,6 +126,22 @@ func complete_reward_phase_early() -> bool:
 	_enter_idle_phase()
 	return true
 
+func complete_final_crisis_early(expected_crisis_id: String = "") -> bool:
+	if _phase != "final":
+		return false
+	if not expected_crisis_id.is_empty() and _active_crisis_id != expected_crisis_id:
+		return false
+	if _final_crisis_completed:
+		return false
+
+	_phase = "victory"
+	_final_crisis_completed = true
+	_emit_phase_changed("victory", _active_crisis_id)
+	if debug_log_state:
+		print("[EventDirector] Final event completed early by boss defeat")
+	final_crisis_completed.emit()
+	return true
+
 func _process_idle(run_elapsed_seconds: float) -> void:
 	if _next_event_index >= EVENT_SCHEDULE.size():
 		return
@@ -151,12 +168,12 @@ func _process_reward() -> void:
 func _process_final() -> void:
 	if _phase_elapsed_seconds < _active_duration_seconds:
 		return
-	_phase = "victory"
+	_phase = "failed"
 	_final_crisis_completed = true
-	_emit_phase_changed("victory", _active_crisis_id)
+	_emit_phase_changed("failed", _active_crisis_id)
 	if debug_log_state:
-		print("[EventDirector] Final event completed -> victory")
-	final_crisis_completed.emit()
+		print("[EventDirector] Final event timer expired -> failure")
+	final_crisis_failed.emit(_active_crisis_id)
 
 func _start_event(event_def: Dictionary) -> void:
 	_active_crisis_id = String(event_def.get("id", ""))

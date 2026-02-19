@@ -6,6 +6,7 @@ const BIOHAZARD_LEAK_ZONE_SCENE: PackedScene = preload("res://scenes/systems/bio
 const STRAIN_BLOOM_ELITE_SCENE: PackedScene = preload("res://scenes/actors/enemy_elite.tscn")
 const ANTIVIRAL_DRONE_SCENE: PackedScene = preload("res://scenes/actors/enemy_ranged.tscn")
 const CONTAINMENT_PYLON_SCENE: PackedScene = preload("res://scenes/systems/containment_pylon.tscn")
+const PROTOCOL_OMEGA_BOSS_SCENE: PackedScene = preload("res://scenes/actors/protocol_omega_boss.tscn")
 const MUTATIONS_DATA = preload("res://data/mutations.gd")
 const MUTATION_ICON_PROTO_PULSE: Texture2D = preload("res://art/sprites/ui/icons/icon_proto_pulse.png")
 const MUTATION_ICON_RAZOR_HALO: Texture2D = preload("res://art/sprites/ui/icons/icon_razor_halo.png")
@@ -151,6 +152,10 @@ const MUTATION_TAG_SYNERGY_RULES: Array[Dictionary] = [
 @onready var score_backdrop: Panel = get_node_or_null("UiHud/ScoreBackdrop")
 @onready var crisis_debug_label: Label = get_node_or_null("UiHud/CrisisDebugLabel")
 @onready var crisis_backdrop: Panel = get_node_or_null("UiHud/CrisisBackdrop")
+@onready var boss_backdrop: Panel = get_node_or_null("UiHud/BossBackdrop")
+@onready var boss_icon: TextureRect = get_node_or_null("UiHud/BossIcon")
+@onready var boss_name_label: Label = get_node_or_null("UiHud/BossNameLabel")
+@onready var boss_health_bar: ProgressBar = get_node_or_null("UiHud/BossHealthBar")
 @onready var lineage_label: Label = get_node_or_null("UiHud/LineageLabel")
 @onready var arena_background_sprite: Sprite2D = get_node_or_null("ArenaSprite")
 @onready var ui_hud_layer: CanvasLayer = get_node_or_null("UiHud")
@@ -232,6 +237,8 @@ var _sfx_reentry_guard: bool = false
 var _active_containment_sweeps: Array[Node2D] = []
 var _active_biohazard_leaks: Array[Node2D] = []
 var _final_crisis_elites: Array[Node2D] = []
+var _protocol_omega_boss_target: Node2D
+var _protocol_omega_boss_phase: int = 1
 var _active_antiviral_drones: Array[Node2D] = []
 var _active_containment_pylons: Array[Node2D] = []
 var _biohazard_leak_spawner_active: bool = false
@@ -290,6 +297,9 @@ var _score_bonus_points: int = 0
 var _score_event_clear_count: int = 0
 var _score_record_written: bool = false
 var _score_history_entries: Array[Dictionary] = []
+var _final_victory_sequence_active: bool = false
+var _final_victory_resolution_started: bool = false
+var _cached_biomass_pickup_base_radius: float = -1.0
 @export var debug_allow_grant_xp: bool = false
 @export var debug_grant_xp_amount: int = 20
 @export var biomass_xp_multiplier: float = 1.35
@@ -311,7 +321,7 @@ var _score_history_entries: Array[Dictionary] = []
 @export var debug_show_crisis_banner: bool = true
 @export var enable_tag_synergies: bool = true
 @export var synergy_popup_enabled: bool = true
-@export var synergy_popup_duration_seconds: float = 3.4
+@export var synergy_popup_duration_seconds: float = 4.8
 @export var synergy_popup_fade_seconds: float = 0.36
 @export var runtime_popup_top_offset: float = 150.0
 @export var run_intro_popup_top_offset: float = 170.0
@@ -329,6 +339,11 @@ var _score_history_entries: Array[Dictionary] = []
 @export var final_containment_wave_duration_seconds: float = 16.5
 @export var final_containment_wave_interval_seconds: float = 6.0
 @export var final_containment_pass_count: int = 2
+@export var final_boss_name: String = "PROTOCOL OMEGA"
+@export var final_boss_spawn_radius: float = 280.0
+@export var final_boss_min_spawn_distance_to_player: float = 180.0
+@export var final_boss_death_slowmo_scale: float = 0.22
+@export var final_boss_death_victory_delay_seconds: float = 2.0
 @export var biohazard_leak_initial_spawn_count: int = 0
 @export var biohazard_leak_spawn_interval_seconds: float = 1.0
 @export var final_biohazard_spawn_interval_multiplier: float = 0.70
@@ -356,7 +371,6 @@ var _score_history_entries: Array[Dictionary] = []
 @export var strain_bloom_elite_damage_multiplier: float = 4.0
 @export var strain_bloom_elite_scale_multiplier: float = 2.0
 @export var strain_bloom_elite_tint: Color = Color(0.62, 1.0, 0.22, 1.0)
-@export var final_crisis_elite_count: int = 2
 @export var antiviral_drone_wave_count: int = 4
 @export var containment_seal_pylon_count: int = 3
 @export var containment_seal_pylon_spawn_radius_min: float = 200.0
@@ -564,9 +578,13 @@ func _reset_runtime_state() -> void:
 	_last_run_end_reason = ""
 	_last_containment_sweep_hit_seconds = -1000.0
 	_reset_score_runtime()
+	_restore_global_time_scale()
+	_final_victory_sequence_active = false
+	_final_victory_resolution_started = false
 	_clear_containment_sweep()
 	_clear_biohazard_leaks()
 	_clear_final_crisis_elites()
+	_clear_protocol_omega_boss()
 	_clear_antiviral_drones()
 	_clear_containment_pylons()
 	_clear_strain_bloom_state()
@@ -575,6 +593,7 @@ func _reset_runtime_state() -> void:
 	if crisis_director != null and crisis_director.has_method("reset_runtime_state"):
 		crisis_director.call("reset_runtime_state")
 	_apply_crisis_ui_accent("idle", "", 0.0)
+	_set_boss_health_ui_visible(false)
 	_sync_player_level_spell_scaling()
 	_refresh_run_inventory_ui()
 
@@ -742,6 +761,10 @@ func _setup_crisis_director() -> void:
 		var final_completed_callable := Callable(self, "_on_final_crisis_completed")
 		if not crisis_director.is_connected("final_crisis_completed", final_completed_callable):
 			crisis_director.connect("final_crisis_completed", final_completed_callable)
+	if crisis_director.has_signal("final_crisis_failed"):
+		var final_failed_callable := Callable(self, "_on_final_crisis_failed")
+		if not crisis_director.is_connected("final_crisis_failed", final_failed_callable):
+			crisis_director.connect("final_crisis_failed", final_failed_callable)
 
 	_set_crisis_spawn_throttle(false)
 
@@ -810,9 +833,13 @@ func _set_crisis_spawn_throttle(active: bool) -> void:
 			continue
 		spawner_node.call("set_crisis_spawn_wait_multiplier", target_multiplier)
 
-func _start_final_crisis_composition(active_duration_seconds: float) -> void:
+func _start_final_crisis_composition(_active_duration_seconds: float) -> void:
 	_final_crisis_active = true
 	_final_containment_wave_elapsed_seconds = 0.0
+	_clear_final_crisis_elites()
+	_clear_protocol_omega_boss()
+	_clear_biohazard_leaks()
+	_spawn_protocol_omega_boss()
 	_play_sfx("sfx_boss_phase_shift", -3.0, randf_range(0.96, 1.04))
 	_spawn_containment_sweep(
 		maxf(1.0, final_containment_wave_duration_seconds),
@@ -820,20 +847,21 @@ func _start_final_crisis_composition(active_duration_seconds: float) -> void:
 		maxf(40.0, final_containment_spacing),
 		maxi(1, final_containment_pass_count)
 	)
-	_spawn_biohazard_leaks(active_duration_seconds)
-	_spawn_final_crisis_elites(maxi(1, final_crisis_elite_count))
 	if debug_log_crisis_timeline:
-		print("[GameManager] Final composition armed: sweep + leaks + %d elites" % maxi(1, final_crisis_elite_count))
+		print("[GameManager] Final composition armed: OMEGA boss + sweeps")
 
 func _stop_final_crisis_composition() -> void:
 	_final_crisis_active = false
 	_final_containment_wave_elapsed_seconds = 0.0
+	_clear_protocol_omega_boss()
 	_clear_final_crisis_elites()
 
 func _tick_final_crisis_layers(delta: float) -> void:
 	if not _final_crisis_active:
 		return
 	if delta <= 0.0:
+		return
+	if not _is_protocol_omega_alive():
 		return
 
 	_final_containment_wave_elapsed_seconds += delta
@@ -851,9 +879,8 @@ func _tick_final_crisis_layers(delta: float) -> void:
 		maxi(1, final_containment_pass_count)
 	)
 
-func _spawn_final_crisis_elites(count: int) -> void:
-	var spawn_count: int = maxi(0, count)
-	if spawn_count <= 0:
+func _spawn_protocol_omega_boss() -> void:
+	if _is_protocol_omega_alive():
 		return
 
 	var player_node := player as Node2D
@@ -862,34 +889,127 @@ func _spawn_final_crisis_elites(count: int) -> void:
 	if player_node == null:
 		return
 
-	for _spawn_index in range(spawn_count):
-		var elite_node := STRAIN_BLOOM_ELITE_SCENE.instantiate() as Node2D
-		if elite_node == null:
-			continue
-
-		var min_spawn_radius: float = maxf(40.0, strain_bloom_elite_spawn_radius_min)
-		var max_spawn_radius: float = maxf(min_spawn_radius + 1.0, strain_bloom_elite_spawn_radius_max)
-		var spawn_radius: float = randf_range(min_spawn_radius, max_spawn_radius)
-		var spawn_angle: float = randf() * TAU
-		elite_node.global_position = player_node.global_position + Vector2.RIGHT.rotated(spawn_angle) * spawn_radius
-
-		var spawn_parent: Node = get_tree().current_scene
-		if spawn_parent == null:
-			spawn_parent = self
-		spawn_parent.add_child(elite_node)
-
-		_configure_strain_bloom_elite(elite_node)
-		_connect_enemy_death(elite_node)
-		_final_crisis_elites.append(elite_node)
-
-		var elite_died_callable := Callable(self, "_on_final_crisis_elite_died").bind(elite_node)
-		if elite_node.has_signal("died") and not elite_node.is_connected("died", elite_died_callable):
-			elite_node.connect("died", elite_died_callable)
-
-func _on_final_crisis_elite_died(_world_position: Vector2, elite_node: Node2D) -> void:
-	if elite_node == null:
+	var boss_node := PROTOCOL_OMEGA_BOSS_SCENE.instantiate() as Node2D
+	if boss_node == null:
 		return
-	_final_crisis_elites.erase(elite_node)
+
+	var arena_bounds: Rect2 = _resolve_arena_world_bounds()
+	var safe_spawn_radius: float = maxf(80.0, final_boss_spawn_radius)
+	var min_player_distance: float = maxf(20.0, final_boss_min_spawn_distance_to_player)
+	var spawn_position: Vector2 = player_node.global_position + Vector2.RIGHT * safe_spawn_radius
+	var found_spawn: bool = false
+
+	var attempts_left: int = 18
+	while attempts_left > 0:
+		attempts_left -= 1
+		var angle: float = randf() * TAU
+		var candidate_position: Vector2 = player_node.global_position + Vector2.RIGHT.rotated(angle) * safe_spawn_radius
+		var clamped_position: Vector2 = Vector2(
+			clampf(candidate_position.x, arena_bounds.position.x + 48.0, arena_bounds.position.x + arena_bounds.size.x - 48.0),
+			clampf(candidate_position.y, arena_bounds.position.y + 48.0, arena_bounds.position.y + arena_bounds.size.y - 48.0)
+		)
+		if clamped_position.distance_to(player_node.global_position) < min_player_distance:
+			continue
+		spawn_position = clamped_position
+		found_spawn = true
+		break
+
+	if not found_spawn:
+		spawn_position = Vector2(
+			clampf(spawn_position.x, arena_bounds.position.x + 48.0, arena_bounds.position.x + arena_bounds.size.x - 48.0),
+			clampf(spawn_position.y, arena_bounds.position.y + 48.0, arena_bounds.position.y + arena_bounds.size.y - 48.0)
+		)
+
+	var spawn_parent: Node = get_tree().current_scene
+	if spawn_parent == null:
+		spawn_parent = self
+	spawn_parent.add_child(boss_node)
+	boss_node.global_position = spawn_position
+	_protocol_omega_boss_target = boss_node
+	_protocol_omega_boss_phase = 1
+
+	if boss_node.has_method("initialize_for_final_event"):
+		boss_node.call("initialize_for_final_event", player_node, arena_bounds)
+	if boss_node.has_signal("defeated"):
+		var defeated_callable := Callable(self, "_on_protocol_omega_boss_defeated")
+		if not boss_node.is_connected("defeated", defeated_callable):
+			boss_node.connect("defeated", defeated_callable)
+	if boss_node.has_signal("health_changed"):
+		var health_callable := Callable(self, "_on_protocol_omega_boss_health_changed")
+		if not boss_node.is_connected("health_changed", health_callable):
+			boss_node.connect("health_changed", health_callable)
+	if boss_node.has_signal("phase_changed"):
+		var phase_callable := Callable(self, "_on_protocol_omega_boss_phase_changed")
+		if not boss_node.is_connected("phase_changed", phase_callable):
+			boss_node.connect("phase_changed", phase_callable)
+
+	var boss_max_hp: int = 1
+	if boss_node.has_method("get_max_hp"):
+		boss_max_hp = maxi(1, int(boss_node.call("get_max_hp")))
+	_on_protocol_omega_boss_health_changed(boss_max_hp, boss_max_hp)
+	_set_boss_health_ui_visible(true)
+
+func _clear_protocol_omega_boss() -> void:
+	if _protocol_omega_boss_target != null and is_instance_valid(_protocol_omega_boss_target):
+		_protocol_omega_boss_target.queue_free()
+	_protocol_omega_boss_target = null
+	_protocol_omega_boss_phase = 1
+	_set_boss_health_ui_visible(false)
+
+func _is_protocol_omega_alive() -> bool:
+	return _protocol_omega_boss_target != null and is_instance_valid(_protocol_omega_boss_target)
+
+func _on_protocol_omega_boss_health_changed(current_hp: int, max_hp: int) -> void:
+	if boss_health_bar != null:
+		boss_health_bar.max_value = float(maxi(1, max_hp))
+		boss_health_bar.value = float(clampi(current_hp, 0, maxi(1, max_hp)))
+	if boss_name_label != null:
+		boss_name_label.text = "BOSS: %s  (%d%%)" % [
+			final_boss_name,
+			int(round((float(clampi(current_hp, 0, maxi(1, max_hp))) / float(maxi(1, max_hp))) * 100.0))
+		]
+
+func _on_protocol_omega_boss_phase_changed(new_phase: int) -> void:
+	_protocol_omega_boss_phase = clampi(new_phase, 1, 3)
+	_queue_runtime_popup(
+		"OMEGA PHASE %d" % _protocol_omega_boss_phase,
+		"Containment routines intensified.",
+		true,
+		2.2,
+		false,
+		runtime_popup_top_offset + 96.0
+	)
+
+func _on_protocol_omega_boss_defeated(_world_position: Vector2, boss_node: Node2D) -> void:
+	if boss_node != _protocol_omega_boss_target:
+		return
+	_protocol_omega_boss_target = null
+	_set_boss_health_ui_visible(false)
+	_final_victory_sequence_active = true
+	_final_victory_resolution_started = false
+	_set_global_time_scale(maxf(0.05, final_boss_death_slowmo_scale))
+	_play_sfx("sfx_enemy_elite_death", -2.0, 0.92)
+	if crisis_director != null and crisis_director.has_method("complete_final_crisis_early"):
+		var completed: bool = bool(crisis_director.call("complete_final_crisis_early", "protocol_omega_core"))
+		if completed:
+			return
+	_on_final_crisis_completed()
+
+func _set_boss_health_ui_visible(should_show: bool) -> void:
+	if boss_backdrop != null:
+		boss_backdrop.visible = should_show
+	if boss_icon != null:
+		boss_icon.visible = should_show
+	if boss_name_label != null:
+		boss_name_label.visible = should_show
+	if boss_health_bar != null:
+		boss_health_bar.visible = should_show
+
+func _set_global_time_scale(scale_value: float) -> void:
+	Engine.time_scale = clampf(scale_value, 0.05, 1.0)
+
+func _restore_global_time_scale() -> void:
+	Engine.time_scale = 1.0
 
 func _clear_final_crisis_elites() -> void:
 	for elite_node in _final_crisis_elites:
@@ -1522,7 +1642,7 @@ func _is_biohazard_leak_crisis_active() -> bool:
 		return false
 	var phase_name: String = String(crisis_director.call("get_phase"))
 	var crisis_id: String = String(crisis_director.call("get_active_crisis_id"))
-	return phase_name == "active" and (crisis_id == "decon_flood" or crisis_id == "protocol_omega_core")
+	return phase_name == "active" and crisis_id == "decon_flood"
 
 func _on_containment_sweep_player_contacted(_player_node: Node) -> void:
 	if run_ended:
@@ -1542,6 +1662,9 @@ func _on_containment_sweep_player_contacted(_player_node: Node) -> void:
 func _fail_run_immediately(reason_text: String = "") -> void:
 	if run_ended:
 		return
+	_restore_global_time_scale()
+	_final_victory_sequence_active = false
+	_final_victory_resolution_started = false
 	_pending_crisis_failure_audio = true
 	_last_run_end_reason = _resolve_failure_reason(reason_text)
 	if debug_log_crisis_timeline and not reason_text.is_empty():
@@ -1638,11 +1761,24 @@ func _get_crisis_objective_text(phase_name: String, crisis_id: String) -> String
 		"reward":
 			return "Choose event reward"
 		"final":
-			return "Final boss: survive OMEGA containment layers"
+			if _is_protocol_omega_alive():
+				return "Final boss: defeat Protocol OMEGA (%d%% HP)" % _get_protocol_omega_hp_percent()
+			return "Final boss: OMEGA destabilized"
 		"victory":
 			return "Run clear - outbreak ascendant"
 		_:
 			return "--"
+
+func _get_protocol_omega_hp_percent() -> int:
+	if not _is_protocol_omega_alive():
+		return 0
+	var max_hp_value: int = 1
+	if _protocol_omega_boss_target.has_method("get_max_hp"):
+		max_hp_value = maxi(1, int(_protocol_omega_boss_target.call("get_max_hp")))
+	var current_hp_value: int = max_hp_value
+	if _protocol_omega_boss_target.has_method("get_current_hp"):
+		current_hp_value = clampi(int(_protocol_omega_boss_target.call("get_current_hp")), 0, max_hp_value)
+	return int(round((float(current_hp_value) / float(max_hp_value)) * 100.0))
 
 func _get_crisis_accent_color(phase_name: String, crisis_id: String) -> Color:
 	match phase_name:
@@ -1773,12 +1909,16 @@ func _on_crisis_started(crisis_id: String, is_final: bool, duration_seconds: flo
 
 	if is_final and crisis_id == "protocol_omega_core":
 		_start_final_crisis_composition(duration_seconds)
+		_play_music("bgm_boss_loop")
 		if final_crisis_intro_popup_enabled and not _final_crisis_intro_popup_shown:
 			_final_crisis_intro_popup_shown = true
 			_queue_runtime_popup(
 				"FINAL BOSS: OMEGA CORE",
-				"Containment core engaged. Survive layered sweeps, leaks, and elite hunters.",
-				true
+				"Containment core engaged. Defeat Protocol OMEGA while surviving layered hazards.",
+				true,
+				-1.0,
+				false,
+				runtime_popup_top_offset + 30.0
 			)
 	if not is_final:
 		match crisis_id:
@@ -1823,6 +1963,30 @@ func _on_crisis_reward_started(crisis_id: String, duration_seconds: float) -> vo
 func _on_final_crisis_completed() -> void:
 	if run_ended:
 		return
+	if _final_victory_sequence_active:
+		_start_final_victory_resolution_after_slowmo()
+		return
+	_finalize_victory_run()
+
+func _start_final_victory_resolution_after_slowmo() -> void:
+	if _final_victory_resolution_started:
+		return
+	_final_victory_resolution_started = true
+	call_deferred("_resolve_final_victory_after_slowmo")
+
+func _resolve_final_victory_after_slowmo() -> void:
+	var delay_seconds: float = maxf(0.0, final_boss_death_victory_delay_seconds)
+	if delay_seconds > 0.0:
+		var slowmo_timer: SceneTreeTimer = get_tree().create_timer(delay_seconds, true, false, true)
+		await slowmo_timer.timeout
+	if run_ended:
+		_restore_global_time_scale()
+		return
+	_finalize_victory_run()
+
+func _finalize_victory_run() -> void:
+	_restore_global_time_scale()
+	_set_boss_health_ui_visible(false)
 	_add_victory_score_bonus()
 	_finalize_run_score_record("victory", "Protocol OMEGA neutralized")
 	_end_run_common()
@@ -1832,6 +1996,16 @@ func _on_final_crisis_completed() -> void:
 	if not debug_log_crisis_timeline:
 		return
 	print("[GameManager] Final event completed at %.1fs" % elapsed_seconds)
+
+func _on_final_crisis_failed(crisis_id: String) -> void:
+	if run_ended:
+		return
+	if crisis_id != "protocol_omega_core":
+		return
+	_restore_global_time_scale()
+	_final_victory_sequence_active = false
+	_final_victory_resolution_started = false
+	_fail_run_immediately("Protocol OMEGA containment window expired")
 
 func _verify_biohazard_cleanup() -> void:
 	var leaks_left: int = 0
@@ -1908,7 +2082,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			_debug_force_next_crisis()
 			get_viewport().set_input_as_handled()
 			return
-		if key_event.keycode == KEY_J and _can_use_debug_xp_cheat():
+		if (key_event.keycode == KEY_J or key_event.keycode == KEY_L) and _can_use_debug_xp_cheat():
 			_debug_jump_to_final_crisis_threshold()
 			get_viewport().set_input_as_handled()
 			return
@@ -3083,6 +3257,9 @@ func _spawn_biomass_pickup(world_position: Vector2, is_elite_enemy: bool = false
 func _on_player_died() -> void:
 	if run_ended:
 		return
+	_restore_global_time_scale()
+	_final_victory_sequence_active = false
+	_final_victory_resolution_started = false
 
 	if _last_run_end_reason.is_empty():
 		_last_run_end_reason = _resolve_default_death_reason()
@@ -3391,6 +3568,21 @@ func _close_pause_menu(play_click_sound: bool = true) -> void:
 	if not opened_levelup_prompt:
 		_set_gameplay_active(true)
 
+func _get_biomass_auto_collect_base_radius() -> float:
+	if _cached_biomass_pickup_base_radius > 0.0:
+		return _cached_biomass_pickup_base_radius
+
+	var resolved_radius: float = 48.0
+	var probe_pickup := BIOMASS_PICKUP_SCENE.instantiate() as Node
+	if probe_pickup != null:
+		var radius_variant: Variant = probe_pickup.get("auto_collect_base_radius")
+		if radius_variant != null:
+			resolved_radius = maxf(8.0, float(radius_variant))
+		probe_pickup.free()
+
+	_cached_biomass_pickup_base_radius = maxf(8.0, resolved_radius)
+	return _cached_biomass_pickup_base_radius
+
 func _refresh_pause_stats_panel() -> void:
 	if pause_stats_text == null:
 		return
@@ -3401,6 +3593,8 @@ func _refresh_pause_stats_panel() -> void:
 	var incoming_damage_multiplier_value: float = 1.0
 	var block_chance_value: float = 0.0
 	var pickup_radius_multiplier_value: float = 1.0
+	var pickup_radius_flat_bonus_value: float = 0.0
+	var pickup_radius_value: float = _get_biomass_auto_collect_base_radius()
 	if player != null:
 		hp_current = int(player.get("current_hp"))
 		hp_max = maxi(1, int(player.get("max_hp")))
@@ -3410,6 +3604,9 @@ func _refresh_pause_stats_panel() -> void:
 			block_chance_value = clampf(float(player.call("get_block_chance")), 0.0, 0.95)
 		if player.has_method("get_pickup_radius_multiplier"):
 			pickup_radius_multiplier_value = maxf(0.1, float(player.call("get_pickup_radius_multiplier")))
+		if player.has_method("get_pickup_radius_flat_bonus"):
+			pickup_radius_flat_bonus_value = maxf(0.0, float(player.call("get_pickup_radius_flat_bonus")))
+	pickup_radius_value = maxf(8.0, (pickup_radius_value + pickup_radius_flat_bonus_value) * pickup_radius_multiplier_value)
 
 	var xp_current: int = 0
 	var xp_to_next: int = 1
@@ -3447,7 +3644,7 @@ func _refresh_pause_stats_panel() -> void:
 	_append_pause_stats_row(lines, "Move Speed", "%.1f" % move_speed_value)
 	_append_pause_stats_row(lines, "Incoming Damage", "x%.2f (%.1f%% reduced)" % [incoming_damage_multiplier_value, damage_reduction_percent])
 	_append_pause_stats_row(lines, "Block Chance", "%.1f%%" % (block_chance_value * 100.0))
-	_append_pause_stats_row(lines, "Pickup Radius", "x%.2f" % pickup_radius_multiplier_value)
+	_append_pause_stats_row(lines, "Pickup Radius", "%.0f" % pickup_radius_value)
 	_append_pause_stats_row(lines, "Bonus Regen", "+%.1f HP/s" % _get_total_bonus_regen_per_second())
 	_append_pause_stats_spacer(lines)
 
@@ -3869,7 +4066,7 @@ func _build_mutation_gain_summary_for_level(mutation_id: String, level_value: in
 			var blade_count: int = _get_spike_count_for_level(clamped_level)
 			var blade_damage: int = maxi(1, int(round(8.0 * module_damage_multiplier)))
 			var sustain_heal_per_hit: int = clamped_level
-			return "Gain: %d blades | %d contact dmg every 0.20s | heal %d per hit" % [blade_count, blade_damage, sustain_heal_per_hit]
+			return "Gain: %d blades | %d contact dmg every 0.20s | heal %d per damage tick on hit" % [blade_count, blade_damage, sustain_heal_per_hit]
 		"puncture_lance":
 			var lance_hits: int = clampi(clamped_level, 1, 5)
 			var lance_damage_base: float = 12.0
@@ -3981,11 +4178,11 @@ func _build_mutation_gain_summary_for_level(mutation_id: String, level_value: in
 		"pickup_radius_boost":
 			match clamped_level:
 				1:
-					return "Gain: +35% pickup radius"
+					return "Gain: +60 flat pickup radius"
 				2:
-					return "Gain: +70% pickup radius"
+					return "Gain: +130 flat pickup radius"
 				_:
-					return "Gain: +110% pickup radius"
+					return "Gain: +220 flat pickup radius"
 		"move_speed_boost":
 			return "Gain: +%d%% movement speed" % (clamped_level * 6)
 		"cooldown_boost":
@@ -4279,10 +4476,32 @@ func _debug_jump_to_final_crisis_threshold() -> void:
 	elapsed_seconds = target_time_seconds
 	_recalculate_run_score()
 	_update_timer_label()
+
+	var reached_final: bool = false
+	if crisis_director.has_method("get_phase") and crisis_director.has_method("get_active_crisis_id"):
+		var phase_name: String = String(crisis_director.call("get_phase"))
+		var crisis_id: String = String(crisis_director.call("get_active_crisis_id"))
+		reached_final = (phase_name == "final" and crisis_id == "protocol_omega_core")
+
+	if not reached_final and crisis_director.has_method("debug_force_next_active_crisis"):
+		var safety_steps: int = 24
+		while safety_steps > 0 and not reached_final:
+			safety_steps -= 1
+			var jumped: bool = bool(crisis_director.call("debug_force_next_active_crisis", elapsed_seconds))
+			if not jumped:
+				break
+			if crisis_director.has_method("get_phase") and crisis_director.has_method("get_active_crisis_id"):
+				var phase_name: String = String(crisis_director.call("get_phase"))
+				var crisis_id: String = String(crisis_director.call("get_active_crisis_id"))
+				reached_final = (phase_name == "final" and crisis_id == "protocol_omega_core")
+
 	_tick_crisis_director(0.1)
 	_tick_biohazard_leak_spawner(0.1)
 	_update_crisis_debug_banner()
-	print("Debug jump: moved to final event threshold at %.1fs" % elapsed_seconds)
+	if reached_final:
+		print("Debug jump: moved directly to final event at %.1fs" % elapsed_seconds)
+	else:
+		print("Debug jump: moved to final-event threshold at %.1fs" % elapsed_seconds)
 
 func _can_use_debug_xp_cheat() -> bool:
 	if not debug_allow_grant_xp:

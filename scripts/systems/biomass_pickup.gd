@@ -41,9 +41,12 @@ func _physics_process(delta: float) -> void:
 		return
 
 	var pickup_multiplier: float = 1.0
+	var pickup_flat_bonus: float = 0.0
 	if _player.has_method("get_pickup_radius_multiplier"):
 		pickup_multiplier = float(_player.call("get_pickup_radius_multiplier"))
-	var auto_collect_radius: float = maxf(8.0, auto_collect_base_radius * pickup_multiplier)
+	if _player.has_method("get_pickup_radius_flat_bonus"):
+		pickup_flat_bonus = maxf(0.0, float(_player.call("get_pickup_radius_flat_bonus")))
+	var auto_collect_radius: float = maxf(8.0, (auto_collect_base_radius + pickup_flat_bonus) * pickup_multiplier)
 	if global_position.distance_to(_player.global_position) <= auto_collect_radius:
 		_on_body_entered(_player)
 

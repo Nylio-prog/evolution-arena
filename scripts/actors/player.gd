@@ -39,6 +39,7 @@ var _stat_max_hp_flat: int = 0
 var _stat_incoming_damage_multiplier: float = 1.0
 var _block_chance: float = 0.0
 var _pickup_radius_multiplier: float = 1.0
+var _pickup_radius_flat_bonus: float = 0.0
 var _hit_animation_timeout_left: float = 0.0
 var _world_health_ui_root: Node2D
 var _world_health_bar: ProgressBar
@@ -169,6 +170,12 @@ func set_pickup_radius_multiplier(multiplier: float) -> void:
 
 func get_pickup_radius_multiplier() -> float:
 	return _pickup_radius_multiplier
+
+func set_pickup_radius_flat_bonus(flat_bonus: float) -> void:
+	_pickup_radius_flat_bonus = maxf(0.0, flat_bonus)
+
+func get_pickup_radius_flat_bonus() -> float:
+	return _pickup_radius_flat_bonus
 
 func set_block_chance(chance: float) -> void:
 	_block_chance = clampf(chance, 0.0, 0.95)

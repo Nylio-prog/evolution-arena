@@ -2,6 +2,7 @@
 
 [ext_resource type="FontFile" path="res://art/fonts/Rajdhani-Regular.ttf" id="1_xl7m1"]
 [ext_resource type="FontFile" path="res://art/fonts/Rajdhani-SemiBold.ttf" id="2_7gn6w"]
+[ext_resource type="Texture2D" path="res://art/sprites/ui/icons/icon_boss_protocol_omega.png" id="3_8wfr5"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_timer_backdrop"]
 content_margin_left = 12.0
@@ -242,6 +243,59 @@ text = "EVENT: idle | T-0.0s
 Objective: --"
 horizontal_alignment = 1
 vertical_alignment = 1
+
+[node name="BossBackdrop" type="Panel" parent="."]
+visible = false
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -300.0
+offset_top = 126.0
+offset_right = 300.0
+offset_bottom = 190.0
+theme_override_styles/panel = SubResource("StyleBoxFlat_crisis_backdrop")
+mouse_filter = 2
+
+[node name="BossIcon" type="TextureRect" parent="."]
+visible = false
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -298.0
+offset_top = 131.0
+offset_right = -242.0
+offset_bottom = 187.0
+texture = ExtResource("3_8wfr5")
+expand_mode = 1
+stretch_mode = 5
+mouse_filter = 2
+
+[node name="BossNameLabel" type="Label" parent="."]
+visible = false
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -280.0
+offset_top = 129.0
+offset_right = 280.0
+offset_bottom = 149.0
+theme_override_colors/font_color = Color(1, 0.9, 0.72, 0.98)
+theme_override_fonts/font = ExtResource("2_7gn6w")
+theme_override_font_sizes/font_size = 18
+text = "BOSS: PROTOCOL OMEGA"
+horizontal_alignment = 1
+
+[node name="BossHealthBar" type="ProgressBar" parent="."]
+visible = false
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -222.0
+offset_top = 150.0
+offset_right = 298.0
+offset_bottom = 168.0
+max_value = 100.0
+show_percentage = false
 
 [node name="LineageLabel" type="Label" parent="." unique_id=1321895676]
 anchors_preset = 1

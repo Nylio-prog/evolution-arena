@@ -177,18 +177,19 @@ func _apply_contact_sustain(unique_hit_count: int) -> void:
 		return
 	if unique_hit_count <= 0:
 		return
+	if sustain_max_enemy_hits_per_tick <= 0:
+		return
 	var player_node: Node = _get_player_node()
 	if player_node == null:
 		return
 	if not player_node.has_method("heal"):
 		return
 
-	var capped_hits: int = mini(unique_hit_count, maxi(1, sustain_max_enemy_hits_per_tick))
 	var heal_per_enemy_hit: int = maxi(
 		0,
 		sustain_heal_per_enemy_hit + maxi(0, spike_level - 1) * maxi(0, sustain_heal_per_level_bonus)
 	)
-	var heal_amount: int = heal_per_enemy_hit * capped_hits
+	var heal_amount: int = heal_per_enemy_hit
 	if heal_amount <= 0:
 		return
 	player_node.call("heal", heal_amount)

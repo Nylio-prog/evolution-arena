@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/systems/omega_telegraph.gd" id="1_omega_telegraph_script"]
+
+[node name="OmegaTelegraph" type="Node2D"]
+script = ExtResource("1_omega_telegraph_script")
