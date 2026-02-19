@@ -34,11 +34,11 @@ const MUTATIONS: Dictionary = {
 		"icon_id": "razor_halo",
 		"max_level": 5,
 		"levels": {
-			1: {"short": "4 blades", "description": "Spawn 4 rotating blades."},
-			2: {"short": "6 blades", "description": "Increase to 6 blades."},
-			3: {"short": "8 blades", "description": "Increase to 8 blades and faster spin."},
-			4: {"short": "10 blades", "description": "Increase to 10 blades with stronger rotation pressure."},
-			5: {"short": "12 blades", "description": "Max razor ring density and top rotation speed."}
+			1: {"short": "4 blades + sustain", "description": "Spawn 4 rotating blades. Blade hits heal 1 per enemy hit."},
+			2: {"short": "6 blades + sustain", "description": "Increase to 6 blades. Blade hits heal 2 per enemy hit."},
+			3: {"short": "8 blades + sustain", "description": "Increase to 8 blades, faster spin, and heal 3 per enemy hit."},
+			4: {"short": "10 blades + sustain", "description": "Increase to 10 blades with stronger rotation pressure and heal 4 per enemy hit."},
+			5: {"short": "12 blades + sustain", "description": "Max razor ring density, top rotation speed, and heal 5 per enemy hit."}
 		}
 	},
 	"puncture_lance": {

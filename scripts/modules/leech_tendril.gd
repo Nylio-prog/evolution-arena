@@ -1,7 +1,7 @@
 extends Node2D
 
 @export var base_drain_damage: int = 4
-@export var base_heal_per_tick: int = 2
+@export var base_heal_per_tick: int = 1
 @export var base_tick_interval_seconds: float = 0.65
 @export var base_range: float = 180.0
 @export var tether_template_animation: StringName = &"beam"

@@ -46,8 +46,11 @@ var _world_health_text: Label
 var _world_health_fill_normal: StyleBoxFlat
 var _world_health_fill_warning: StyleBoxFlat
 var _world_health_fill_critical: StyleBoxFlat
+var _world_movement_bounds: Rect2 = Rect2()
+var _use_world_movement_bounds: bool = false
 
 @onready var animated_sprite: AnimatedSprite2D = get_node_or_null("AnimatedSprite2D")
+@onready var follow_camera: Camera2D = get_node_or_null("Camera2D")
 
 func _ready() -> void:
 	_base_move_speed = move_speed
@@ -76,7 +79,7 @@ func _physics_process(_delta: float) -> void:
 	var input_vector := Input.get_vector("move_left", "move_right", "move_up", "move_down")
 	velocity = input_vector * move_speed
 	move_and_slide()
-	_apply_viewport_bounds()
+	_apply_movement_bounds()
 	_update_animation_state(input_vector.length() > 0.01)
 
 func take_damage(amount: int) -> void:
@@ -283,6 +286,34 @@ func _refresh_runtime_stats() -> void:
 			current_hp = mini(current_hp, max_hp)
 	hp_changed.emit(current_hp, max_hp)
 
+func set_world_movement_bounds(bounds: Rect2, enabled: bool = true) -> void:
+	if enabled and bounds.size.x > 1.0 and bounds.size.y > 1.0:
+		_world_movement_bounds = bounds
+		_use_world_movement_bounds = true
+	else:
+		_use_world_movement_bounds = false
+
+func configure_follow_camera(bounds: Rect2, enabled: bool = true) -> void:
+	if follow_camera == null:
+		return
+	follow_camera.enabled = true
+	if not enabled or bounds.size.x <= 1.0 or bounds.size.y <= 1.0:
+		follow_camera.limit_left = -10000000
+		follow_camera.limit_top = -10000000
+		follow_camera.limit_right = 10000000
+		follow_camera.limit_bottom = 10000000
+		return
+	follow_camera.limit_left = int(floor(bounds.position.x))
+	follow_camera.limit_top = int(floor(bounds.position.y))
+	follow_camera.limit_right = int(ceil(bounds.position.x + bounds.size.x))
+	follow_camera.limit_bottom = int(ceil(bounds.position.y + bounds.size.y))
+
+func _apply_movement_bounds() -> void:
+	if _use_world_movement_bounds:
+		_apply_world_bounds()
+		return
+	_apply_viewport_bounds()
+
 func _apply_viewport_bounds() -> void:
 	if not clamp_to_viewport_bounds:
 		return
@@ -295,6 +326,19 @@ func _apply_viewport_bounds() -> void:
 	var max_x: float = maxf(min_x, viewport_size.x - margin)
 	var min_y: float = margin
 	var max_y: float = maxf(min_y, viewport_size.y - margin)
+
+	var clamped_position: Vector2 = global_position
+	clamped_position.x = clampf(clamped_position.x, min_x, max_x)
+	clamped_position.y = clampf(clamped_position.y, min_y, max_y)
+	if clamped_position != global_position:
+		global_position = clamped_position
+
+func _apply_world_bounds() -> void:
+	var margin: float = maxf(0.0, visual_radius)
+	var min_x: float = _world_movement_bounds.position.x + margin
+	var max_x: float = maxf(min_x, _world_movement_bounds.position.x + _world_movement_bounds.size.x - margin)
+	var min_y: float = _world_movement_bounds.position.y + margin
+	var max_y: float = maxf(min_y, _world_movement_bounds.position.y + _world_movement_bounds.size.y - margin)
 
 	var clamped_position: Vector2 = global_position
 	clamped_position.x = clampf(clamped_position.x, min_x, max_x)

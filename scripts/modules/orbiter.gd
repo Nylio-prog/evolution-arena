@@ -26,6 +26,7 @@ var _current_orbit_radius: float = 72.0
 var _current_orbit_speed_rps: float = 2.5
 var _target_last_hit_time: Dictionary = {}
 var _hit_sfx_cooldown_left: float = 0.0
+var _pending_level_apply: int = -1
 
 func _ready() -> void:
 	add_to_group("player_modules")
@@ -42,7 +43,22 @@ func _physics_process(delta: float) -> void:
 	queue_redraw()
 
 func set_level(new_level: int) -> void:
-	orbiter_level = clampi(new_level, 0, 5)
+	var clamped_level: int = clampi(new_level, 0, 5)
+	if Engine.is_in_physics_frame():
+		_pending_level_apply = clamped_level
+		call_deferred("_apply_pending_level_if_needed")
+		return
+	_apply_level_now(clamped_level)
+
+func _apply_pending_level_if_needed() -> void:
+	if _pending_level_apply < 0:
+		return
+	var level_to_apply: int = _pending_level_apply
+	_pending_level_apply = -1
+	_apply_level_now(level_to_apply)
+
+func _apply_level_now(clamped_level: int) -> void:
+	orbiter_level = clampi(clamped_level, 0, 5)
 	_configure_level_stats()
 	_rebuild_orbiter_areas()
 	_update_orbiter_positions()

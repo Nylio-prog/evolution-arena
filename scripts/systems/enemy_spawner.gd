@@ -9,14 +9,14 @@ const ENEMY_RANGED_SCENE: PackedScene = preload("res://scenes/actors/enemy_range
 @export var ramp_duration_seconds: float = 220.0
 @export var spawn_ramp_delay_seconds: float = 24.0
 @export var spawn_distance: float = 480.0
-@export var dasher_initial_ratio: float = 0.35
-@export var dasher_max_ratio: float = 0.68
-@export var dasher_ramp_start_seconds: float = 0.0
+@export var dasher_initial_ratio: float = 0.24
+@export var dasher_max_ratio: float = 0.70
+@export var dasher_ramp_start_seconds: float = 18.0
 @export var dasher_ratio_wave_strength: float = 0.14
 @export var dasher_ratio_wave_period_seconds: float = 34.0
 @export var ranged_initial_ratio: float = 0.0
 @export var ranged_max_ratio: float = 0.34
-@export var ranged_ramp_start_seconds: float = 115.0
+@export var ranged_ramp_start_seconds: float = 185.0
 @export var ranged_ratio_wave_strength: float = 0.08
 @export var ranged_ratio_wave_period_seconds: float = 41.0
 @export var batch_ramp_start_seconds: float = 70.0
@@ -89,24 +89,29 @@ func _on_spawn_timer_timeout() -> void:
 			print("Spawned enemy at ", enemy_instance.global_position)
 
 func _select_enemy_scene() -> PackedScene:
-	var active_ramp_duration: float = maxf(1.0, ramp_duration_seconds - dasher_ramp_start_seconds)
-	var ramp_ratio: float = clampf((_elapsed_seconds - dasher_ramp_start_seconds) / active_ramp_duration, 0.0, 1.0)
-	var current_dasher_ratio: float = _compute_enemy_ratio(
-		dasher_initial_ratio,
-		dasher_max_ratio,
-		ramp_ratio,
-		dasher_ratio_wave_strength,
-		dasher_ratio_wave_period_seconds
-	)
-	var ranged_ramp_duration: float = maxf(1.0, ramp_duration_seconds - ranged_ramp_start_seconds)
-	var ranged_ratio: float = clampf((_elapsed_seconds - ranged_ramp_start_seconds) / ranged_ramp_duration, 0.0, 1.0)
-	var current_ranged_ratio: float = _compute_enemy_ratio(
-		ranged_initial_ratio,
-		ranged_max_ratio,
-		ranged_ratio,
-		ranged_ratio_wave_strength,
-		ranged_ratio_wave_period_seconds
-	)
+	var current_dasher_ratio: float = 0.0
+	if _elapsed_seconds >= dasher_ramp_start_seconds:
+		var active_ramp_duration: float = maxf(1.0, ramp_duration_seconds - dasher_ramp_start_seconds)
+		var ramp_ratio: float = clampf((_elapsed_seconds - dasher_ramp_start_seconds) / active_ramp_duration, 0.0, 1.0)
+		current_dasher_ratio = _compute_enemy_ratio(
+			dasher_initial_ratio,
+			dasher_max_ratio,
+			ramp_ratio,
+			dasher_ratio_wave_strength,
+			dasher_ratio_wave_period_seconds
+		)
+
+	var current_ranged_ratio: float = 0.0
+	if _elapsed_seconds >= ranged_ramp_start_seconds:
+		var ranged_ramp_duration: float = maxf(1.0, ramp_duration_seconds - ranged_ramp_start_seconds)
+		var ranged_ratio: float = clampf((_elapsed_seconds - ranged_ramp_start_seconds) / ranged_ramp_duration, 0.0, 1.0)
+		current_ranged_ratio = _compute_enemy_ratio(
+			ranged_initial_ratio,
+			ranged_max_ratio,
+			ranged_ratio,
+			ranged_ratio_wave_strength,
+			ranged_ratio_wave_period_seconds
+		)
 
 	var total_special_ratio: float = clampf(current_dasher_ratio + current_ranged_ratio, 0.0, 0.92)
 	var roll: float = randf()

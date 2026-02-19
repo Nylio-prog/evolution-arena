@@ -12,7 +12,7 @@ signal collected(amount: int)
 @export var collect_scale_multiplier: float = 1.55
 @export var collect_rise_pixels: float = 18.0
 @export var idle_pulse_amplitude: float = 0.08
-@export var idle_pulse_speed_hz: float = 1.8
+@export var idle_pulse_speed_hz: float = 0.85
 @export var auto_collect_base_radius: float = 48.0
 @export var debug_log_collect: bool = false
 

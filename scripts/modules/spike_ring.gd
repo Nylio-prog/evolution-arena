@@ -19,6 +19,10 @@ const SPIKE_SPRITE_TEXTURE: Texture2D = preload("res://art/sprites/modules/razor
 @export var level_3_rotation_speed_rps: float = 0.68
 @export var level_4_rotation_speed_rps: float = 0.82
 @export var level_5_rotation_speed_rps: float = 0.96
+@export var sustain_unlock_level: int = 1
+@export var sustain_heal_per_enemy_hit: int = 1
+@export var sustain_heal_per_level_bonus: int = 1
+@export var sustain_max_enemy_hits_per_tick: int = 2
 @export var debug_log_hits: bool = false
 
 @onready var audio_manager: Node = get_node_or_null("/root/AudioManager")
@@ -28,6 +32,7 @@ var spike_level: int = 0
 var _damage_tick_accumulator: float = 0.0
 var _hit_sfx_cooldown_left: float = 0.0
 var _runtime_spike_areas: Array[Area2D] = []
+var _cached_player: Node = null
 
 func _ready() -> void:
 	add_to_group("player_modules")
@@ -85,6 +90,7 @@ func _rebuild_spike_areas() -> void:
 
 func _deal_contact_damage_tick() -> void:
 	var did_hit_target: bool = false
+	var unique_enemy_hits: Dictionary = {}
 	for spike_area in _runtime_spike_areas:
 		if spike_area == null:
 			continue
@@ -102,11 +108,13 @@ func _deal_contact_damage_tick() -> void:
 
 			target.call("take_damage", spike_damage)
 			did_hit_target = true
+			unique_enemy_hits[target.get_instance_id()] = true
 			if debug_log_hits:
 				print("Spike hit enemy for ", spike_damage)
 	if did_hit_target and _hit_sfx_cooldown_left <= 0.0:
 		_play_sfx("sfx_razor_halo_hit", -8.0, randf_range(0.94, 1.08))
 		_hit_sfx_cooldown_left = maxf(0.02, hit_sfx_cooldown_seconds)
+	_apply_contact_sustain(unique_enemy_hits.size())
 
 func _get_spike_count_for_level(level: int) -> int:
 	match level:
@@ -163,6 +171,40 @@ func _play_sfx(event_id: String, volume_db_offset: float = 0.0, pitch_scale: flo
 	if not audio_manager.has_method("play_sfx"):
 		return
 	audio_manager.call("play_sfx", event_id, volume_db_offset, pitch_scale)
+
+func _apply_contact_sustain(unique_hit_count: int) -> void:
+	if spike_level < maxi(1, sustain_unlock_level):
+		return
+	if unique_hit_count <= 0:
+		return
+	var player_node: Node = _get_player_node()
+	if player_node == null:
+		return
+	if not player_node.has_method("heal"):
+		return
+
+	var capped_hits: int = mini(unique_hit_count, maxi(1, sustain_max_enemy_hits_per_tick))
+	var heal_per_enemy_hit: int = maxi(
+		0,
+		sustain_heal_per_enemy_hit + maxi(0, spike_level - 1) * maxi(0, sustain_heal_per_level_bonus)
+	)
+	var heal_amount: int = heal_per_enemy_hit * capped_hits
+	if heal_amount <= 0:
+		return
+	player_node.call("heal", heal_amount)
+
+func _get_player_node() -> Node:
+	if _cached_player != null and is_instance_valid(_cached_player):
+		return _cached_player
+	var parent_node: Node = get_parent()
+	if parent_node != null and is_instance_valid(parent_node) and parent_node.is_in_group("player"):
+		_cached_player = parent_node
+		return _cached_player
+	var scene_tree: SceneTree = get_tree()
+	if scene_tree == null:
+		return null
+	_cached_player = scene_tree.get_first_node_in_group("player")
+	return _cached_player
 
 func _build_spike_area_instance() -> Area2D:
 	if spike_template != null:

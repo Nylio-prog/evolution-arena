@@ -1,7 +1,7 @@
 [gd_scene format=3 uid="uid://dtiv6dfiwc8k0"]
 
 [ext_resource type="PackedScene" uid="uid://b8q3qd56dv6ge" path="res://scenes/actors/player.tscn" id="1_e05a3"]
-[ext_resource type="Texture2D" uid="uid://bwurrcbfmr1rq" path="res://art/sprites/environment/arena_bg_main.jpg" id="2_8vbsj"]
+[ext_resource type="Texture2D" uid="uid://bjua6cb7q4q67" path="res://art/sprites/environment/arena_bg_main.png" id="2_8vbsj"]
 [ext_resource type="PackedScene" uid="uid://chajohnv7utp" path="res://scenes/ui/ui_hud.tscn" id="3_rbtd0"]
 [ext_resource type="Script" uid="uid://d106i6a2grg7p" path="res://scripts/systems/game_manager.gd" id="4_6g2vy"]
 [ext_resource type="PackedScene" uid="uid://chcru5d2lttfj" path="res://scenes/ui/game_over.tscn" id="5_p3n4s"]
@@ -12,29 +12,15 @@
 [ext_resource type="Script" uid="uid://bkpmxrcd71u3k" path="res://scripts/systems/mutation_system.gd" id="10_6wsqv"]
 [ext_resource type="Script" uid="uid://74p2agjx4iod" path="res://scripts/systems/crisis_director.gd" id="11_oj863"]
 [ext_resource type="PackedScene" path="res://scenes/ui/victory.tscn" id="12_jbq7r"]
-[ext_resource type="Texture2D" uid="uid://d2q15802l5ycr" path="res://art/sprites/environment/arena_bg_variant_overlay.png" id="13_f28u0"]
 
 [node name="Arena" type="Node2D" unique_id=1478589997]
 script = ExtResource("4_6g2vy")
 debug_allow_grant_xp = true
 
-[node name="ColorRect" type="ColorRect" parent="." unique_id=1178337492]
-z_index = -99
-offset_right = 1920.0
-offset_bottom = 1080.0
-mouse_filter = 2
-color = Color(0, 0.40392157, 0.5647059, 0.22)
-
 [node name="Sprite2D" type="Sprite2D" parent="." unique_id=1995012003]
 z_index = -100
 position = Vector2(941, 509)
 texture = ExtResource("2_8vbsj")
-
-[node name="VariantOverlay" type="Sprite2D" parent="." unique_id=1326413139]
-modulate = Color(1, 1, 1, 0.06)
-z_index = -98
-texture = ExtResource("13_f28u0")
-centered = false
 
 [node name="Player" parent="." unique_id=1353408687 instance=ExtResource("1_e05a3")]
 position = Vector2(972, 487)

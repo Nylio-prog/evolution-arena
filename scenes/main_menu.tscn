@@ -130,6 +130,15 @@ theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_button_pressed")
 text = "Options"
 
+[node name="CreditsButton" type="Button" parent="Root/MenuPanel/Content/Buttons"]
+custom_minimum_size = Vector2(340, 62)
+layout_mode = 2
+theme_override_font_sizes/font_size = 30
+theme_override_styles/normal = SubResource("StyleBoxFlat_button")
+theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_button_pressed")
+text = "Credits"
+
 [node name="QuitButton" type="Button" parent="Root/MenuPanel/Content/Buttons"]
 custom_minimum_size = Vector2(340, 62)
 layout_mode = 2
@@ -253,4 +262,72 @@ text = "Close"
 
 [node name="OptionsBottomPadding" type="Control" parent="OptionsPanel/OptionsContent"]
 custom_minimum_size = Vector2(0, 14)
+layout_mode = 2
+
+[node name="CreditsPanel" type="PanelContainer" parent="."]
+visible = false
+custom_minimum_size = Vector2(620, 280)
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -310.0
+offset_top = -140.0
+offset_right = 310.0
+offset_bottom = 140.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 24
+theme_override_constants/margin_top = 20
+theme_override_constants/margin_right = 24
+theme_override_constants/margin_bottom = 20
+theme_override_styles/panel = SubResource("StyleBoxFlat_options_panel")
+
+[node name="CreditsContent" type="VBoxContainer" parent="CreditsPanel"]
+layout_mode = 2
+theme_override_constants/separation = 14
+
+[node name="CreditsTopPadding" type="Control" parent="CreditsPanel/CreditsContent"]
+custom_minimum_size = Vector2(0, 10)
+layout_mode = 2
+
+[node name="CreditsTitle" type="Label" parent="CreditsPanel/CreditsContent"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 36
+theme_override_colors/font_color = Color(0.9, 0.96, 1, 1)
+text = "CREDITS"
+horizontal_alignment = 1
+
+[node name="DeveloperLabel" type="Label" parent="CreditsPanel/CreditsContent"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+theme_override_colors/font_color = Color(0.74, 0.89, 0.98, 0.95)
+text = "Developer"
+horizontal_alignment = 1
+
+[node name="DeveloperNameLabel" type="Label" parent="CreditsPanel/CreditsContent"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 30
+theme_override_colors/font_color = Color(0.95, 0.97, 1, 1)
+text = "Nylio"
+horizontal_alignment = 1
+
+[node name="CreditsSpacer" type="Control" parent="CreditsPanel/CreditsContent"]
+custom_minimum_size = Vector2(0, 8)
+layout_mode = 2
+
+[node name="CloseCreditsButton" type="Button" parent="CreditsPanel/CreditsContent"]
+custom_minimum_size = Vector2(220, 54)
+layout_mode = 2
+size_flags_horizontal = 4
+theme_override_font_sizes/font_size = 26
+theme_override_styles/normal = SubResource("StyleBoxFlat_button")
+theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_button_pressed")
+text = "Close"
+
+[node name="CreditsBottomPadding" type="Control" parent="CreditsPanel/CreditsContent"]
+custom_minimum_size = Vector2(0, 10)
 layout_mode = 2

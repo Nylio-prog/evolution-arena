@@ -22,7 +22,8 @@ signal died_detailed(world_position: Vector2, enemy_node: Node)
 @export var player_contact_cooldown_seconds: float = 0.20
 @export var infection_tick_interval_seconds: float = 0.65
 @export var conversion_visual_tint: Color = Color(0.42, 1.0, 0.82, 1.0)
-@export var converted_damage_multiplier: float = 1.15
+@export var converted_damage_multiplier: float = 0.65
+@export var converted_contact_cooldown_seconds: float = 0.30
 
 var current_hp: int
 var _player: Node2D
@@ -40,6 +41,7 @@ var _viral_mark_time_left: float = 0.0
 var _viral_mark_damage_multiplier: float = 1.0
 var _next_player_contact_time_seconds: float = 0.0
 var _player_collision_exception_added: bool = false
+var _next_converted_contact_time_by_target_id: Dictionary = {}
 
 @onready var animated_sprite: AnimatedSprite2D = get_node_or_null("AnimatedSprite2D")
 @onready var collision_shape: CollisionShape2D = get_node_or_null("CollisionShape2D")
@@ -105,6 +107,8 @@ func _apply_contact_damage() -> void:
 		if not collider.is_in_group("hostile_enemies"):
 			continue
 		if collider == self:
+			continue
+		if not _can_hit_converted_target_now(collider):
 			continue
 		if collider.has_method("take_damage"):
 			collider.call("take_damage", maxi(1, int(round(float(contact_damage) * converted_damage_multiplier))))
@@ -405,6 +409,17 @@ func _try_damage_player_by_contact_range() -> void:
 		print("Enemy hit player for ", contact_damage)
 	_player.call("take_damage", contact_damage)
 	_next_player_contact_time_seconds = now_seconds + maxf(0.05, player_contact_cooldown_seconds)
+
+func _can_hit_converted_target_now(target: Node) -> bool:
+	if target == null:
+		return false
+	var target_id: int = target.get_instance_id()
+	var now_seconds: float = float(Time.get_ticks_usec()) / 1000000.0
+	var next_allowed_seconds: float = float(_next_converted_contact_time_by_target_id.get(target_id, 0.0))
+	if now_seconds < next_allowed_seconds:
+		return false
+	_next_converted_contact_time_by_target_id[target_id] = now_seconds + maxf(0.05, converted_contact_cooldown_seconds)
+	return true
 
 func _get_contact_radius() -> float:
 	if collision_shape == null:

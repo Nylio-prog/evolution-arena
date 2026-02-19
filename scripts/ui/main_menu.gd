@@ -4,13 +4,16 @@ extends Control
 
 @onready var play_button: Button = get_node_or_null("Root/MenuPanel/Content/Buttons/PlayButton")
 @onready var options_button: Button = get_node_or_null("Root/MenuPanel/Content/Buttons/OptionsButton")
+@onready var credits_button: Button = get_node_or_null("Root/MenuPanel/Content/Buttons/CreditsButton")
 @onready var quit_button: Button = get_node_or_null("Root/MenuPanel/Content/Buttons/QuitButton")
 @onready var options_panel: PanelContainer = get_node_or_null("OptionsPanel")
+@onready var credits_panel: PanelContainer = get_node_or_null("CreditsPanel")
 @onready var sfx_slider: HSlider = get_node_or_null("OptionsPanel/OptionsContent/AudioRows/SfxRow/SfxSlider")
 @onready var sfx_mute_toggle: CheckButton = get_node_or_null("OptionsPanel/OptionsContent/AudioRows/SfxRow/SfxMuteToggle")
 @onready var music_slider: HSlider = get_node_or_null("OptionsPanel/OptionsContent/AudioRows/MusicRow/MusicSlider")
 @onready var music_mute_toggle: CheckButton = get_node_or_null("OptionsPanel/OptionsContent/AudioRows/MusicRow/MusicMuteToggle")
 @onready var close_options_button: Button = get_node_or_null("OptionsPanel/OptionsContent/CloseOptionsButton")
+@onready var close_credits_button: Button = get_node_or_null("CreditsPanel/CreditsContent/CloseCreditsButton")
 @onready var audio_manager: Node = get_node_or_null("/root/AudioManager")
 
 var _arena_preload_started: bool = false
@@ -24,6 +27,7 @@ func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	_connect_ui()
 	_set_options_visible(false)
+	_set_credits_visible(false)
 	_setup_audio_controls()
 	_play_music("bgm_menu_loop")
 	_begin_arena_preload()
@@ -39,12 +43,16 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	if key_event.keycode != KEY_ESCAPE:
 		return
-	if options_panel == null or not options_panel.visible:
+	if options_panel != null and options_panel.visible:
+		_set_options_visible(false)
+		_play_sfx("sfx_ui_click")
+		get_viewport().set_input_as_handled()
 		return
-
-	_set_options_visible(false)
-	_play_sfx("sfx_ui_click")
-	get_viewport().set_input_as_handled()
+	if credits_panel != null and credits_panel.visible:
+		_set_credits_visible(false)
+		_play_sfx("sfx_ui_click")
+		get_viewport().set_input_as_handled()
+		return
 
 func _connect_ui() -> void:
 	var play_callable := Callable(self, "_on_play_pressed")
@@ -55,6 +63,10 @@ func _connect_ui() -> void:
 	if options_button != null and not options_button.pressed.is_connected(options_callable):
 		options_button.pressed.connect(options_callable)
 
+	var credits_callable := Callable(self, "_on_credits_pressed")
+	if credits_button != null and not credits_button.pressed.is_connected(credits_callable):
+		credits_button.pressed.connect(credits_callable)
+
 	var quit_callable := Callable(self, "_on_quit_pressed")
 	if quit_button != null and not quit_button.pressed.is_connected(quit_callable):
 		quit_button.pressed.connect(quit_callable)
@@ -62,6 +74,10 @@ func _connect_ui() -> void:
 	var close_options_callable := Callable(self, "_on_close_options_pressed")
 	if close_options_button != null and not close_options_button.pressed.is_connected(close_options_callable):
 		close_options_button.pressed.connect(close_options_callable)
+
+	var close_credits_callable := Callable(self, "_on_close_credits_pressed")
+	if close_credits_button != null and not close_credits_button.pressed.is_connected(close_credits_callable):
+		close_credits_button.pressed.connect(close_credits_callable)
 
 func _on_play_pressed() -> void:
 	_play_sfx("sfx_ui_click")
@@ -85,11 +101,23 @@ func _on_options_pressed() -> void:
 	_play_sfx("sfx_ui_click")
 	if options_panel == null:
 		return
+	_set_credits_visible(false)
 	_set_options_visible(not options_panel.visible)
 
 func _on_close_options_pressed() -> void:
 	_play_sfx("sfx_ui_click")
 	_set_options_visible(false)
+
+func _on_credits_pressed() -> void:
+	_play_sfx("sfx_ui_click")
+	if credits_panel == null:
+		return
+	_set_options_visible(false)
+	_set_credits_visible(not credits_panel.visible)
+
+func _on_close_credits_pressed() -> void:
+	_play_sfx("sfx_ui_click")
+	_set_credits_visible(false)
 
 func _on_quit_pressed() -> void:
 	_play_sfx("sfx_ui_click")
@@ -98,6 +126,10 @@ func _on_quit_pressed() -> void:
 func _set_options_visible(should_show: bool) -> void:
 	if options_panel != null:
 		options_panel.visible = should_show
+
+func _set_credits_visible(should_show: bool) -> void:
+	if credits_panel != null:
+		credits_panel.visible = should_show
 
 func _setup_audio_controls() -> void:
 	var sfx_value: float = 0.5

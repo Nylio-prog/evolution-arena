@@ -18,6 +18,7 @@ var _direction: Vector2 = Vector2.RIGHT
 var _time_left: float = 0.0
 
 func _ready() -> void:
+	add_to_group("enemy_projectiles")
 	_time_left = maxf(0.05, life_seconds)
 	_apply_collision_radius()
 	_apply_visual()

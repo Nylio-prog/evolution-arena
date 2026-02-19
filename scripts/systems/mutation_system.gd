@@ -1,4 +1,4 @@
-﻿extends Node
+extends Node
 
 const MUTATIONS_DATA = preload("res://data/mutations.gd")
 
@@ -43,7 +43,7 @@ const STAT_DEFS: Dictionary = {
 		"id": "offense_boost",
 		"name": "Cytotoxicity",
 		"short_by_level": {1: "+8% damage", 2: "+16% damage", 3: "+24% damage"},
-		"description": "Increase damage dealt by all modules and spells.",
+		"description": "Increase damage dealt by all abilities.",
 		"icon_id": "stat_offense",
 		"max_level": 3
 	},
@@ -75,7 +75,7 @@ const STAT_DEFS: Dictionary = {
 		"id": "cooldown_boost",
 		"name": "Replication Tempo",
 		"short_by_level": {1: "-6% cooldown", 2: "-12% cooldown", 3: "-18% cooldown"},
-		"description": "Reduce global module cooldowns.",
+		"description": "Reduce global ability cooldowns.",
 		"icon_id": "stat_cooldown",
 		"max_level": 3
 	},
@@ -700,3 +700,4 @@ func _apply_runtime_to_infective_secretion(module_node: Node, damage_multiplier:
 	module_node.set("base_damage_tick_interval_seconds", maxf(0.08, base_tick_interval * cooldown_multiplier))
 	if module_node.has_method("set_level"):
 		module_node.call("set_level", get_mutation_level("infective_secretion"))
+
