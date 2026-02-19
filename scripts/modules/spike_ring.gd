@@ -17,6 +17,8 @@ const SPIKE_SPRITE_TEXTURE: Texture2D = preload("res://art/sprites/modules/razor
 @export var level_1_rotation_speed_rps: float = 0.38
 @export var level_2_rotation_speed_rps: float = 0.52
 @export var level_3_rotation_speed_rps: float = 0.68
+@export var level_4_rotation_speed_rps: float = 0.82
+@export var level_5_rotation_speed_rps: float = 0.96
 @export var debug_log_hits: bool = false
 
 @onready var audio_manager: Node = get_node_or_null("/root/AudioManager")
@@ -45,7 +47,7 @@ func _process(delta: float) -> void:
 	_deal_contact_damage_tick()
 
 func set_level(new_level: int) -> void:
-	spike_level = clampi(new_level, 0, 3)
+	spike_level = clampi(new_level, 0, 5)
 	_rebuild_spike_areas()
 	_refresh_spike_visuals()
 	queue_redraw()
@@ -114,6 +116,10 @@ func _get_spike_count_for_level(level: int) -> int:
 			return 6
 		3:
 			return 8
+		4:
+			return 10
+		5:
+			return 12
 		_:
 			return 0
 
@@ -125,6 +131,10 @@ func _get_rotation_speed_for_level(level: int) -> float:
 			return maxf(0.0, level_2_rotation_speed_rps)
 		3:
 			return maxf(0.0, level_3_rotation_speed_rps)
+		4:
+			return maxf(0.0, level_4_rotation_speed_rps)
+		5:
+			return maxf(0.0, level_5_rotation_speed_rps)
 		_:
 			return 0.0
 

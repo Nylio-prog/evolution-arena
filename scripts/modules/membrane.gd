@@ -37,7 +37,7 @@ func _process(delta: float) -> void:
 	_update_visual_sprite()
 
 func set_level(new_level: int) -> void:
-	membrane_level = clampi(new_level, 0, 3)
+	membrane_level = clampi(new_level, 0, 5)
 	_apply_to_player()
 	_update_visual_sprite()
 
@@ -62,6 +62,10 @@ func _get_damage_multiplier_for_level(level: int) -> float:
 			return 0.70
 		3:
 			return 0.55
+		4:
+			return 0.45
+		5:
+			return 0.35
 		_:
 			return 1.0
 

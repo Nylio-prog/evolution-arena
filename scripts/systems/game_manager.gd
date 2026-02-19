@@ -286,6 +286,7 @@ var _base_arena_tint_color: Color = Color(0.0, 0.40392157, 0.5647059, 0.22)
 @export var synergy_popup_enabled: bool = true
 @export var synergy_popup_duration_seconds: float = 3.4
 @export var synergy_popup_fade_seconds: float = 0.36
+@export var runtime_popup_top_offset: float = 112.0
 @export var final_crisis_intro_popup_enabled: bool = true
 @export var run_intro_popup_enabled: bool = true
 @export var run_intro_popup_duration_seconds: float = 8.0
@@ -506,6 +507,7 @@ func _reset_runtime_state() -> void:
 	if crisis_director != null and crisis_director.has_method("reset_runtime_state"):
 		crisis_director.call("reset_runtime_state")
 	_apply_crisis_ui_accent("idle", "", 0.0)
+	_sync_player_level_spell_scaling()
 	_refresh_run_inventory_ui()
 
 func _setup_crisis_director() -> void:
@@ -1499,9 +1501,7 @@ func _apply_crisis_ui_accent(phase_name: String, crisis_id: String, phase_second
 	accent_strength = clampf(accent_strength, 0.0, 0.55)
 
 	if arena_tint_rect != null:
-		var target_tint_color: Color = _base_arena_tint_color.lerp(accent_color, accent_strength)
-		target_tint_color.a = _base_arena_tint_color.a + (0.22 * accent_strength)
-		arena_tint_rect.color = target_tint_color
+		arena_tint_rect.color = _base_arena_tint_color
 
 	if timer_label != null:
 		var timer_mix: float = 0.0
@@ -1729,9 +1729,17 @@ func _on_xp_changed(current_xp: int, xp_to_next_level: int) -> void:
 
 func _on_level_changed(current_level: int) -> void:
 	level_reached = current_level
+	_sync_player_level_spell_scaling()
 	if level_label == null:
 		return
 	level_label.text = "Level: %d" % current_level
+
+func _sync_player_level_spell_scaling() -> void:
+	if mutation_system == null:
+		return
+	if not mutation_system.has_method("set_runtime_player_level"):
+		return
+	mutation_system.call("set_runtime_player_level", maxi(1, level_reached))
 
 func _on_lineage_changed(_lineage_id: String, _lineage_name: String) -> void:
 	_refresh_lineage_labels()
@@ -2161,9 +2169,9 @@ func _ensure_synergy_popup_ui() -> void:
 	_synergy_popup_panel.anchor_right = 0.5
 	_synergy_popup_panel.anchor_bottom = 0.0
 	_synergy_popup_panel.offset_left = -250.0
-	_synergy_popup_panel.offset_top = 72.0
+	_synergy_popup_panel.offset_top = runtime_popup_top_offset
 	_synergy_popup_panel.offset_right = 250.0
-	_synergy_popup_panel.offset_bottom = 138.0
+	_synergy_popup_panel.offset_bottom = runtime_popup_top_offset + 66.0
 	ui_hud_layer.add_child(_synergy_popup_panel)
 
 	var popup_padding := MarginContainer.new()
@@ -3123,12 +3131,15 @@ func _refresh_pause_stats_panel() -> void:
 	var hp_max: int = 0
 	var move_speed_value: float = 0.0
 	var incoming_damage_multiplier_value: float = 1.0
+	var block_chance_value: float = 0.0
 	var pickup_radius_multiplier_value: float = 1.0
 	if player != null:
 		hp_current = int(player.get("current_hp"))
 		hp_max = maxi(1, int(player.get("max_hp")))
 		move_speed_value = float(player.get("move_speed"))
 		incoming_damage_multiplier_value = clampf(float(player.get("incoming_damage_multiplier")), 0.05, 1.0)
+		if player.has_method("get_block_chance"):
+			block_chance_value = clampf(float(player.call("get_block_chance")), 0.0, 0.95)
 		if player.has_method("get_pickup_radius_multiplier"):
 			pickup_radius_multiplier_value = maxf(0.1, float(player.call("get_pickup_radius_multiplier")))
 
@@ -3165,6 +3176,7 @@ func _refresh_pause_stats_panel() -> void:
 	_append_pause_stats_row(lines, "HP", "%d / %d" % [hp_current, hp_max])
 	_append_pause_stats_row(lines, "Move Speed", "%.1f" % move_speed_value)
 	_append_pause_stats_row(lines, "Incoming Damage", "x%.2f (%.1f%% reduced)" % [incoming_damage_multiplier_value, damage_reduction_percent])
+	_append_pause_stats_row(lines, "Block Chance", "%.1f%%" % (block_chance_value * 100.0))
 	_append_pause_stats_row(lines, "Pickup Radius", "x%.2f" % pickup_radius_multiplier_value)
 	_append_pause_stats_row(lines, "Bonus Regen", "+%.1f HP/s" % _get_total_bonus_regen_per_second())
 	_append_pause_stats_spacer(lines)
@@ -3370,6 +3382,10 @@ func _get_spike_count_for_level(level_value: int) -> int:
 			return 6
 		3:
 			return 8
+		4:
+			return 10
+		5:
+			return 12
 		_:
 			return 0
 
@@ -3379,6 +3395,10 @@ func _get_orbiter_count_for_level(level_value: int) -> int:
 			return 1
 		2, 3:
 			return 2
+		4:
+			return 3
+		5:
+			return 4
 		_:
 			return 0
 
@@ -3390,6 +3410,25 @@ func _get_membrane_reduction_for_level(level_value: int) -> float:
 			return 30.0
 		3:
 			return 45.0
+		4:
+			return 55.0
+		5:
+			return 65.0
+		_:
+			return 0.0
+
+func _get_lytic_guard_block_chance_for_level(level_value: int) -> float:
+	match level_value:
+		1:
+			return 0.06
+		2:
+			return 0.10
+		3:
+			return 0.14
+		4:
+			return 0.18
+		5:
+			return 0.22
 		_:
 			return 0.0
 
@@ -3401,6 +3440,10 @@ func _get_pulse_damage_for_level(level_value: int) -> int:
 			return int(round(8.0 * 1.35))
 		3:
 			return int(round(8.0 * 1.75))
+		4:
+			return int(round(8.0 * 2.10))
+		5:
+			return int(round(8.0 * 2.45))
 		_:
 			return 0
 
@@ -3412,6 +3455,10 @@ func _get_pulse_radius_for_level(level_value: int) -> float:
 			return 96.0
 		3:
 			return 110.0
+		4:
+			return 124.0
+		5:
+			return 138.0
 		_:
 			return 0.0
 
@@ -3423,6 +3470,10 @@ func _get_pulse_interval_for_level(level_value: int) -> float:
 			return maxf(0.40, 1.85 * 0.86)
 		3:
 			return maxf(0.34, 1.85 * 0.74)
+		4:
+			return maxf(0.30, 1.85 * 0.66)
+		5:
+			return maxf(0.26, 1.85 * 0.58)
 		_:
 			return 999.0
 
@@ -3431,9 +3482,13 @@ func _get_acid_damage_for_level(level_value: int) -> int:
 		1:
 			return 3
 		2:
-			return int(round(3.0 * 1.33))
+			return int(round(3.0 * 1.25))
 		3:
-			return int(round(3.0 * 1.65))
+			return int(round(3.0 * 1.50))
+		4:
+			return int(round(3.0 * 1.80))
+		5:
+			return int(round(3.0 * 2.10))
 		_:
 			return 0
 
@@ -3442,31 +3497,43 @@ func _get_acid_radius_for_level(level_value: int) -> float:
 		1:
 			return 17.0
 		2:
-			return 19.0
+			return 18.5
 		3:
+			return 20.0
+		4:
 			return 21.5
+		5:
+			return 23.0
 		_:
 			return 0.0
 
 func _get_acid_lifetime_for_level(level_value: int) -> float:
 	match level_value:
 		1:
-			return 2.1
+			return 1.8
 		2:
-			return 2.8
+			return 2.25
 		3:
-			return 3.3
+			return 2.65
+		4:
+			return 3.05
+		5:
+			return 3.5
 		_:
 			return 0.0
 
 func _get_acid_tick_interval_for_level(level_value: int) -> float:
 	match level_value:
 		1:
-			return 0.45
+			return 0.50
 		2:
-			return maxf(0.20, 0.45 * 0.84)
+			return maxf(0.24, 0.50 * 0.90)
 		3:
-			return maxf(0.18, 0.45 * 0.72)
+			return maxf(0.21, 0.50 * 0.82)
+		4:
+			return maxf(0.18, 0.50 * 0.74)
+		5:
+			return maxf(0.16, 0.50 * 0.66)
 		_:
 			return 999.0
 
@@ -3478,6 +3545,10 @@ func _get_metabolism_regen_for_level(level_value: int) -> float:
 			return 3.6
 		3:
 			return 5.76
+		4:
+			return 8.1
+		5:
+			return 10.8
 		_:
 			return 0.0
 
@@ -3494,25 +3565,56 @@ func _get_preview_acid_lifetime_multiplier() -> float:
 	return maxf(0.1, _reward_acid_lifetime_multiplier * _synergy_acid_lifetime_multiplier)
 
 func _build_mutation_gain_summary_for_level(mutation_id: String, level_value: int) -> String:
-	var clamped_level: int = clampi(level_value, 1, 3)
+	var clamped_level: int = clampi(level_value, 1, 5)
 	var module_damage_multiplier: float = _get_preview_module_damage_multiplier()
 	match mutation_id:
 		"proto_pulse":
-			var proto_damage: int = maxi(1, int(round((6.0 + float(clamped_level - 1) * 1.5) * module_damage_multiplier)))
-			var proto_radius: float = (72.0 + float(clamped_level - 1) * 12.0) * _get_preview_pulse_radius_multiplier()
+			var proto_damage_base: float = 6.0
+			match clamped_level:
+				2:
+					proto_damage_base *= 1.35
+				3:
+					proto_damage_base *= 1.65
+				4:
+					proto_damage_base *= 2.0
+				5:
+					proto_damage_base *= 2.35
+			var proto_radius_base: float = 92.0
+			match clamped_level:
+				2:
+					proto_radius_base += 12.0
+				3:
+					proto_radius_base += 24.0
+				4:
+					proto_radius_base += 38.0
+				5:
+					proto_radius_base += 54.0
+			var proto_damage: int = maxi(1, int(round(proto_damage_base * module_damage_multiplier)))
+			var proto_radius: float = proto_radius_base * _get_preview_pulse_radius_multiplier()
 			return "Gain: %d pulse dmg | %.0f range" % [proto_damage, proto_radius]
 		"razor_halo":
 			var blade_count: int = _get_spike_count_for_level(clamped_level)
 			var blade_damage: int = maxi(1, int(round(8.0 * module_damage_multiplier)))
 			return "Gain: %d blades | %d contact dmg every 0.20s" % [blade_count, blade_damage]
 		"puncture_lance":
-			var lance_hits: int = clampi(clamped_level, 1, 3)
-			var lance_damage: int = maxi(1, int(round((12.0 + float(clamped_level - 1) * 3.0) * module_damage_multiplier)))
+			var lance_hits: int = clampi(clamped_level, 1, 5)
+			var lance_damage_base: float = 12.0
+			match clamped_level:
+				2:
+					lance_damage_base *= 1.20
+				3:
+					lance_damage_base *= 1.38
+				4:
+					lance_damage_base *= 1.58
+				5:
+					lance_damage_base *= 1.80
+			var lance_damage: int = maxi(1, int(round(lance_damage_base * module_damage_multiplier)))
 			return "Gain: %d lances/volley | %d pierce dmg" % [lance_hits, lance_damage]
 		"lytic_burst":
 			var burst_damage: int = maxi(1, int(round(float(_get_pulse_damage_for_level(clamped_level)) * 1.25 * module_damage_multiplier)))
 			var burst_radius: float = (_get_pulse_radius_for_level(clamped_level) + 20.0) * _get_preview_pulse_radius_multiplier()
-			return "Gain: burst %d dmg | %.0f radius" % [burst_damage, burst_radius]
+			var block_chance_pct: int = int(round(_get_lytic_guard_block_chance_for_level(clamped_level) * 100.0))
+			return "Gain: burst %d dmg | %.0f radius | %d%% block chance" % [burst_damage, burst_radius, block_chance_pct]
 		"infective_secretion":
 			var secretion_damage: int = maxi(1, int(round(float(_get_acid_damage_for_level(clamped_level)) * module_damage_multiplier)))
 			var secretion_lifetime: float = _get_acid_lifetime_for_level(clamped_level) * _get_preview_acid_lifetime_multiplier()
@@ -3522,19 +3624,75 @@ func _build_mutation_gain_summary_for_level(mutation_id: String, level_value: in
 			var virion_damage: int = maxi(1, int(round(6.0 * module_damage_multiplier)))
 			return "Gain: %d virions | %d contact dmg + infection" % [virion_count, virion_damage]
 		"chain_bloom":
-			var bloom_damage: int = maxi(1, int(round((9.0 + float(clamped_level - 1) * 3.0) * module_damage_multiplier)))
-			var bloom_radius: float = 90.0 + float(clamped_level - 1) * 26.0
+			var bloom_damage_base: float = 9.0
+			match clamped_level:
+				2:
+					bloom_damage_base *= 1.25
+				3:
+					bloom_damage_base *= 1.55
+				4:
+					bloom_damage_base *= 1.85
+				5:
+					bloom_damage_base *= 2.20
+			var bloom_damage: int = maxi(1, int(round(bloom_damage_base * module_damage_multiplier)))
+			var bloom_radius: float = 90.0
+			match clamped_level:
+				2:
+					bloom_radius += 26.0
+				3:
+					bloom_radius += 52.0
+				4:
+					bloom_radius += 80.0
+				5:
+					bloom_radius += 110.0
 			return "Gain: infected deaths bloom | %d dmg in %.0f radius" % [bloom_damage, bloom_radius]
 		"leech_tendril":
-			var leech_damage: int = maxi(1, int(round((4.0 + float(clamped_level - 1) * 1.5) * module_damage_multiplier)))
-			var leech_heal: int = 2 + maxi(0, clamped_level - 1)
+			var leech_damage_base: float = 4.0
+			match clamped_level:
+				2:
+					leech_damage_base *= 1.25
+				3:
+					leech_damage_base *= 1.48
+				4:
+					leech_damage_base *= 1.75
+				5:
+					leech_damage_base *= 2.05
+			var leech_damage: int = maxi(1, int(round(leech_damage_base * module_damage_multiplier)))
+			var leech_heal: int = 2
+			match clamped_level:
+				2:
+					leech_heal = 3
+				3:
+					leech_heal = 4
+				4:
+					leech_heal = 5
+				5:
+					leech_heal = 6
 			return "Gain: drain %d dmg tick | heal %d per tether tick" % [leech_damage, leech_heal]
 		"protein_shell":
 			var shell_reduction: float = _get_membrane_reduction_for_level(clamped_level) - 3.0
 			return "Gain: %.0f%% less incoming damage" % maxf(8.0, shell_reduction)
 		"host_override":
-			var threshold_pct: int = 25 + ((clamped_level - 1) * 15)
-			var hosts_cap: int = 1 + maxi(0, clamped_level - 1)
+			var threshold_pct: int = 25
+			match clamped_level:
+				2:
+					threshold_pct = 40
+				3:
+					threshold_pct = 55
+				4:
+					threshold_pct = 65
+				5:
+					threshold_pct = 75
+			var hosts_cap: int = 1
+			match clamped_level:
+				2:
+					hosts_cap = 2
+				3:
+					hosts_cap = 3
+				4:
+					hosts_cap = 4
+				5:
+					hosts_cap = 5
 			return "Gain: convert enemies under %d%% HP | up to %d hosts" % [threshold_pct, hosts_cap]
 		"offense_boost":
 			return "Gain: +%d%% module/spell damage" % (clamped_level * 8)
@@ -4032,9 +4190,10 @@ func _open_crisis_reward_prompt(crisis_id: String) -> bool:
 	return true
 
 func _build_crisis_reward_options(crisis_id: String) -> Array:
+	var configured_options: Array = []
 	match crisis_id:
 		"uv_sweep_grid", "quarantine_lattice":
-			return [
+			configured_options = [
 				_build_crisis_reward_option(
 					"focused_instability",
 					"Focused Instability",
@@ -4052,15 +4211,6 @@ func _build_crisis_reward_options(crisis_id: String) -> Array:
 					"Adaptive Shelling",
 					"-12% incoming damage, -4% movement speed.",
 					"defense_boost"
-				)
-			]
-		"hunter_deployment", "containment_warden":
-			return [
-				_build_crisis_reward_option(
-					"lance_overclock",
-					"Lance Overclock",
-					"+18% Puncture Lance cadence and +10% module damage.",
-					"puncture_lance"
 				),
 				_build_crisis_reward_option(
 					"metabolic_surge",
@@ -4075,29 +4225,114 @@ func _build_crisis_reward_options(crisis_id: String) -> Array:
 					"proto_pulse"
 				)
 			]
-		"decon_flood", "antiviral_drone_burst", "containment_seal":
-			return [
+		"hunter_deployment", "containment_warden":
+			configured_options = [
+				_build_crisis_reward_option(
+					"lance_overclock",
+					"Lance Overclock",
+					"+18% Puncture Lance cadence and +10% module damage.",
+					"puncture_lance",
+					"lytic",
+					["puncture_lance"]
+				),
+				_build_crisis_reward_option(
+					"metabolic_surge",
+					"Metabolic Surge",
+					"-12% global cooldowns for modules.",
+					"cooldown_boost"
+				),
+				_build_crisis_reward_option(
+					"containment_breach",
+					"Containment Breach",
+					"+10% favored-roll weight and +8% module damage.",
+					"proto_pulse"
+				),
 				_build_crisis_reward_option(
 					"epidemic_catalyst",
 					"Epidemic Catalyst",
 					"+25% infection spread radius and +10% module damage.",
-					"chain_bloom"
+					"chain_bloom",
+					"pandemic",
+					[],
+					["infective_secretion", "virion_orbit", "chain_bloom"]
 				),
 				_build_crisis_reward_option(
 					"viral_density",
 					"Viral Density",
 					"Infected targets take extra damage and trails last longer.",
-					"infective_secretion"
+					"infective_secretion",
+					"pandemic",
+					[],
+					["infective_secretion", "chain_bloom"]
 				),
 				_build_crisis_reward_option(
 					"hemotrophic_loop",
 					"Hemotrophic Loop",
 					"+1.8 HP regen/s and +15 max HP.",
-					"leech_tendril"
+					"leech_tendril",
+					"parasitic",
+					[],
+					["leech_tendril", "protein_shell", "host_override"]
+				),
+				_build_crisis_reward_option(
+					"focused_instability",
+					"Focused Instability",
+					"+15% module damage, but take 8% more incoming damage.",
+					"offense_boost"
+				)
+			]
+		"decon_flood", "antiviral_drone_burst", "containment_seal":
+			configured_options = [
+				_build_crisis_reward_option(
+					"epidemic_catalyst",
+					"Epidemic Catalyst",
+					"+25% infection spread radius and +10% module damage.",
+					"chain_bloom",
+					"pandemic",
+					[],
+					["infective_secretion", "virion_orbit", "chain_bloom"]
+				),
+				_build_crisis_reward_option(
+					"viral_density",
+					"Viral Density",
+					"Infected targets take extra damage and trails last longer.",
+					"infective_secretion",
+					"pandemic",
+					[],
+					["infective_secretion", "chain_bloom"]
+				),
+				_build_crisis_reward_option(
+					"hemotrophic_loop",
+					"Hemotrophic Loop",
+					"+1.8 HP regen/s and +15 max HP.",
+					"leech_tendril",
+					"parasitic",
+					[],
+					["leech_tendril", "protein_shell", "host_override"]
+				),
+				_build_crisis_reward_option(
+					"lance_overclock",
+					"Lance Overclock",
+					"+18% Puncture Lance cadence and +10% module damage.",
+					"puncture_lance",
+					"lytic",
+					["puncture_lance"]
+				),
+				_build_crisis_reward_option(
+					"adaptive_shelling",
+					"Adaptive Shelling",
+					"-12% incoming damage, -4% movement speed.",
+					"defense_boost"
+				),
+				_build_crisis_reward_option(
+					"kinetic_reframing",
+					"Kinetic Reframing",
+					"+12% movement speed and +20% pickup radius.",
+					"move_speed_boost"
 				)
 			]
 		_:
-			return [
+			configured_options = [
 				_build_crisis_reward_option(
 					"fallback_hardened_membrane",
 					"Hardened Membrane",
@@ -4117,16 +4352,153 @@ func _build_crisis_reward_options(crisis_id: String) -> Array:
 					"leech_tendril"
 				)
 			]
+	return _select_crisis_reward_options_for_current_build(configured_options, 3)
 
-func _build_crisis_reward_option(option_id: String, option_name: String, option_description: String, icon_id: String) -> Dictionary:
+func _build_crisis_reward_option(
+	option_id: String,
+	option_name: String,
+	option_description: String,
+	icon_id: String,
+	variant_id: String = "",
+	required_mutations_all: Array = [],
+	required_mutations_any: Array = []
+) -> Dictionary:
 	return {
 		"id": option_id,
 		"name": option_name,
 		"description": option_description,
 		"short": option_description,
 		"icon_id": icon_id,
+		"variant_id": variant_id.strip_edges().to_lower(),
+		"required_mutations_all": required_mutations_all.duplicate(),
+		"required_mutations_any": required_mutations_any.duplicate(),
 		"is_crisis_reward": true
 	}
+
+func _select_crisis_reward_options_for_current_build(configured_options: Array, target_count: int = 3) -> Array:
+	var safe_target_count: int = maxi(1, target_count)
+	var eligible_options: Array = []
+	for option_variant in configured_options:
+		if not (option_variant is Dictionary):
+			continue
+		var option: Dictionary = option_variant
+		if not _is_crisis_reward_option_eligible(option):
+			continue
+		eligible_options.append(option)
+
+	var selected_options: Array = []
+	var used_ids: Dictionary = {}
+	var current_variant_id: String = _get_current_variant_id_for_rewards()
+	var universal_options: Array = []
+	var variant_aligned_options: Array = []
+	for option_variant in eligible_options:
+		if not (option_variant is Dictionary):
+			continue
+		var option: Dictionary = option_variant
+		var option_variant_id: String = String(option.get("variant_id", "")).strip_edges().to_lower()
+		if option_variant_id.is_empty():
+			universal_options.append(option)
+		elif not current_variant_id.is_empty() and option_variant_id == current_variant_id:
+			variant_aligned_options.append(option)
+
+	var first_pick: Dictionary = _pick_random_unique_reward_option(universal_options, used_ids)
+	if not first_pick.is_empty():
+		selected_options.append(first_pick)
+	var second_pick: Dictionary = _pick_random_unique_reward_option(variant_aligned_options, used_ids)
+	if not second_pick.is_empty():
+		selected_options.append(second_pick)
+
+	while selected_options.size() < safe_target_count:
+		var next_option: Dictionary = _pick_random_unique_reward_option(eligible_options, used_ids)
+		if next_option.is_empty():
+			break
+		selected_options.append(next_option)
+
+	if selected_options.size() >= safe_target_count:
+		return selected_options
+
+	var fallback_options: Array = [
+		_build_crisis_reward_option("fallback_hardened_membrane", "Hardened Membrane", "+10 max HP for this run.", "protein_shell"),
+		_build_crisis_reward_option("fallback_spike_density", "Spike Density", "+10% module damage for this run.", "razor_halo"),
+		_build_crisis_reward_option("fallback_metabolic_burst", "Metabolic Burst", "+8% movement speed for this run.", "leech_tendril")
+	]
+	while selected_options.size() < safe_target_count:
+		var fallback_option: Dictionary = _pick_random_unique_reward_option(fallback_options, used_ids)
+		if fallback_option.is_empty():
+			break
+		selected_options.append(fallback_option)
+
+	return selected_options
+
+func _pick_random_unique_reward_option(options: Array, used_ids: Dictionary) -> Dictionary:
+	var candidates: Array = []
+	for option_variant in options:
+		if not (option_variant is Dictionary):
+			continue
+		var option: Dictionary = option_variant
+		var option_id: String = String(option.get("id", "")).strip_edges().to_lower()
+		if option_id.is_empty():
+			continue
+		if used_ids.has(option_id):
+			continue
+		candidates.append(option)
+
+	if candidates.is_empty():
+		return {}
+
+	var selected_index: int = randi_range(0, candidates.size() - 1)
+	var selected_option: Dictionary = candidates[selected_index]
+	var selected_id: String = String(selected_option.get("id", "")).strip_edges().to_lower()
+	if not selected_id.is_empty():
+		used_ids[selected_id] = true
+	return selected_option
+
+func _is_crisis_reward_option_eligible(option: Dictionary) -> bool:
+	var required_variant_id: String = String(option.get("variant_id", "")).strip_edges().to_lower()
+	var current_variant_id: String = _get_current_variant_id_for_rewards()
+	if not required_variant_id.is_empty():
+		if current_variant_id.is_empty():
+			return false
+		if required_variant_id != current_variant_id:
+			return false
+	if not _are_required_mutations_owned(option.get("required_mutations_all", []), false):
+		return false
+	if not _are_required_mutations_owned(option.get("required_mutations_any", []), true):
+		return false
+	return true
+
+func _are_required_mutations_owned(required_mutations_variant: Variant, require_any: bool) -> bool:
+	if not (required_mutations_variant is Array):
+		return true
+	var required_mutations: Array = required_mutations_variant
+	if required_mutations.is_empty():
+		return true
+	if require_any:
+		for raw_mutation_id in required_mutations:
+			if _is_mutation_owned_for_rewards(String(raw_mutation_id)):
+				return true
+		return false
+	for raw_mutation_id in required_mutations:
+		if not _is_mutation_owned_for_rewards(String(raw_mutation_id)):
+			return false
+	return true
+
+func _is_mutation_owned_for_rewards(mutation_id: String) -> bool:
+	var normalized_mutation_id: String = mutation_id.strip_edges().to_lower()
+	if normalized_mutation_id.is_empty():
+		return false
+	if mutation_system != null and mutation_system.has_method("get_mutation_level"):
+		return int(mutation_system.call("get_mutation_level", normalized_mutation_id)) > 0
+	return int(_run_mutation_inventory_levels.get(normalized_mutation_id, 0)) > 0
+
+func _get_current_variant_id_for_rewards() -> String:
+	if mutation_system == null:
+		return ""
+	if mutation_system.has_method("get_current_variant_id"):
+		return String(mutation_system.call("get_current_variant_id")).strip_edges().to_lower()
+	if mutation_system.has_method("get_current_lineage_id"):
+		return String(mutation_system.call("get_current_lineage_id")).strip_edges().to_lower()
+	return ""
 
 func _apply_crisis_reward_choice(choice_index: int) -> bool:
 	if choice_index < 0 or choice_index >= crisis_reward_options.size():

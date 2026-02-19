@@ -45,7 +45,7 @@ func _physics_process(delta: float) -> void:
 	_time_until_next_volley = _get_effective_interval_seconds()
 
 func set_level(new_level: int) -> void:
-	lance_level = clampi(new_level, 0, 3)
+	lance_level = clampi(new_level, 0, 5)
 	_time_until_next_volley = minf(_time_until_next_volley, _get_effective_interval_seconds())
 
 func set_runtime_modifiers(damage_multiplier: float, cooldown_multiplier: float) -> void:
@@ -61,6 +61,10 @@ func _get_effective_interval_seconds() -> float:
 			interval_seconds = base_interval_seconds * 0.84
 		3:
 			interval_seconds = base_interval_seconds * 0.72
+		4:
+			interval_seconds = base_interval_seconds * 0.62
+		5:
+			interval_seconds = base_interval_seconds * 0.53
 	return maxf(0.18, interval_seconds * _runtime_cooldown_multiplier)
 
 func _get_effective_damage() -> int:
@@ -72,6 +76,10 @@ func _get_effective_damage() -> int:
 			damage_value *= 1.20
 		3:
 			damage_value *= 1.38
+		4:
+			damage_value *= 1.58
+		5:
+			damage_value *= 1.80
 	damage_value *= _runtime_damage_multiplier
 	return maxi(1, int(round(damage_value)))
 
@@ -83,6 +91,10 @@ func _get_targets_per_volley() -> int:
 			return 2
 		3:
 			return 3
+		4:
+			return 4
+		5:
+			return 5
 		_:
 			return 0
 

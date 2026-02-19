@@ -37,6 +37,7 @@ var _external_incoming_damage_multiplier: float = 1.0
 var _stat_move_speed_multiplier: float = 1.0
 var _stat_max_hp_flat: int = 0
 var _stat_incoming_damage_multiplier: float = 1.0
+var _block_chance: float = 0.0
 var _pickup_radius_multiplier: float = 1.0
 var _hit_animation_timeout_left: float = 0.0
 var _world_health_ui_root: Node2D
@@ -120,6 +121,14 @@ func heal(amount: int) -> void:
 		return
 	hp_changed.emit(current_hp, max_hp)
 
+func restore_full_health() -> void:
+	if current_hp <= 0:
+		return
+	if current_hp >= max_hp:
+		return
+	current_hp = max_hp
+	hp_changed.emit(current_hp, max_hp)
+
 func set_incoming_damage_multiplier(multiplier: float) -> void:
 	_module_incoming_damage_multiplier = clampf(multiplier, 0.05, 1.0)
 	_refresh_incoming_damage_multiplier()
@@ -157,6 +166,12 @@ func set_pickup_radius_multiplier(multiplier: float) -> void:
 
 func get_pickup_radius_multiplier() -> float:
 	return _pickup_radius_multiplier
+
+func set_block_chance(chance: float) -> void:
+	_block_chance = clampf(chance, 0.0, 0.95)
+
+func get_block_chance() -> float:
+	return _block_chance
 
 func _setup_animated_sprite() -> void:
 	if animated_sprite == null:
@@ -213,6 +228,14 @@ func _on_animated_sprite_animation_finished() -> void:
 	_play_base_animation(velocity.length() > 0.01)
 
 func _apply_damage_value(final_amount: int, raw_amount: int, is_dot: bool) -> void:
+	if not is_dot and _block_chance > 0.0 and randf() <= _block_chance:
+		if debug_log_damage:
+			print(
+				"Player blocked incoming damage (",
+				int(round(_block_chance * 100.0)),
+				"% chance)."
+			)
+		return
 	current_hp = max(0, current_hp - final_amount)
 	_trigger_hit_animation()
 	if debug_log_damage:

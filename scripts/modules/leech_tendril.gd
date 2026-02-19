@@ -56,7 +56,7 @@ func _physics_process(delta: float) -> void:
 	_update_tether_visuals()
 
 func set_level(new_level: int) -> void:
-	tendril_level = clampi(new_level, 0, 3)
+	tendril_level = clampi(new_level, 0, 5)
 	_time_until_tick = minf(_time_until_tick, _get_effective_tick_interval_seconds())
 	_sync_tether_visual_pool()
 	_update_tether_visuals()
@@ -84,6 +84,10 @@ func _get_effective_tick_interval_seconds() -> float:
 			tick_interval = base_tick_interval_seconds * 0.85
 		3:
 			tick_interval = base_tick_interval_seconds * 0.74
+		4:
+			tick_interval = base_tick_interval_seconds * 0.66
+		5:
+			tick_interval = base_tick_interval_seconds * 0.58
 	return maxf(0.12, tick_interval * _runtime_cooldown_multiplier)
 
 func _get_effective_range() -> float:
@@ -95,6 +99,10 @@ func _get_effective_range() -> float:
 			range_value += 24.0
 		3:
 			range_value += 44.0
+		4:
+			range_value += 65.0
+		5:
+			range_value += 90.0
 	return range_value
 
 func _get_effective_damage_per_tick() -> int:
@@ -106,6 +114,10 @@ func _get_effective_damage_per_tick() -> int:
 			damage_value *= 1.25
 		3:
 			damage_value *= 1.48
+		4:
+			damage_value *= 1.75
+		5:
+			damage_value *= 2.05
 	damage_value *= _runtime_damage_multiplier
 	return maxi(1, int(round(damage_value)))
 
@@ -118,6 +130,10 @@ func _get_effective_heal_per_tick() -> int:
 			heal_value += 1
 		3:
 			heal_value += 2
+		4:
+			heal_value += 3
+		5:
+			heal_value += 4
 	return maxi(1, heal_value)
 
 func _get_tether_target_count() -> int:
@@ -126,6 +142,10 @@ func _get_tether_target_count() -> int:
 			return 1
 		3:
 			return 2
+		4:
+			return 2
+		5:
+			return 3
 		_:
 			return 0
 
@@ -184,7 +204,7 @@ func _apply_drain_tick() -> void:
 
 func _sync_tether_visual_pool() -> void:
 	var expected_count: int = _get_tether_target_count()
-	expected_count = clampi(expected_count, 0, 3)
+	expected_count = clampi(expected_count, 0, 4)
 
 	while _tether_beam_roots.size() < expected_count:
 		var beam_root := Node2D.new()

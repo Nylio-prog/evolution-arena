@@ -12,10 +12,13 @@ const MUTATIONS: Dictionary = {
 		"lineages": ["lytic", "pandemic", "parasitic"],
 		"lineage_affinity": {"lytic": 0.8, "pandemic": 0.8, "parasitic": 0.8},
 		"icon_id": "proto_pulse",
-		"max_level": 2,
+		"max_level": 5,
 		"levels": {
 			1: {"short": "small pulse", "description": "Emit a weak pulse every few seconds."},
-			2: {"short": "faster pulse", "description": "Pulse cooldown is reduced and radius increases."}
+			2: {"short": "faster pulse", "description": "Pulse cooldown is reduced and radius increases."},
+			3: {"short": "charged pulse", "description": "Pulse damage and radius improve further."},
+			4: {"short": "amplified pulse", "description": "Pulse becomes noticeably stronger and quicker."},
+			5: {"short": "overcharged pulse", "description": "Pulse reaches peak damage, range, and cadence."}
 		}
 	},
 	"razor_halo": {
@@ -29,11 +32,13 @@ const MUTATIONS: Dictionary = {
 		"lineages": ["lytic"],
 		"lineage_affinity": {"lytic": 2.8, "pandemic": 0.25, "parasitic": 0.20},
 		"icon_id": "razor_halo",
-		"max_level": 3,
+		"max_level": 5,
 		"levels": {
 			1: {"short": "4 blades", "description": "Spawn 4 rotating blades."},
 			2: {"short": "6 blades", "description": "Increase to 6 blades."},
-			3: {"short": "8 blades", "description": "Increase to 8 blades and faster spin."}
+			3: {"short": "8 blades", "description": "Increase to 8 blades and faster spin."},
+			4: {"short": "10 blades", "description": "Increase to 10 blades with stronger rotation pressure."},
+			5: {"short": "12 blades", "description": "Max razor ring density and top rotation speed."}
 		}
 	},
 	"puncture_lance": {
@@ -48,11 +53,13 @@ const MUTATIONS: Dictionary = {
 		"lineages": ["lytic"],
 		"lineage_affinity": {"lytic": 3.0, "pandemic": 0.20, "parasitic": 0.20},
 		"icon_id": "puncture_lance",
-		"max_level": 3,
+		"max_level": 5,
 		"levels": {
 			1: {"short": "single lance", "description": "Fire one lance on a short cooldown."},
 			2: {"short": "double lance", "description": "Launch extra lances each volley."},
-			3: {"short": "bleed mark", "description": "Lances apply heavier puncture pressure."}
+			3: {"short": "triple lance", "description": "Volley size grows and puncture pressure spikes."},
+			4: {"short": "quad lance", "description": "Fire faster volleys with more lances per cast."},
+			5: {"short": "spear storm", "description": "Maximum lance barrage and high burst cadence."}
 		}
 	},
 	"lytic_burst": {
@@ -67,11 +74,13 @@ const MUTATIONS: Dictionary = {
 		"lineages": ["lytic"],
 		"lineage_affinity": {"lytic": 3.1, "pandemic": 0.15, "parasitic": 0.15},
 		"icon_id": "lytic_burst",
-		"max_level": 3,
+		"max_level": 5,
 		"levels": {
-			1: {"short": "tight burst", "description": "Emit a periodic short-range burst."},
-			2: {"short": "wider burst", "description": "Burst area and damage increase."},
-			3: {"short": "multi-hit", "description": "Burst cadence improves and pressure spikes."}
+			1: {"short": "burst + guard", "description": "Emit periodic bursts and gain 6% block chance."},
+			2: {"short": "wider guard burst", "description": "Burst area and damage increase. Block chance rises to 10%."},
+			3: {"short": "reinforced burst", "description": "Burst cadence improves and block chance rises to 14%."},
+			4: {"short": "hardened burst", "description": "Burst gets stronger and block chance rises to 18%."},
+			5: {"short": "fortress burst", "description": "Peak burst pressure and 22% block chance."}
 		}
 	},
 	"infective_secretion": {
@@ -85,11 +94,13 @@ const MUTATIONS: Dictionary = {
 		"lineages": ["pandemic"],
 		"lineage_affinity": {"pandemic": 2.8, "lytic": 0.30, "parasitic": 0.25},
 		"icon_id": "infective_secretion",
-		"max_level": 3,
+		"max_level": 5,
 		"levels": {
 			1: {"short": "trail unlock", "description": "Spawn short infectious trails while moving."},
 			2: {"short": "longer trail", "description": "Trail life and area increase."},
-			3: {"short": "stronger infection", "description": "Infection pressure increases significantly."}
+			3: {"short": "stronger infection", "description": "Infection pressure increases significantly."},
+			4: {"short": "dense residue", "description": "Trails spawn faster and linger longer."},
+			5: {"short": "viral haze", "description": "Maximum trail uptime and strong infection damage."}
 		}
 	},
 	"virion_orbit": {
@@ -104,11 +115,13 @@ const MUTATIONS: Dictionary = {
 		"lineages": ["pandemic"],
 		"lineage_affinity": {"pandemic": 3.0, "lytic": 0.20, "parasitic": 0.20},
 		"icon_id": "virion_orbit",
-		"max_level": 3,
+		"max_level": 5,
 		"levels": {
 			1: {"short": "1 virion", "description": "Spawn one infective orbiter."},
 			2: {"short": "2 virions", "description": "Increase orbiter count."},
-			3: {"short": "infected bonus", "description": "Orbiters gain stronger pressure on infected targets."}
+			3: {"short": "infected bonus", "description": "Orbiters gain stronger pressure on infected targets."},
+			4: {"short": "3 virions", "description": "Add another virion and increase orbit pressure."},
+			5: {"short": "4 virions", "description": "Maximum virion count and orbital dominance."}
 		}
 	},
 	"chain_bloom": {
@@ -123,11 +136,13 @@ const MUTATIONS: Dictionary = {
 		"lineages": ["pandemic"],
 		"lineage_affinity": {"pandemic": 3.1, "lytic": 0.10, "parasitic": 0.15},
 		"icon_id": "chain_bloom",
-		"max_level": 3,
+		"max_level": 5,
 		"levels": {
 			1: {"short": "death burst", "description": "Infected deaths trigger local contagion burst."},
 			2: {"short": "wider spread", "description": "Bloom radius increases."},
-			3: {"short": "extra chain", "description": "Bloom damage and spread strength increase."}
+			3: {"short": "extra chain", "description": "Bloom damage and spread strength increase."},
+			4: {"short": "chain surge", "description": "Blooms become larger and carry stronger infection."},
+			5: {"short": "plague cascade", "description": "Maximum bloom radius and chain pressure."}
 		}
 	},
 	"leech_tendril": {
@@ -141,11 +156,13 @@ const MUTATIONS: Dictionary = {
 		"lineages": ["parasitic"],
 		"lineage_affinity": {"parasitic": 2.8, "pandemic": 0.25, "lytic": 0.20},
 		"icon_id": "leech_tendril",
-		"max_level": 3,
+		"max_level": 5,
 		"levels": {
 			1: {"short": "single drain", "description": "Drain and heal from one nearby enemy."},
 			2: {"short": "stronger drain", "description": "Drain strength and range increase."},
-			3: {"short": "multi tether", "description": "Tendril can sustain pressure more often."}
+			3: {"short": "multi tether", "description": "Tendril can sustain pressure more often."},
+			4: {"short": "deep siphon", "description": "Drain/heal output scales up sharply."},
+			5: {"short": "parasitic web", "description": "Add an extra tether and maximize sustain."}
 		}
 	},
 	"protein_shell": {
@@ -160,11 +177,13 @@ const MUTATIONS: Dictionary = {
 		"lineages": ["parasitic"],
 		"lineage_affinity": {"parasitic": 3.0, "pandemic": 0.15, "lytic": 0.10},
 		"icon_id": "protein_shell",
-		"max_level": 3,
+		"max_level": 5,
 		"levels": {
 			1: {"short": "-12% dmg", "description": "Reduce incoming damage."},
 			2: {"short": "-22% dmg", "description": "Further reduce incoming damage."},
-			3: {"short": "-32% dmg", "description": "Strong shell sustain."}
+			3: {"short": "-32% dmg", "description": "Strong shell sustain."},
+			4: {"short": "-40% dmg", "description": "Heavy shell reinforcement."},
+			5: {"short": "-48% dmg", "description": "Near-maximum shell fortification."}
 		}
 	},
 	"host_override": {
@@ -179,11 +198,13 @@ const MUTATIONS: Dictionary = {
 		"lineages": ["parasitic"],
 		"lineage_affinity": {"parasitic": 3.1, "pandemic": 0.10, "lytic": 0.10},
 		"icon_id": "host_override",
-		"max_level": 3,
+		"max_level": 5,
 		"levels": {
 			1: {"short": "convert weak", "description": "Convert very weak enemies into allies."},
 			2: {"short": "higher threshold", "description": "Can convert healthier targets."},
-			3: {"short": "longer hosts", "description": "Converted hosts survive longer."}
+			3: {"short": "longer hosts", "description": "Converted hosts survive longer."},
+			4: {"short": "expanded control", "description": "Increase range and host control capacity."},
+			5: {"short": "override swarm", "description": "High threshold conversion and larger host cap."}
 		}
 	}
 }

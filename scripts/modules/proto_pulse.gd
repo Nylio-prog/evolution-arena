@@ -51,7 +51,7 @@ func _physics_process(delta: float) -> void:
 
 func set_level(new_level: int) -> void:
 	var previous_level: int = pulse_level
-	pulse_level = clampi(new_level, 0, 2)
+	pulse_level = clampi(new_level, 0, 5)
 	_time_until_next_pulse = minf(_time_until_next_pulse, _get_effective_interval_seconds())
 	if pulse_level > 0 and previous_level <= 0:
 		_time_until_next_pulse = minf(0.15, _get_effective_interval_seconds())
@@ -68,14 +68,28 @@ func set_runtime_modifiers(damage_multiplier: float, radius_multiplier: float, c
 
 func _get_effective_interval_seconds() -> float:
 	var base_interval: float = base_pulse_interval_seconds
-	if pulse_level >= 2:
-		base_interval *= 0.82
+	match pulse_level:
+		2:
+			base_interval *= 0.82
+		3:
+			base_interval *= 0.74
+		4:
+			base_interval *= 0.67
+		5:
+			base_interval *= 0.60
 	return maxf(0.18, base_interval * _runtime_cooldown_multiplier)
 
 func _get_effective_pulse_damage() -> int:
 	var damage_value: float = float(base_pulse_damage)
-	if pulse_level >= 2:
-		damage_value *= 1.35
+	match pulse_level:
+		2:
+			damage_value *= 1.35
+		3:
+			damage_value *= 1.65
+		4:
+			damage_value *= 2.00
+		5:
+			damage_value *= 2.35
 	damage_value *= _runtime_damage_multiplier
 	return maxi(1, int(round(damage_value)))
 
@@ -83,8 +97,15 @@ func _get_effective_pulse_radius() -> float:
 	var radius_value: float = _get_configured_base_radius()
 	if enforce_level1_base_radius_match and pulse_level <= 1:
 		return maxf(8.0, radius_value)
-	if pulse_level >= 2:
-		radius_value += 12.0
+	match pulse_level:
+		2:
+			radius_value += 12.0
+		3:
+			radius_value += 24.0
+		4:
+			radius_value += 38.0
+		5:
+			radius_value += 54.0
 	radius_value *= _runtime_radius_multiplier
 	return maxf(8.0, radius_value)
 

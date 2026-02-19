@@ -95,13 +95,22 @@ const PICKUP_MULTIPLIER_BY_LEVEL: Dictionary = {0: 1.0, 1: 1.35, 2: 1.70, 3: 2.1
 const MOVE_MULTIPLIER_BY_LEVEL: Dictionary = {0: 1.0, 1: 1.06, 2: 1.12, 3: 1.18}
 const COOLDOWN_MULTIPLIER_BY_LEVEL: Dictionary = {0: 1.0, 1: 0.94, 2: 0.88, 3: 0.82}
 const VITALITY_HP_BONUS_BY_LEVEL: Dictionary = {0: 0, 1: 15, 2: 30, 3: 50}
-const VITALITY_HEAL_ON_PICK_BY_LEVEL: Dictionary = {1: 8, 2: 12, 3: 18}
 
 signal mutation_applied(mutation_id: String, new_level: int)
 signal lineage_changed(lineage_id: String, lineage_name: String)
 signal variant_changed(variant_id: String, variant_name: String)
 
 @export var debug_log_weighted_rolls: bool = false
+@export var level_scaling_damage_per_level: float = 0.02
+@export var level_scaling_damage_cap: float = 2.0
+@export var level_scaling_cooldown_reduction_per_level: float = 0.005
+@export var level_scaling_cooldown_multiplier_floor: float = 0.72
+@export var level_scaling_orbiter_speed_per_level: float = 0.01
+@export var level_scaling_orbiter_speed_cap: float = 1.45
+@export var level_scaling_pulse_radius_per_level: float = 0.008
+@export var level_scaling_pulse_radius_cap: float = 1.35
+@export var level_scaling_acid_lifetime_per_level: float = 0.01
+@export var level_scaling_acid_lifetime_cap: float = 1.50
 
 var player: Node2D
 var mutation_defs: Dictionary = {}
@@ -117,6 +126,7 @@ var runtime_module_damage_multiplier: float = 1.0
 var runtime_orbiter_speed_multiplier: float = 1.0
 var runtime_pulse_radius_multiplier: float = 1.0
 var runtime_acid_lifetime_multiplier: float = 1.0
+var runtime_player_level: int = 1
 
 var _stat_damage_multiplier: float = 1.0
 var _stat_defense_multiplier: float = 1.0
@@ -148,6 +158,7 @@ func _initialize_runtime_state() -> void:
 	for stat_id_variant in STAT_DEFS.keys():
 		var stat_id: String = String(stat_id_variant)
 		stat_levels[stat_id] = 0
+	runtime_player_level = 1
 
 func get_levelup_options(count: int = 3) -> Array[Dictionary]:
 	var safe_count: int = maxi(1, count)
@@ -277,6 +288,34 @@ func set_runtime_crisis_reward_modifiers(module_damage_multiplier: float, orbite
 	runtime_pulse_radius_multiplier = maxf(0.1, pulse_radius_multiplier)
 	runtime_acid_lifetime_multiplier = maxf(0.1, acid_lifetime_multiplier)
 	_apply_runtime_modifiers_to_modules()
+
+func set_runtime_player_level(current_level: int) -> void:
+	runtime_player_level = maxi(1, current_level)
+	_apply_runtime_modifiers_to_modules()
+
+func _get_level_scaling_steps() -> int:
+	return maxi(0, runtime_player_level - 1)
+
+func _get_level_scaled_damage_multiplier() -> float:
+	var multiplier_value: float = 1.0 + (float(_get_level_scaling_steps()) * maxf(0.0, level_scaling_damage_per_level))
+	return clampf(multiplier_value, 1.0, maxf(1.0, level_scaling_damage_cap))
+
+func _get_level_scaled_cooldown_multiplier() -> float:
+	var reduction: float = float(_get_level_scaling_steps()) * maxf(0.0, level_scaling_cooldown_reduction_per_level)
+	var multiplier_value: float = 1.0 - reduction
+	return clampf(multiplier_value, maxf(0.05, level_scaling_cooldown_multiplier_floor), 1.0)
+
+func _get_level_scaled_orbiter_speed_multiplier() -> float:
+	var multiplier_value: float = 1.0 + (float(_get_level_scaling_steps()) * maxf(0.0, level_scaling_orbiter_speed_per_level))
+	return clampf(multiplier_value, 1.0, maxf(1.0, level_scaling_orbiter_speed_cap))
+
+func _get_level_scaled_pulse_radius_multiplier() -> float:
+	var multiplier_value: float = 1.0 + (float(_get_level_scaling_steps()) * maxf(0.0, level_scaling_pulse_radius_per_level))
+	return clampf(multiplier_value, 1.0, maxf(1.0, level_scaling_pulse_radius_cap))
+
+func _get_level_scaled_acid_lifetime_multiplier() -> float:
+	var multiplier_value: float = 1.0 + (float(_get_level_scaling_steps()) * maxf(0.0, level_scaling_acid_lifetime_per_level))
+	return clampf(multiplier_value, 1.0, maxf(1.0, level_scaling_acid_lifetime_cap))
 
 func _build_available_spell_options() -> Array[Dictionary]:
 	var options: Array[Dictionary] = []
@@ -532,12 +571,17 @@ func _apply_stat_upgrade(stat_id: String) -> bool:
 	var new_level: int = current_level + 1
 	stat_levels[stat_id] = new_level
 
-	if stat_id == "vitality_boost" and player != null and player.has_method("heal"):
-		var heal_amount: int = int(VITALITY_HEAL_ON_PICK_BY_LEVEL.get(new_level, 0))
-		if heal_amount > 0:
-			player.call("heal", heal_amount)
-
+	var should_restore_to_full_hp: bool = stat_id == "vitality_boost"
 	_apply_stat_effects_to_player()
+	if should_restore_to_full_hp and player != null:
+		if player.has_method("restore_full_health"):
+			player.call("restore_full_health")
+		elif player.has_method("heal"):
+			var current_hp_value: int = int(player.get("current_hp"))
+			var max_hp_value: int = int(player.get("max_hp"))
+			var missing_hp: int = maxi(0, max_hp_value - current_hp_value)
+			if missing_hp > 0:
+				player.call("heal", missing_hp)
 	_apply_runtime_modifiers_to_modules()
 	return true
 
@@ -577,24 +621,32 @@ func _apply_runtime_modifiers_to_modules() -> void:
 		_apply_runtime_to_module(mutation_id, module_node)
 
 func _apply_runtime_to_module(mutation_id: String, module_node: Node) -> void:
-	var total_damage_multiplier: float = runtime_module_damage_multiplier * _stat_damage_multiplier
-	var total_cooldown_multiplier: float = _stat_cooldown_multiplier
+	var level_damage_multiplier: float = _get_level_scaled_damage_multiplier()
+	var level_cooldown_multiplier: float = _get_level_scaled_cooldown_multiplier()
+	var level_orbiter_speed_multiplier: float = _get_level_scaled_orbiter_speed_multiplier()
+	var level_pulse_radius_multiplier: float = _get_level_scaled_pulse_radius_multiplier()
+	var level_acid_lifetime_multiplier: float = _get_level_scaled_acid_lifetime_multiplier()
+	var total_damage_multiplier: float = runtime_module_damage_multiplier * _stat_damage_multiplier * level_damage_multiplier
+	var total_cooldown_multiplier: float = _stat_cooldown_multiplier * level_cooldown_multiplier
+	var total_orbiter_speed_multiplier: float = runtime_orbiter_speed_multiplier * level_orbiter_speed_multiplier
+	var total_pulse_radius_multiplier: float = runtime_pulse_radius_multiplier * level_pulse_radius_multiplier
+	var total_acid_lifetime_multiplier: float = runtime_acid_lifetime_multiplier * level_acid_lifetime_multiplier
 
 	match mutation_id:
 		"proto_pulse":
 			if module_node.has_method("set_runtime_modifiers"):
-				module_node.call("set_runtime_modifiers", total_damage_multiplier, runtime_pulse_radius_multiplier, total_cooldown_multiplier)
+				module_node.call("set_runtime_modifiers", total_damage_multiplier, total_pulse_radius_multiplier, total_cooldown_multiplier)
 		"razor_halo":
 			_apply_runtime_to_razor_halo(module_node, total_damage_multiplier, total_cooldown_multiplier)
 		"puncture_lance":
 			if module_node.has_method("set_runtime_modifiers"):
 				module_node.call("set_runtime_modifiers", total_damage_multiplier, total_cooldown_multiplier)
 		"lytic_burst":
-			_apply_runtime_to_lytic_burst(module_node, total_damage_multiplier, total_cooldown_multiplier)
+			_apply_runtime_to_lytic_burst(module_node, total_damage_multiplier, total_cooldown_multiplier, total_pulse_radius_multiplier)
 		"infective_secretion":
-			_apply_runtime_to_infective_secretion(module_node, total_damage_multiplier, total_cooldown_multiplier)
+			_apply_runtime_to_infective_secretion(module_node, total_damage_multiplier, total_cooldown_multiplier, total_acid_lifetime_multiplier)
 		"virion_orbit":
-			_apply_runtime_to_virion_orbit(module_node, total_damage_multiplier)
+			_apply_runtime_to_virion_orbit(module_node, total_damage_multiplier, total_orbiter_speed_multiplier)
 		"chain_bloom":
 			if module_node.has_method("set_runtime_modifiers"):
 				module_node.call("set_runtime_modifiers", total_damage_multiplier)
@@ -616,34 +668,34 @@ func _apply_runtime_to_razor_halo(module_node: Node, damage_multiplier: float, c
 	if module_node.has_method("set_level"):
 		module_node.call("set_level", get_mutation_level("razor_halo"))
 
-func _apply_runtime_to_virion_orbit(module_node: Node, damage_multiplier: float) -> void:
+func _apply_runtime_to_virion_orbit(module_node: Node, damage_multiplier: float, orbiter_speed_multiplier: float) -> void:
 	var base_entry: Dictionary = _module_base_cache.get("virion_orbit", {})
 	var base_damage: int = int(base_entry.get("orbiter_damage", module_node.get("orbiter_damage")))
 	var base_speed: float = float(base_entry.get("base_orbit_speed_rps", module_node.get("base_orbit_speed_rps")))
 	module_node.set("orbiter_damage", maxi(1, int(round(float(base_damage) * damage_multiplier))))
-	module_node.set("base_orbit_speed_rps", maxf(0.1, base_speed * runtime_orbiter_speed_multiplier))
+	module_node.set("base_orbit_speed_rps", maxf(0.1, base_speed * orbiter_speed_multiplier))
 	if module_node.has_method("set_level"):
 		module_node.call("set_level", get_mutation_level("virion_orbit"))
 
-func _apply_runtime_to_lytic_burst(module_node: Node, damage_multiplier: float, cooldown_multiplier: float) -> void:
+func _apply_runtime_to_lytic_burst(module_node: Node, damage_multiplier: float, cooldown_multiplier: float, pulse_radius_multiplier: float) -> void:
 	var base_entry: Dictionary = _module_base_cache.get("lytic_burst", {})
 	var base_damage: int = int(base_entry.get("base_pulse_damage", module_node.get("base_pulse_damage")))
 	var base_radius: float = float(base_entry.get("base_pulse_radius", module_node.get("base_pulse_radius")))
 	var base_interval: float = float(base_entry.get("base_pulse_interval_seconds", module_node.get("base_pulse_interval_seconds")))
 	module_node.set("base_pulse_damage", maxi(1, int(round(float(base_damage) * damage_multiplier))))
-	module_node.set("base_pulse_radius", maxf(8.0, base_radius * runtime_pulse_radius_multiplier))
+	module_node.set("base_pulse_radius", maxf(8.0, base_radius * pulse_radius_multiplier))
 	module_node.set("base_pulse_interval_seconds", maxf(0.18, base_interval * cooldown_multiplier))
 	if module_node.has_method("set_level"):
 		module_node.call("set_level", get_mutation_level("lytic_burst"))
 
-func _apply_runtime_to_infective_secretion(module_node: Node, damage_multiplier: float, cooldown_multiplier: float) -> void:
+func _apply_runtime_to_infective_secretion(module_node: Node, damage_multiplier: float, cooldown_multiplier: float, acid_lifetime_multiplier: float) -> void:
 	var base_entry: Dictionary = _module_base_cache.get("infective_secretion", {})
 	var base_damage: int = int(base_entry.get("base_damage_per_tick", module_node.get("base_damage_per_tick")))
 	var base_lifetime: float = float(base_entry.get("base_lifetime_seconds", module_node.get("base_lifetime_seconds")))
 	var base_spawn_interval: float = float(base_entry.get("base_spawn_interval_seconds", module_node.get("base_spawn_interval_seconds")))
 	var base_tick_interval: float = float(base_entry.get("base_damage_tick_interval_seconds", module_node.get("base_damage_tick_interval_seconds")))
 	module_node.set("base_damage_per_tick", maxi(1, int(round(float(base_damage) * damage_multiplier))))
-	module_node.set("base_lifetime_seconds", maxf(0.1, base_lifetime * runtime_acid_lifetime_multiplier))
+	module_node.set("base_lifetime_seconds", maxf(0.1, base_lifetime * acid_lifetime_multiplier))
 	module_node.set("base_spawn_interval_seconds", maxf(0.08, base_spawn_interval * cooldown_multiplier))
 	module_node.set("base_damage_tick_interval_seconds", maxf(0.08, base_tick_interval * cooldown_multiplier))
 	if module_node.has_method("set_level"):

@@ -10,6 +10,11 @@ const PULSE_NOVA_SPRITE_TEXTURE: Texture2D = preload("res://art/sprites/mutation
 @export var pulse_outline_color: Color = Color(0.12, 0.2, 0.26, 1.0)
 @export var pulse_sprite_texture: Texture2D = PULSE_NOVA_SPRITE_TEXTURE
 @export var pulse_sprite_scale_multiplier: float = 1.15
+@export_range(0.0, 1.0, 0.01) var block_chance_level_1: float = 0.06
+@export_range(0.0, 1.0, 0.01) var block_chance_level_2: float = 0.10
+@export_range(0.0, 1.0, 0.01) var block_chance_level_3: float = 0.14
+@export_range(0.0, 1.0, 0.01) var block_chance_level_4: float = 0.18
+@export_range(0.0, 1.0, 0.01) var block_chance_level_5: float = 0.22
 @export var debug_log_hits: bool = false
 
 @onready var audio_manager: Node = get_node_or_null("/root/AudioManager")
@@ -27,6 +32,9 @@ func _ready() -> void:
 	_ensure_pulse_visual_sprite()
 	set_level(0)
 
+func _exit_tree() -> void:
+	_apply_guard_block_chance_to_player(0)
+
 func _physics_process(delta: float) -> void:
 	if pulse_level <= 0:
 		return
@@ -41,8 +49,9 @@ func _physics_process(delta: float) -> void:
 		_update_pulse_visual()
 
 func set_level(new_level: int) -> void:
-	pulse_level = clampi(new_level, 0, 3)
+	pulse_level = clampi(new_level, 0, 5)
 	_configure_level_stats()
+	_apply_guard_block_chance_to_player(_get_guard_block_chance_for_level(pulse_level))
 	_time_until_next_pulse = minf(_time_until_next_pulse, _pulse_interval_seconds)
 	_update_pulse_visual()
 
@@ -65,10 +74,40 @@ func _configure_level_stats() -> void:
 			_pulse_damage = int(round(float(base_pulse_damage) * 1.75))
 			_pulse_radius = base_pulse_radius + 30.0
 			_pulse_interval_seconds = maxf(0.34, base_pulse_interval_seconds * 0.74)
+		4:
+			_pulse_damage = int(round(float(base_pulse_damage) * 2.10))
+			_pulse_radius = base_pulse_radius + 44.0
+			_pulse_interval_seconds = maxf(0.30, base_pulse_interval_seconds * 0.66)
+		5:
+			_pulse_damage = int(round(float(base_pulse_damage) * 2.45))
+			_pulse_radius = base_pulse_radius + 58.0
+			_pulse_interval_seconds = maxf(0.26, base_pulse_interval_seconds * 0.58)
 		_:
 			_pulse_damage = 0
 			_pulse_radius = 0.0
 			_pulse_interval_seconds = 999.0
+
+func _get_guard_block_chance_for_level(level: int) -> float:
+	match level:
+		1:
+			return block_chance_level_1
+		2:
+			return block_chance_level_2
+		3:
+			return block_chance_level_3
+		4:
+			return block_chance_level_4
+		5:
+			return block_chance_level_5
+		_:
+			return 0.0
+
+func _apply_guard_block_chance_to_player(block_chance: float) -> void:
+	var owner_player := get_parent() as Node
+	if owner_player == null:
+		return
+	if owner_player.has_method("set_block_chance"):
+		owner_player.call("set_block_chance", clampf(block_chance, 0.0, 0.95))
 
 func _emit_pulse() -> void:
 	if pulse_level <= 0:

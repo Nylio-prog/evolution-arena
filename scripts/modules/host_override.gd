@@ -34,7 +34,7 @@ func _physics_process(delta: float) -> void:
 	queue_redraw()
 
 func set_level(new_level: int) -> void:
-	override_level = clampi(new_level, 0, 3)
+	override_level = clampi(new_level, 0, 5)
 	_time_until_scan = minf(_time_until_scan, _get_effective_scan_interval_seconds())
 
 func set_runtime_modifiers(_damage_multiplier: float, cooldown_multiplier: float) -> void:
@@ -49,6 +49,10 @@ func _get_effective_scan_interval_seconds() -> float:
 			interval_seconds *= 0.88
 		3:
 			interval_seconds *= 0.76
+		4:
+			interval_seconds *= 0.66
+		5:
+			interval_seconds *= 0.58
 	return maxf(0.20, interval_seconds * _runtime_cooldown_multiplier)
 
 func _get_effective_range() -> float:
@@ -60,6 +64,10 @@ func _get_effective_range() -> float:
 			range_value += 40.0
 		3:
 			range_value += 70.0
+		4:
+			range_value += 100.0
+		5:
+			range_value += 130.0
 	return range_value
 
 func _get_conversion_threshold_ratio() -> float:
@@ -70,6 +78,10 @@ func _get_conversion_threshold_ratio() -> float:
 			return 0.40
 		3:
 			return 0.55
+		4:
+			return 0.65
+		5:
+			return 0.75
 		_:
 			return 0.0
 
@@ -80,6 +92,10 @@ func _get_effective_host_duration() -> float:
 			duration_seconds += 3.0
 		3:
 			duration_seconds += 6.0
+		4:
+			duration_seconds += 9.0
+		5:
+			duration_seconds += 12.0
 	return duration_seconds
 
 func _get_effective_max_hosts() -> int:
@@ -89,6 +105,10 @@ func _get_effective_max_hosts() -> int:
 			host_count += 1
 		3:
 			host_count += 2
+		4:
+			host_count += 3
+		5:
+			host_count += 4
 	return maxi(1, host_count)
 
 func _count_active_hosts() -> int:

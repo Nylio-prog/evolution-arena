@@ -1,11 +1,13 @@
 extends Node2D
 
-const ORBITER_SPRITE_TEXTURE: Texture2D = preload("res://art/sprites/mutations/mutation_orbiters.png")
+const ORBITER_SPRITE_TEXTURE: Texture2D = preload("res://art/sprites/modules/virion_orbiter.png")
 
 @export var orbiter_damage: int = 6
 @export var base_orbit_radius: float = 72.0
 @export var orbit_radius_bonus_level_2: float = 18.0
 @export var orbit_radius_bonus_level_3: float = 34.0
+@export var orbit_radius_bonus_level_4: float = 52.0
+@export var orbit_radius_bonus_level_5: float = 74.0
 @export var base_orbit_speed_rps: float = 2.5
 @export var orbiter_collision_radius: float = 9.0
 @export var orbiter_color: Color = Color(0.85, 0.95, 1.0, 1.0)
@@ -40,7 +42,7 @@ func _physics_process(delta: float) -> void:
 	queue_redraw()
 
 func set_level(new_level: int) -> void:
-	orbiter_level = clampi(new_level, 0, 3)
+	orbiter_level = clampi(new_level, 0, 5)
 	_configure_level_stats()
 	_rebuild_orbiter_areas()
 	_update_orbiter_positions()
@@ -60,9 +62,17 @@ func _configure_level_stats() -> void:
 		_current_orbit_radius += maxf(0.0, orbit_radius_bonus_level_2)
 	if orbiter_level >= 3:
 		_current_orbit_radius += maxf(0.0, orbit_radius_bonus_level_3)
+	if orbiter_level >= 4:
+		_current_orbit_radius += maxf(0.0, orbit_radius_bonus_level_4)
+	if orbiter_level >= 5:
+		_current_orbit_radius += maxf(0.0, orbit_radius_bonus_level_5)
 
 	if orbiter_level >= 3:
 		_current_orbit_speed_rps = base_orbit_speed_rps * 1.5
+	if orbiter_level >= 4:
+		_current_orbit_speed_rps = base_orbit_speed_rps * 1.8
+	if orbiter_level >= 5:
+		_current_orbit_speed_rps = base_orbit_speed_rps * 2.1
 
 func _rebuild_orbiter_areas() -> void:
 	for child in get_children():
@@ -160,6 +170,10 @@ func _get_orbiter_count_for_level(level: int) -> int:
 			return 1
 		2, 3:
 			return 2
+		4:
+			return 3
+		5:
+			return 4
 		_:
 			return 0
 

@@ -51,7 +51,7 @@ func _process(delta: float) -> void:
 	_update_visual_sprite()
 
 func set_level(new_level: int) -> void:
-	metabolism_level = clampi(new_level, 0, 3)
+	metabolism_level = clampi(new_level, 0, 5)
 	_configure_regen()
 	_update_visual_sprite()
 
@@ -70,6 +70,10 @@ func _configure_regen() -> void:
 			_regen_per_second = base_regen_per_second * 2.0
 		3:
 			_regen_per_second = base_regen_per_second * 3.2
+		4:
+			_regen_per_second = base_regen_per_second * 4.5
+		5:
+			_regen_per_second = base_regen_per_second * 6.0
 		_:
 			_regen_per_second = 0.0
 

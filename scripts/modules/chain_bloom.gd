@@ -50,7 +50,7 @@ func _process(delta: float) -> void:
 		queue_redraw()
 
 func set_level(new_level: int) -> void:
-	bloom_level = clampi(new_level, 0, 3)
+	bloom_level = clampi(new_level, 0, 5)
 
 func set_runtime_modifiers(damage_multiplier: float) -> void:
 	_runtime_damage_multiplier = maxf(0.1, damage_multiplier)
@@ -127,6 +127,10 @@ func _get_effective_damage() -> int:
 			damage_value *= 1.25
 		3:
 			damage_value *= 1.55
+		4:
+			damage_value *= 1.85
+		5:
+			damage_value *= 2.20
 	damage_value *= _runtime_damage_multiplier
 	return maxi(1, int(round(damage_value)))
 
@@ -137,9 +141,17 @@ func _get_effective_radius() -> float:
 			radius_value += 26.0
 		3:
 			radius_value += 52.0
+		4:
+			radius_value += 80.0
+		5:
+			radius_value += 110.0
 	return radius_value
 
 func _get_chain_infection_stack_bonus() -> int:
+	if bloom_level >= 5:
+		return 4
+	if bloom_level >= 4:
+		return 3
 	if bloom_level >= 3:
 		return 2
 	if bloom_level >= 2:
