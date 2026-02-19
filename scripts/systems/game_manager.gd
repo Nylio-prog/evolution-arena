@@ -43,6 +43,8 @@ const ICON_TEMPLATE_CHOICE_ICON_INSET: float = 11.0
 const ICON_TEMPLATE_LINEAGE_ICON_INSET: float = 8.0
 const ICON_TEMPLATE_INVENTORY_ICON_INSET: float = 6.0
 const ICON_TEMPLATE_BG_EXPAND: float = 2.0
+const SCORE_HISTORY_FILE_PATH: String = "user://run_score_history.json"
+const SCORE_HISTORY_MAX_ENTRIES: int = 30
 const MUTATION_ICON_BY_ID: Dictionary = {
 	"proto_pulse": MUTATION_ICON_PROTO_PULSE,
 	"razor_halo": MUTATION_ICON_RAZOR_HALO,
@@ -274,10 +276,30 @@ var _synergy_popup_current_duration_seconds: float = 0.0
 var _final_crisis_intro_popup_shown: bool = false
 var _run_intro_popup_shown: bool = false
 var _base_arena_tint_color: Color = Color(0.0, 0.40392157, 0.5647059, 0.22)
+var _run_score_value: int = 0
+var _best_score_value: int = 0
+var _score_enemy_points: int = 0
+var _score_level_points: int = 0
+var _score_event_points: int = 0
+var _score_bonus_points: int = 0
+var _score_event_clear_count: int = 0
+var _score_record_written: bool = false
+var _score_history_entries: Array[Dictionary] = []
 @export var debug_allow_grant_xp: bool = false
 @export var debug_grant_xp_amount: int = 20
 @export var biomass_xp_multiplier: float = 1.35
 @export var elite_biomass_xp_bonus: int = 6
+@export var score_time_linear_per_second: float = 8.0
+@export var score_time_quadratic_per_second: float = 0.16
+@export var score_enemy_kill_base_points: int = 24
+@export var score_elite_kill_base_points: int = 110
+@export var score_enemy_time_multiplier_per_second: float = 0.004
+@export var score_enemy_level_multiplier_per_level: float = 0.055
+@export var score_levelup_base_points: int = 90
+@export var score_levelup_curve_exponent: float = 1.30
+@export var score_event_clear_base_points: int = 260
+@export var score_event_clear_growth: float = 1.32
+@export var score_victory_bonus_points: int = 2500
 @export var debug_fast_forward_seconds: float = 10.0
 @export var debug_log_crisis_timeline: bool = true
 @export var debug_log_tag_synergies: bool = true
@@ -338,6 +360,7 @@ var _base_arena_tint_color: Color = Color(0.0, 0.40392157, 0.5647059, 0.22)
 const LINEAGE_CHOICES: Array[String] = ["lytic", "pandemic", "parasitic"]
 
 func _ready() -> void:
+	_load_score_history()
 	_reset_runtime_state()
 	if arena_tint_rect != null:
 		_base_arena_tint_color = arena_tint_rect.color
@@ -496,6 +519,7 @@ func _reset_runtime_state() -> void:
 	_pending_crisis_failure_audio = false
 	_last_run_end_reason = ""
 	_last_containment_sweep_hit_seconds = -1000.0
+	_reset_score_runtime()
 	_clear_containment_sweep()
 	_clear_biohazard_leaks()
 	_clear_final_crisis_elites()
@@ -509,6 +533,147 @@ func _reset_runtime_state() -> void:
 	_apply_crisis_ui_accent("idle", "", 0.0)
 	_sync_player_level_spell_scaling()
 	_refresh_run_inventory_ui()
+
+func _reset_score_runtime() -> void:
+	_run_score_value = 0
+	_score_enemy_points = 0
+	_score_level_points = 0
+	_score_event_points = 0
+	_score_bonus_points = 0
+	_score_event_clear_count = 0
+	_score_record_written = false
+	_recalculate_run_score()
+
+func _recalculate_run_score() -> void:
+	var safe_elapsed_seconds: float = maxf(0.0, elapsed_seconds)
+	var time_points_float: float = (safe_elapsed_seconds * score_time_linear_per_second) + (safe_elapsed_seconds * safe_elapsed_seconds * score_time_quadratic_per_second)
+	var time_points: int = maxi(0, int(round(time_points_float)))
+	_run_score_value = maxi(0, time_points + _score_enemy_points + _score_level_points + _score_event_points + _score_bonus_points)
+
+func _add_enemy_score(is_elite_enemy: bool) -> void:
+	var base_points: int = score_enemy_kill_base_points
+	if is_elite_enemy:
+		base_points = score_elite_kill_base_points
+	var elapsed_multiplier: float = 1.0 + (maxf(0.0, elapsed_seconds) * maxf(0.0, score_enemy_time_multiplier_per_second))
+	var level_multiplier: float = 1.0 + (float(maxi(0, level_reached - 1)) * maxf(0.0, score_enemy_level_multiplier_per_level))
+	var gained_points: int = maxi(1, int(round(float(base_points) * elapsed_multiplier * level_multiplier)))
+	_score_enemy_points += gained_points
+	_recalculate_run_score()
+
+func _add_levelup_score(current_level: int) -> void:
+	if current_level <= 1:
+		return
+	var level_curve_exponent: float = maxf(1.0, score_levelup_curve_exponent)
+	var gained_points: int = maxi(1, int(round(float(score_levelup_base_points) * pow(float(current_level), level_curve_exponent))))
+	_score_level_points += gained_points
+	_recalculate_run_score()
+
+func _add_event_clear_score() -> void:
+	_score_event_clear_count += 1
+	var growth_multiplier: float = pow(maxf(1.0, score_event_clear_growth), float(maxi(0, _score_event_clear_count - 1)))
+	var gained_points: int = maxi(1, int(round(float(score_event_clear_base_points) * growth_multiplier)))
+	_score_event_points += gained_points
+	_recalculate_run_score()
+
+func _add_victory_score_bonus() -> void:
+	_score_bonus_points += maxi(0, score_victory_bonus_points)
+	_recalculate_run_score()
+
+func _load_score_history() -> void:
+	_score_history_entries.clear()
+	_best_score_value = 0
+	if not FileAccess.file_exists(SCORE_HISTORY_FILE_PATH):
+		return
+	var score_file: FileAccess = FileAccess.open(SCORE_HISTORY_FILE_PATH, FileAccess.READ)
+	if score_file == null:
+		return
+	var raw_json: String = score_file.get_as_text()
+	score_file.close()
+	if raw_json.strip_edges().is_empty():
+		return
+	var parsed_variant: Variant = JSON.parse_string(raw_json)
+	if not (parsed_variant is Dictionary):
+		return
+	var parsed_data: Dictionary = parsed_variant as Dictionary
+	_best_score_value = maxi(0, int(parsed_data.get("best_score", 0)))
+	var history_variant: Variant = parsed_data.get("history", [])
+	if history_variant is Array:
+		for entry_variant in history_variant:
+			if not (entry_variant is Dictionary):
+				continue
+			var entry_data: Dictionary = entry_variant as Dictionary
+			var score_value: int = maxi(0, int(entry_data.get("score", 0)))
+			var time_seconds_value: int = maxi(0, int(entry_data.get("time_seconds", 0)))
+			var level_value: int = maxi(1, int(entry_data.get("level", 1)))
+			var variant_name: String = String(entry_data.get("variant", "None"))
+			var result_tag: String = String(entry_data.get("result", "defeat"))
+			var reason_text: String = String(entry_data.get("reason", ""))
+			var timestamp_unix: int = int(entry_data.get("timestamp_unix", 0))
+			_score_history_entries.append({
+				"score": score_value,
+				"time_seconds": time_seconds_value,
+				"level": level_value,
+				"variant": variant_name,
+				"result": result_tag,
+				"reason": reason_text,
+				"timestamp_unix": timestamp_unix
+			})
+	_score_history_entries.sort_custom(Callable(self, "_sort_score_entry_descending"))
+	while _score_history_entries.size() > SCORE_HISTORY_MAX_ENTRIES:
+		_score_history_entries.remove_at(_score_history_entries.size() - 1)
+	if not _score_history_entries.is_empty():
+		_best_score_value = maxi(_best_score_value, int(_score_history_entries[0].get("score", 0)))
+
+func _save_score_history() -> void:
+	var payload: Dictionary = {
+		"version": 1,
+		"best_score": _best_score_value,
+		"history": _score_history_entries
+	}
+	var score_file: FileAccess = FileAccess.open(SCORE_HISTORY_FILE_PATH, FileAccess.WRITE)
+	if score_file == null:
+		return
+	score_file.store_string(JSON.stringify(payload, "\t"))
+	score_file.close()
+
+func _sort_score_entry_descending(a: Dictionary, b: Dictionary) -> bool:
+	return int(a.get("score", 0)) > int(b.get("score", 0))
+
+func _finalize_run_score_record(result_tag: String, reason_text: String = "") -> void:
+	if _score_record_written:
+		return
+	_score_record_written = true
+	_recalculate_run_score()
+	_score_history_entries.append({
+		"score": _run_score_value,
+		"time_seconds": int(elapsed_seconds),
+		"level": maxi(1, level_reached),
+		"variant": _get_current_lineage_name(),
+		"result": result_tag,
+		"reason": reason_text.strip_edges(),
+		"timestamp_unix": int(Time.get_unix_time_from_system())
+	})
+	_score_history_entries.sort_custom(Callable(self, "_sort_score_entry_descending"))
+	while _score_history_entries.size() > SCORE_HISTORY_MAX_ENTRIES:
+		_score_history_entries.remove_at(_score_history_entries.size() - 1)
+	_best_score_value = maxi(_best_score_value, _run_score_value)
+	_save_score_history()
+
+func _get_highest_score_value() -> int:
+	return _best_score_value
+
+func _format_score_value(score_value: int) -> String:
+	var clamped_value: int = maxi(0, score_value)
+	var raw_text: String = str(clamped_value)
+	var grouped: String = ""
+	var digit_count: int = 0
+	for index in range(raw_text.length() - 1, -1, -1):
+		grouped = raw_text[index] + grouped
+		digit_count += 1
+		if digit_count == 3 and index > 0:
+			grouped = "," + grouped
+			digit_count = 0
+	return grouped
 
 func _setup_crisis_director() -> void:
 	if crisis_director == null:
@@ -1585,6 +1750,7 @@ func _on_crisis_reward_started(crisis_id: String, duration_seconds: float) -> vo
 	if crisis_id == "decon_flood":
 		_clear_biohazard_leaks()
 		call_deferred("_verify_biohazard_cleanup")
+	_add_event_clear_score()
 	var reward_prompt_opened: bool = _open_crisis_reward_prompt(crisis_id)
 	_play_sfx("sfx_event_clear", -4.5, 1.08)
 	if not debug_log_crisis_timeline:
@@ -1596,6 +1762,8 @@ func _on_crisis_reward_started(crisis_id: String, duration_seconds: float) -> vo
 func _on_final_crisis_completed() -> void:
 	if run_ended:
 		return
+	_add_victory_score_bonus()
+	_finalize_run_score_record("victory", "Protocol OMEGA neutralized")
 	_end_run_common()
 	_fade_out_music(1.1)
 	_play_sfx("sfx_victory", 1.5, 1.0)
@@ -1633,6 +1801,7 @@ func _process(delta: float) -> void:
 	if run_paused_for_levelup:
 		return
 	elapsed_seconds += delta
+	_recalculate_run_score()
 	_update_timer_label()
 	_tick_reward_passive_regen(delta)
 	_tick_crisis_director(delta)
@@ -1729,10 +1898,11 @@ func _on_xp_changed(current_xp: int, xp_to_next_level: int) -> void:
 
 func _on_level_changed(current_level: int) -> void:
 	level_reached = current_level
+	_add_levelup_score(current_level)
 	_sync_player_level_spell_scaling()
-	if level_label == null:
-		return
-	level_label.text = "Level: %d" % current_level
+	if level_label != null:
+		level_label.text = "Level: %d" % current_level
+	_update_timer_label()
 
 func _sync_player_level_spell_scaling() -> void:
 	if mutation_system == null:
@@ -2811,6 +2981,7 @@ func _handle_enemy_death(world_position: Vector2, enemy_node: Node) -> void:
 	var is_elite_enemy: bool = false
 	if enemy_node != null and enemy_node.is_in_group("elite_enemies"):
 		is_elite_enemy = true
+	_add_enemy_score(is_elite_enemy)
 	if is_elite_enemy:
 		_play_sfx("sfx_enemy_elite_death")
 	else:
@@ -2838,9 +3009,10 @@ func _on_player_died() -> void:
 	if run_ended:
 		return
 
-	_end_run_common()
 	if _last_run_end_reason.is_empty():
 		_last_run_end_reason = _resolve_default_death_reason()
+	_finalize_run_score_record("defeat", _last_run_end_reason)
+	_end_run_common()
 	if _pending_crisis_failure_audio:
 		_play_sfx("sfx_defeat", -2.0, 0.95)
 		_pending_crisis_failure_audio = false
@@ -2913,9 +3085,11 @@ func _set_gameplay_active(active: bool) -> void:
 
 func _show_game_over() -> void:
 	if game_over_stats_label != null:
-		game_over_stats_label.text = "Time: %ds | Level: %d | Variant: %s" % [
+		game_over_stats_label.text = "Time: %ds | Level: %d | Score: %s | Best: %s | Variant: %s" % [
 			int(elapsed_seconds),
 			level_reached,
+			_format_score_value(_run_score_value),
+			_format_score_value(_get_highest_score_value()),
 			_get_current_lineage_name()
 		]
 	if game_over_reason_label != null:
@@ -2965,9 +3139,11 @@ func _resolve_default_death_reason() -> String:
 func _show_victory() -> void:
 	_apply_crisis_ui_accent("victory", "protocol_omega_core", 0.0)
 	if victory_stats_label != null:
-		victory_stats_label.text = "Time: %ds | Level: %d | Variant: %s" % [
+		victory_stats_label.text = "Time: %ds | Level: %d | Score: %s | Best: %s | Variant: %s" % [
 			int(elapsed_seconds),
 			level_reached,
+			_format_score_value(_run_score_value),
+			_format_score_value(_get_highest_score_value()),
 			_get_current_lineage_name()
 		]
 	if victory_summary_label != null:
@@ -3004,7 +3180,7 @@ func _build_victory_detail_line() -> String:
 func _update_timer_label() -> void:
 	if timer_label == null:
 		return
-	timer_label.text = "Time: %ds" % int(elapsed_seconds)
+	timer_label.text = "Time: %ds   Score: %s" % [int(elapsed_seconds), _format_score_value(_run_score_value)]
 
 func _on_player_leveled_up(_new_level: int) -> void:
 	if run_ended:
@@ -3164,6 +3340,8 @@ func _refresh_pause_stats_panel() -> void:
 	lines.append("[table=2]")
 	_append_pause_stats_heading(lines, "RUN OVERVIEW")
 	_append_pause_stats_row(lines, "Time", "%ds" % int(elapsed_seconds))
+	_append_pause_stats_row(lines, "Score", _format_score_value(_run_score_value))
+	_append_pause_stats_row(lines, "Best Score", _format_score_value(_get_highest_score_value()))
 	_append_pause_stats_row(lines, "Variant", _get_current_lineage_name())
 	_append_pause_stats_row(lines, "Level", str(level_reached))
 	_append_pause_stats_row(lines, "XP", "%d / %d" % [xp_current, xp_to_next])
@@ -3951,6 +4129,7 @@ func _debug_fast_forward_time() -> void:
 		return
 
 	elapsed_seconds += seconds_to_skip
+	_recalculate_run_score()
 	_update_timer_label()
 	_tick_crisis_director(seconds_to_skip)
 	_tick_biohazard_leak_spawner(seconds_to_skip)
@@ -4002,6 +4181,7 @@ func _debug_jump_to_final_crisis_threshold() -> void:
 
 	var target_time_seconds: float = maxf(elapsed_seconds, final_threshold_seconds + 0.1)
 	elapsed_seconds = target_time_seconds
+	_recalculate_run_score()
 	_update_timer_label()
 	_tick_crisis_director(0.1)
 	_tick_biohazard_leak_spawner(0.1)

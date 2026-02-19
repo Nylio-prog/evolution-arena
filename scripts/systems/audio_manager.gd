@@ -4,6 +4,8 @@ const BUS_MASTER := "Master"
 const BUS_SFX := "SFX"
 const BUS_MUSIC := "Music"
 const DEFAULT_SFX_POLYPHONY := 8
+const AUDIO_SETTINGS_CONFIG_PATH := "user://audio_settings.cfg"
+const AUDIO_SETTINGS_SECTION := "audio"
 const DEFAULT_STREAM_PATHS: Dictionary = {
 	# Canonical R5 IDs from plan/release5_assets_prompts.md
 	"sfx_ui_click": "res://audio/sfx/sfx_ui_click.wav",
@@ -96,12 +98,16 @@ var _sfx_muted: bool = false
 var _music_muted: bool = false
 var _last_sfx_played_at: Dictionary = {}
 var _sfx_dispatch_depth: int = 0
+var _suppress_settings_persist: bool = false
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	_ensure_audio_buses()
 	_create_players()
+	_suppress_settings_persist = true
 	_set_default_bus_volumes()
+	_load_audio_settings()
+	_suppress_settings_persist = false
 	_preload_optional_streams()
 
 func play_sfx(event_id: String, volume_db_offset: float = 0.0, pitch_scale: float = 1.0) -> bool:
@@ -223,16 +229,16 @@ func _finish_music_fade_out() -> void:
 func set_sfx_volume_linear(value: float) -> void:
 	_sfx_volume_linear = clampf(value, 0.0, 1.0)
 	var bus_index: int = AudioServer.get_bus_index(BUS_SFX)
-	if bus_index < 0:
-		return
-	AudioServer.set_bus_volume_db(bus_index, _linear_to_db_safe(_sfx_volume_linear))
+	if bus_index >= 0:
+		AudioServer.set_bus_volume_db(bus_index, _linear_to_db_safe(_sfx_volume_linear))
+	_persist_audio_settings_if_allowed()
 
 func set_music_volume_linear(value: float) -> void:
 	_music_volume_linear = clampf(value, 0.0, 1.0)
 	var bus_index: int = AudioServer.get_bus_index(BUS_MUSIC)
-	if bus_index < 0:
-		return
-	AudioServer.set_bus_volume_db(bus_index, _linear_to_db_safe(_music_volume_linear))
+	if bus_index >= 0:
+		AudioServer.set_bus_volume_db(bus_index, _linear_to_db_safe(_music_volume_linear))
+	_persist_audio_settings_if_allowed()
 
 func get_sfx_volume_linear() -> float:
 	return _sfx_volume_linear
@@ -245,12 +251,14 @@ func set_sfx_muted(muted: bool) -> void:
 	var bus_index: int = AudioServer.get_bus_index(BUS_SFX)
 	if bus_index >= 0:
 		AudioServer.set_bus_mute(bus_index, muted)
+	_persist_audio_settings_if_allowed()
 
 func set_music_muted(muted: bool) -> void:
 	_music_muted = muted
 	var bus_index: int = AudioServer.get_bus_index(BUS_MUSIC)
 	if bus_index >= 0:
 		AudioServer.set_bus_mute(bus_index, muted)
+	_persist_audio_settings_if_allowed()
 
 func get_sfx_muted() -> bool:
 	return _sfx_muted
@@ -363,3 +371,31 @@ func _is_sfx_rate_limited(event_id: String) -> bool:
 
 func _get_time_seconds() -> float:
 	return float(Time.get_ticks_usec()) / 1000000.0
+
+func _persist_audio_settings_if_allowed() -> void:
+	if _suppress_settings_persist:
+		return
+	_save_audio_settings()
+
+func _save_audio_settings() -> void:
+	var config := ConfigFile.new()
+	config.set_value(AUDIO_SETTINGS_SECTION, "sfx_volume_linear", _sfx_volume_linear)
+	config.set_value(AUDIO_SETTINGS_SECTION, "music_volume_linear", _music_volume_linear)
+	config.set_value(AUDIO_SETTINGS_SECTION, "sfx_muted", _sfx_muted)
+	config.set_value(AUDIO_SETTINGS_SECTION, "music_muted", _music_muted)
+	var save_result: int = config.save(AUDIO_SETTINGS_CONFIG_PATH)
+	if save_result != OK and debug_log_missing_streams:
+		print("AudioManager: failed to save audio settings (", save_result, ")")
+
+func _load_audio_settings() -> void:
+	var config := ConfigFile.new()
+	var load_result: int = config.load(AUDIO_SETTINGS_CONFIG_PATH)
+	if load_result != OK:
+		return
+
+	_suppress_settings_persist = true
+	set_sfx_volume_linear(float(config.get_value(AUDIO_SETTINGS_SECTION, "sfx_volume_linear", _sfx_volume_linear)))
+	set_music_volume_linear(float(config.get_value(AUDIO_SETTINGS_SECTION, "music_volume_linear", _music_volume_linear)))
+	set_sfx_muted(bool(config.get_value(AUDIO_SETTINGS_SECTION, "sfx_muted", _sfx_muted)))
+	set_music_muted(bool(config.get_value(AUDIO_SETTINGS_SECTION, "music_muted", _music_muted)))
+	_suppress_settings_persist = false
