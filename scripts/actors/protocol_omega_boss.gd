@@ -87,6 +87,9 @@ var _is_casting_animation: bool = false
 var _cast_animation_timeout_left: float = 0.0
 var _hit_flash_time_left: float = 0.0
 var _base_sprite_modulate: Color = Color(1.0, 1.0, 1.0, 1.0)
+var _difficulty_speed_multiplier_applied: float = 1.0
+var _difficulty_hp_multiplier_applied: float = 1.0
+var _difficulty_damage_multiplier_applied: float = 1.0
 
 @onready var animated_sprite: AnimatedSprite2D = get_node_or_null("AnimatedSprite2D")
 @onready var collision_shape: CollisionShape2D = get_node_or_null("CollisionShape2D")
@@ -120,6 +123,33 @@ func get_max_hp() -> int:
 
 func get_phase() -> int:
 	return _phase
+
+func apply_difficulty_multipliers(speed_multiplier: float, hp_multiplier: float, damage_multiplier: float) -> void:
+	var safe_speed_multiplier: float = maxf(0.1, speed_multiplier)
+	var safe_hp_multiplier: float = maxf(0.1, hp_multiplier)
+	var safe_damage_multiplier: float = maxf(0.1, damage_multiplier)
+
+	var speed_ratio: float = safe_speed_multiplier / maxf(0.1, _difficulty_speed_multiplier_applied)
+	var hp_ratio_scale: float = safe_hp_multiplier / maxf(0.1, _difficulty_hp_multiplier_applied)
+	var damage_ratio: float = safe_damage_multiplier / maxf(0.1, _difficulty_damage_multiplier_applied)
+
+	var hp_ratio: float = 1.0
+	if max_hp > 0 and current_hp > 0:
+		hp_ratio = clampf(float(current_hp) / float(max_hp), 0.0, 1.0)
+
+	move_speed = maxf(1.0, move_speed * speed_ratio)
+	max_hp = maxi(1, int(round(float(max_hp) * hp_ratio_scale)))
+	current_hp = maxi(1, int(round(float(max_hp) * hp_ratio)))
+	contact_damage = maxi(1, int(round(float(contact_damage) * damage_ratio)))
+	projectile_damage = maxi(1, int(round(float(projectile_damage) * damage_ratio)))
+	targeted_blast_damage_phase_1 = maxi(1, int(round(float(targeted_blast_damage_phase_1) * damage_ratio)))
+	targeted_blast_damage_phase_2 = maxi(1, int(round(float(targeted_blast_damage_phase_2) * damage_ratio)))
+	targeted_blast_damage_phase_3 = maxi(1, int(round(float(targeted_blast_damage_phase_3) * damage_ratio)))
+
+	_difficulty_speed_multiplier_applied = safe_speed_multiplier
+	_difficulty_hp_multiplier_applied = safe_hp_multiplier
+	_difficulty_damage_multiplier_applied = safe_damage_multiplier
+	_emit_health_changed()
 
 func take_damage(amount: int) -> void:
 	if amount <= 0:

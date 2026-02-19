@@ -42,7 +42,7 @@ const STAT_DEFS: Dictionary = {
 	"offense_boost": {
 		"id": "offense_boost",
 		"name": "Cytotoxicity",
-		"short_by_level": {1: "+8% damage", 2: "+16% damage", 3: "+24% damage"},
+		"short_by_level": {1: "+6% damage", 2: "+12% damage", 3: "+18% damage"},
 		"description": "Increase damage dealt by all abilities.",
 		"icon_id": "stat_offense",
 		"max_level": 3
@@ -50,7 +50,7 @@ const STAT_DEFS: Dictionary = {
 	"defense_boost": {
 		"id": "defense_boost",
 		"name": "Reinforced Envelope",
-		"short_by_level": {1: "-8% incoming", 2: "-15% incoming", 3: "-22% incoming"},
+		"short_by_level": {1: "-6% incoming", 2: "-11% incoming", 3: "-16% incoming"},
 		"description": "Reduce incoming damage from hostile sources.",
 		"icon_id": "stat_defense",
 		"max_level": 3
@@ -74,7 +74,7 @@ const STAT_DEFS: Dictionary = {
 	"cooldown_boost": {
 		"id": "cooldown_boost",
 		"name": "Replication Tempo",
-		"short_by_level": {1: "-6% cooldown", 2: "-12% cooldown", 3: "-18% cooldown"},
+		"short_by_level": {1: "-5% cooldown", 2: "-10% cooldown", 3: "-15% cooldown"},
 		"description": "Reduce global ability cooldowns.",
 		"icon_id": "stat_cooldown",
 		"max_level": 3
@@ -82,35 +82,35 @@ const STAT_DEFS: Dictionary = {
 	"vitality_boost": {
 		"id": "vitality_boost",
 		"name": "Viral Mass",
-		"short_by_level": {1: "+15 HP", 2: "+30 HP", 3: "+50 HP"},
+		"short_by_level": {1: "+12 HP", 2: "+25 HP", 3: "+40 HP"},
 		"description": "Increase max HP and heal instantly on upgrade.",
 		"icon_id": "stat_vitality",
 		"max_level": 3
 	}
 }
 
-const OFFENSE_MULTIPLIER_BY_LEVEL: Dictionary = {0: 1.0, 1: 1.08, 2: 1.16, 3: 1.24}
-const DEFENSE_MULTIPLIER_BY_LEVEL: Dictionary = {0: 1.0, 1: 0.92, 2: 0.85, 3: 0.78}
+const OFFENSE_MULTIPLIER_BY_LEVEL: Dictionary = {0: 1.0, 1: 1.06, 2: 1.12, 3: 1.18}
+const DEFENSE_MULTIPLIER_BY_LEVEL: Dictionary = {0: 1.0, 1: 0.94, 2: 0.89, 3: 0.84}
 const PICKUP_FLAT_BONUS_BY_LEVEL: Dictionary = {0: 0.0, 1: 60.0, 2: 130.0, 3: 220.0}
 const MOVE_MULTIPLIER_BY_LEVEL: Dictionary = {0: 1.0, 1: 1.06, 2: 1.12, 3: 1.18}
-const COOLDOWN_MULTIPLIER_BY_LEVEL: Dictionary = {0: 1.0, 1: 0.94, 2: 0.88, 3: 0.82}
-const VITALITY_HP_BONUS_BY_LEVEL: Dictionary = {0: 0, 1: 15, 2: 30, 3: 50}
+const COOLDOWN_MULTIPLIER_BY_LEVEL: Dictionary = {0: 1.0, 1: 0.95, 2: 0.90, 3: 0.85}
+const VITALITY_HP_BONUS_BY_LEVEL: Dictionary = {0: 0, 1: 12, 2: 25, 3: 40}
 
 signal mutation_applied(mutation_id: String, new_level: int)
 signal lineage_changed(lineage_id: String, lineage_name: String)
 signal variant_changed(variant_id: String, variant_name: String)
 
 @export var debug_log_weighted_rolls: bool = false
-@export var level_scaling_damage_per_level: float = 0.02
-@export var level_scaling_damage_cap: float = 2.0
-@export var level_scaling_cooldown_reduction_per_level: float = 0.005
-@export var level_scaling_cooldown_multiplier_floor: float = 0.72
-@export var level_scaling_orbiter_speed_per_level: float = 0.01
-@export var level_scaling_orbiter_speed_cap: float = 1.45
-@export var level_scaling_pulse_radius_per_level: float = 0.008
-@export var level_scaling_pulse_radius_cap: float = 1.35
-@export var level_scaling_acid_lifetime_per_level: float = 0.01
-@export var level_scaling_acid_lifetime_cap: float = 1.50
+@export var level_scaling_damage_per_level: float = 0.012
+@export var level_scaling_damage_cap: float = 1.60
+@export var level_scaling_cooldown_reduction_per_level: float = 0.0035
+@export var level_scaling_cooldown_multiplier_floor: float = 0.80
+@export var level_scaling_orbiter_speed_per_level: float = 0.007
+@export var level_scaling_orbiter_speed_cap: float = 1.30
+@export var level_scaling_pulse_radius_per_level: float = 0.005
+@export var level_scaling_pulse_radius_cap: float = 1.24
+@export var level_scaling_acid_lifetime_per_level: float = 0.007
+@export var level_scaling_acid_lifetime_cap: float = 1.35
 
 var player: Node2D
 var mutation_defs: Dictionary = {}
@@ -664,7 +664,7 @@ func _apply_runtime_to_razor_halo(module_node: Node, damage_multiplier: float, c
 	var base_damage: int = int(base_entry.get("spike_damage", module_node.get("spike_damage")))
 	var base_interval: float = float(base_entry.get("damage_interval_seconds", module_node.get("damage_interval_seconds")))
 	module_node.set("spike_damage", maxi(1, int(round(float(base_damage) * damage_multiplier))))
-	module_node.set("damage_interval_seconds", maxf(0.06, base_interval * cooldown_multiplier))
+	module_node.set("damage_interval_seconds", maxf(0.10, base_interval * cooldown_multiplier))
 	if module_node.has_method("set_level"):
 		module_node.call("set_level", get_mutation_level("razor_halo"))
 

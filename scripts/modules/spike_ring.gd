@@ -12,17 +12,17 @@ const SPIKE_SPRITE_TEXTURE: Texture2D = preload("res://art/sprites/modules/razor
 @export var spike_facing_offset_degrees: float = -90.0
 @export var preserve_template_visual_scale: bool = true
 @export var preserve_template_collision_shape_size: bool = true
-@export var damage_interval_seconds: float = 0.1
+@export var damage_interval_seconds: float = 0.14
 @export var hit_sfx_cooldown_seconds: float = 0.08
 @export var level_1_rotation_speed_rps: float = 0.38
 @export var level_2_rotation_speed_rps: float = 0.52
 @export var level_3_rotation_speed_rps: float = 0.68
 @export var level_4_rotation_speed_rps: float = 0.82
 @export var level_5_rotation_speed_rps: float = 0.96
-@export var sustain_unlock_level: int = 1
+@export var sustain_unlock_level: int = 2
 @export var sustain_heal_per_enemy_hit: int = 1
-@export var sustain_heal_per_level_bonus: int = 1
-@export var sustain_max_enemy_hits_per_tick: int = 2
+@export var sustain_heal_per_level_bonus: int = 0
+@export var sustain_max_enemy_hits_per_tick: int = 1
 @export var debug_log_hits: bool = false
 
 @onready var audio_manager: Node = get_node_or_null("/root/AudioManager")
@@ -189,7 +189,10 @@ func _apply_contact_sustain(unique_hit_count: int) -> void:
 		0,
 		sustain_heal_per_enemy_hit + maxi(0, spike_level - 1) * maxi(0, sustain_heal_per_level_bonus)
 	)
-	var heal_amount: int = heal_per_enemy_hit
+	var effective_hit_count: int = mini(unique_hit_count, sustain_max_enemy_hits_per_tick)
+	if effective_hit_count <= 0:
+		return
+	var heal_amount: int = heal_per_enemy_hit * effective_hit_count
 	if heal_amount <= 0:
 		return
 	player_node.call("heal", heal_amount)

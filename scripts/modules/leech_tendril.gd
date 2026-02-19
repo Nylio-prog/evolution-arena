@@ -2,8 +2,8 @@ extends Node2D
 
 @export var base_drain_damage: int = 4
 @export var base_heal_per_tick: int = 1
-@export var base_tick_interval_seconds: float = 0.65
-@export var base_range: float = 180.0
+@export var base_tick_interval_seconds: float = 0.72
+@export var base_range: float = 170.0
 @export var tether_template_animation: StringName = &"beam"
 @export var tether_thickness_scale: float = 0.24
 @export var tether_alpha: float = 0.92
@@ -81,14 +81,14 @@ func _get_effective_tick_interval_seconds() -> float:
 	var tick_interval: float = base_tick_interval_seconds
 	match tendril_level:
 		2:
-			tick_interval = base_tick_interval_seconds * 0.85
+			tick_interval = base_tick_interval_seconds * 0.92
 		3:
-			tick_interval = base_tick_interval_seconds * 0.74
+			tick_interval = base_tick_interval_seconds * 0.84
 		4:
-			tick_interval = base_tick_interval_seconds * 0.66
+			tick_interval = base_tick_interval_seconds * 0.78
 		5:
-			tick_interval = base_tick_interval_seconds * 0.58
-	return maxf(0.12, tick_interval * _runtime_cooldown_multiplier)
+			tick_interval = base_tick_interval_seconds * 0.72
+	return maxf(0.18, tick_interval * _runtime_cooldown_multiplier)
 
 func _get_effective_range() -> float:
 	if tendril_level <= 0:
@@ -96,13 +96,13 @@ func _get_effective_range() -> float:
 	var range_value: float = base_range
 	match tendril_level:
 		2:
-			range_value += 24.0
+			range_value += 20.0
 		3:
-			range_value += 44.0
+			range_value += 36.0
 		4:
-			range_value += 65.0
+			range_value += 52.0
 		5:
-			range_value += 90.0
+			range_value += 70.0
 	return range_value
 
 func _get_effective_damage_per_tick() -> int:
@@ -124,17 +124,18 @@ func _get_effective_damage_per_tick() -> int:
 func _get_effective_heal_per_tick() -> int:
 	if tendril_level <= 0:
 		return 0
-	var heal_value: int = base_heal_per_tick
 	match tendril_level:
+		1:
+			return maxi(1, base_heal_per_tick)
 		2:
-			heal_value += 1
+			return maxi(1, base_heal_per_tick)
 		3:
-			heal_value += 2
+			return maxi(1, base_heal_per_tick + 1)
 		4:
-			heal_value += 3
+			return maxi(1, base_heal_per_tick + 1)
 		5:
-			heal_value += 4
-	return maxi(1, heal_value)
+			return maxi(1, base_heal_per_tick + 2)
+	return 0
 
 func _get_tether_target_count() -> int:
 	match tendril_level:
@@ -145,7 +146,7 @@ func _get_tether_target_count() -> int:
 		4:
 			return 2
 		5:
-			return 3
+			return 2
 		_:
 			return 0
 

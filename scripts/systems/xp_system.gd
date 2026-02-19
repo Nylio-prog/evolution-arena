@@ -6,8 +6,8 @@ signal leveled_up(new_level: int)
 
 @export var debug_log_xp: bool = false
 @export var base_xp_requirement: int = 12
-@export var linear_xp_increment_per_level: int = 7
-@export var quadratic_xp_increment_per_level_pair: int = 1
+@export var linear_xp_increment_per_level: int = 9
+@export var quadratic_xp_increment_per_level_pair: int = 2
 
 var current_level: int = 1
 var current_xp: int = 0

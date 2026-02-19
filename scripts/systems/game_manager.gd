@@ -34,6 +34,7 @@ const ICON_BACKGROUND_TEXTURE: Texture2D = preload("res://art/sprites/ui/icons/i
 const VARIANT_ICON_LYTIC: Texture2D = preload("res://art/sprites/ui/icons/icon_razor_halo.png")
 const VARIANT_ICON_PANDEMIC: Texture2D = preload("res://art/sprites/ui/icons/icon_infective_secretion.png")
 const VARIANT_ICON_PARASITIC: Texture2D = preload("res://art/sprites/ui/icons/icon_leech_tendril.png")
+const GAMEPLAY_SETTINGS = preload("res://scripts/systems/gameplay_settings.gd")
 const RUN_INVENTORY_SLOT_SIZE: float = 64.0
 const RUN_INVENTORY_ICON_PADDING: float = 5.0
 const RUN_INVENTORY_VALUE_INSET: float = 7.0
@@ -96,46 +97,50 @@ const INVENTORY_MUTATION_IDS: Array[String] = [
 	"protein_shell",
 	"host_override"
 ]
+const BIOMASS_BONUS_CRISIS_IDS: Array[String] = [
+	"containment_warden"
+]
 const MUTATION_TAG_SYNERGY_RULES: Array[Dictionary] = [
 	{
 		"id": "lytic_pair",
 		"name": "Lytic Pressure",
 		"tags": ["lytic_starter", "lytic_core"],
-		"module_damage_multiplier": 1.12
+		"module_damage_multiplier": 1.10
 	},
 	{
 		"id": "lytic_apex",
 		"name": "Lytic Overrun",
 		"tags": ["lytic_starter", "lytic_core", "lytic_capstone"],
-		"module_damage_multiplier": 1.10,
-		"pulse_radius_multiplier": 1.08
+		"module_damage_multiplier": 1.08,
+		"pulse_radius_multiplier": 1.06
 	},
 	{
 		"id": "pandemic_pair",
 		"name": "Volatile Secretion",
 		"tags": ["pandemic_starter", "pandemic_core"],
-		"acid_lifetime_multiplier": 1.18,
-		"pulse_radius_multiplier": 1.06
+		"acid_lifetime_multiplier": 1.20,
+		"pulse_radius_multiplier": 1.08
 	},
 	{
 		"id": "pandemic_apex",
 		"name": "Epidemic Cascade",
 		"tags": ["pandemic_starter", "pandemic_core", "pandemic_capstone"],
-		"module_damage_multiplier": 1.08,
-		"acid_lifetime_multiplier": 1.10
+		"module_damage_multiplier": 1.10,
+		"acid_lifetime_multiplier": 1.12
 	},
 	{
 		"id": "parasitic_pair",
 		"name": "Armored Pressure",
 		"tags": ["parasitic_starter", "parasitic_core"],
-		"external_damage_multiplier": 0.92
+		"external_damage_multiplier": 0.95
 	},
 	{
 		"id": "parasitic_apex",
 		"name": "Host Dominion",
 		"tags": ["parasitic_starter", "parasitic_core", "parasitic_capstone"],
-		"passive_regen_per_second": 1.2,
-		"external_damage_multiplier": 0.95
+		"passive_regen_per_second": 0.6,
+		"external_damage_multiplier": 0.98,
+		"module_damage_multiplier": 1.04
 	}
 ]
 
@@ -286,6 +291,7 @@ var _synergy_popup_queue: Array[Dictionary] = []
 var _synergy_popup_active: bool = false
 var _synergy_popup_elapsed_seconds: float = 0.0
 var _synergy_popup_current_duration_seconds: float = 0.0
+var _mass_biomass_collect_active: bool = false
 var _final_crisis_intro_popup_shown: bool = false
 var _run_intro_popup_shown: bool = false
 var _run_score_value: int = 0
@@ -300,6 +306,10 @@ var _score_history_entries: Array[Dictionary] = []
 var _final_victory_sequence_active: bool = false
 var _final_victory_resolution_started: bool = false
 var _cached_biomass_pickup_base_radius: float = -1.0
+var _selected_difficulty_id: String = "medium"
+var _enemy_difficulty_speed_multiplier: float = 1.0
+var _enemy_difficulty_hp_multiplier: float = 1.0
+var _enemy_difficulty_damage_multiplier: float = 1.0
 @export var debug_allow_grant_xp: bool = false
 @export var debug_grant_xp_amount: int = 20
 @export var biomass_xp_multiplier: float = 1.35
@@ -324,6 +334,7 @@ var _cached_biomass_pickup_base_radius: float = -1.0
 @export var synergy_popup_duration_seconds: float = 4.8
 @export var synergy_popup_fade_seconds: float = 0.36
 @export var runtime_popup_top_offset: float = 150.0
+@export var base_passive_regen_per_second: float = 1.0
 @export var run_intro_popup_top_offset: float = 170.0
 @export var final_crisis_intro_popup_enabled: bool = true
 @export var run_intro_popup_enabled: bool = true
@@ -367,7 +378,7 @@ var _cached_biomass_pickup_base_radius: float = -1.0
 @export var strain_bloom_elite_spawn_radius_min: float = 180.0
 @export var strain_bloom_elite_spawn_radius_max: float = 280.0
 @export var strain_bloom_elite_speed_multiplier: float = 1.45
-@export var strain_bloom_elite_hp_multiplier: float = 10.0
+@export var strain_bloom_elite_hp_multiplier: float = 14.0
 @export var strain_bloom_elite_damage_multiplier: float = 4.0
 @export var strain_bloom_elite_scale_multiplier: float = 2.0
 @export var strain_bloom_elite_tint: Color = Color(0.62, 1.0, 0.22, 1.0)
@@ -387,6 +398,7 @@ const LINEAGE_CHOICES: Array[String] = ["lytic", "pandemic", "parasitic"]
 func _ready() -> void:
 	_load_score_history()
 	_reset_runtime_state()
+	_load_run_difficulty_settings()
 
 	if OS.has_feature("standalone") and not OS.has_feature("dev_cheats"):
 		debug_allow_grant_xp = false
@@ -447,6 +459,7 @@ func _ready() -> void:
 		_connect_biomass_pickup(node as Node)
 	for node in get_tree().get_nodes_in_group("enemies"):
 		_connect_enemy_death(node as Node)
+	_apply_difficulty_to_active_enemies()
 	get_tree().connect("node_added", Callable(self, "_on_tree_node_added"))
 
 	if game_over_ui != null:
@@ -738,6 +751,39 @@ func _format_score_value(score_value: int) -> String:
 			digit_count = 0
 	return grouped
 
+func _load_run_difficulty_settings() -> void:
+	_selected_difficulty_id = GAMEPLAY_SETTINGS.load_difficulty_id()
+	var difficulty_data: Dictionary = GAMEPLAY_SETTINGS.get_difficulty_data(_selected_difficulty_id)
+	_enemy_difficulty_speed_multiplier = maxf(0.1, float(difficulty_data.get("enemy_speed_multiplier", 1.0)))
+	_enemy_difficulty_hp_multiplier = maxf(0.1, float(difficulty_data.get("enemy_hp_multiplier", 1.0)))
+	_enemy_difficulty_damage_multiplier = maxf(0.1, float(difficulty_data.get("enemy_damage_multiplier", 1.0)))
+
+func _apply_difficulty_to_active_enemies() -> void:
+	var visited_enemy_ids: Dictionary = {}
+	var groups_to_scan: Array[String] = ["enemies", "hostile_enemies", "boss_enemies"]
+	for group_name in groups_to_scan:
+		for enemy_variant in get_tree().get_nodes_in_group(group_name):
+			var enemy_node := enemy_variant as Node
+			if enemy_node == null or not is_instance_valid(enemy_node):
+				continue
+			var enemy_id: int = enemy_node.get_instance_id()
+			if visited_enemy_ids.has(enemy_id):
+				continue
+			visited_enemy_ids[enemy_id] = true
+			_apply_enemy_difficulty_to_node(enemy_node)
+
+func _apply_enemy_difficulty_to_node(enemy_node: Node) -> void:
+	if enemy_node == null or not is_instance_valid(enemy_node):
+		return
+	if not enemy_node.has_method("apply_difficulty_multipliers"):
+		return
+	enemy_node.call(
+		"apply_difficulty_multipliers",
+		_enemy_difficulty_speed_multiplier,
+		_enemy_difficulty_hp_multiplier,
+		_enemy_difficulty_damage_multiplier
+	)
+
 func _setup_crisis_director() -> void:
 	if crisis_director == null:
 		return
@@ -813,6 +859,9 @@ func _is_leak_crisis(crisis_id: String) -> bool:
 
 func _is_elite_objective_crisis(crisis_id: String) -> bool:
 	return crisis_id == "hunter_deployment" or crisis_id == "containment_warden"
+
+func _is_biomass_bonus_crisis(crisis_id: String) -> bool:
+	return BIOMASS_BONUS_CRISIS_IDS.has(crisis_id)
 
 func _is_antiviral_drone_crisis(crisis_id: String) -> bool:
 	return crisis_id == "antiviral_drone_burst"
@@ -1755,10 +1804,12 @@ func _get_crisis_objective_text(phase_name: String, crisis_id: String) -> String
 					var pylons_destroyed: int = maxi(0, pylons_total - pylons_remaining)
 					return "Destroy containment pylons (%d/%d)" % [pylons_destroyed, pylons_total]
 				"containment_warden":
-					return "Mid boss: eliminate the Warden"
+					return "Mid boss: eliminate the Warden (bonus: absorb all map biomass at reward)"
 				_:
 					return "Survive active event"
 		"reward":
+			if _is_biomass_bonus_crisis(crisis_id):
+				return "Choose event reward, then absorb all map biomass as a bonus"
 			return "Choose event reward"
 		"final":
 			if _is_protocol_omega_alive():
@@ -2045,7 +2096,7 @@ func _process(delta: float) -> void:
 	_update_crisis_debug_banner()
 
 func _get_total_bonus_regen_per_second() -> float:
-	return maxf(0.0, _reward_passive_regen_per_second + _synergy_passive_regen_per_second)
+	return maxf(0.0, base_passive_regen_per_second + _reward_passive_regen_per_second + _synergy_passive_regen_per_second)
 
 func _tick_reward_passive_regen(delta: float) -> void:
 	var bonus_regen_per_second: float = _get_total_bonus_regen_per_second()
@@ -2184,7 +2235,10 @@ func _refresh_choice_panel_labels() -> void:
 
 	if levelup_help_label != null:
 		if crisis_reward_selection_active:
-			levelup_help_label.text = "Event bonus applies immediately for this run."
+			if _is_biomass_bonus_crisis(active_crisis_reward_id):
+				levelup_help_label.text = "Event bonus applies immediately. End bonus: absorb all map biomass."
+			else:
+				levelup_help_label.text = "Event bonus applies immediately for this run."
 		elif lineage_selection_active:
 			levelup_help_label.text = "Choose once. It grants your starter spell and biases future options."
 		else:
@@ -3053,7 +3107,7 @@ func _build_reward_tooltip_text(reward_id: String) -> String:
 			lines.append("Run orbiter speed bonus: +%.1f%%" % ((_reward_orbiter_speed_multiplier - 1.0) * 100.0))
 			lines.append("Run secretion lifetime bonus: +%.1f%%" % ((_reward_acid_lifetime_multiplier - 1.0) * 100.0))
 		"hemotrophic_loop":
-			lines.append("Run bonus regen: +%.1f HP/s" % _get_total_bonus_regen_per_second())
+			lines.append("Passive regen: +%.1f HP/s" % _get_total_bonus_regen_per_second())
 			lines.append("Run bonus max HP: +%d" % _reward_bonus_max_hp_flat)
 		_:
 			lines.append("Applies a run-wide event modifier.")
@@ -3177,6 +3231,8 @@ func _build_synergy_effect_lines(rule: Dictionary) -> Array[String]:
 func _on_tree_node_added(node: Node) -> void:
 	_connect_enemy_death(node)
 	_connect_biomass_pickup(node)
+	if node != null and node.has_method("apply_difficulty_multipliers"):
+		call_deferred("_apply_enemy_difficulty_to_node", node)
 
 func _connect_enemy_death(node: Node) -> void:
 	if node == null:
@@ -3216,7 +3272,8 @@ func _on_biomass_collected(amount: int) -> void:
 	if not xp_system.has_method("add_xp"):
 		return
 	xp_system.call("add_xp", amount)
-	_play_sfx("sfx_pickup_biomass")
+	if not _mass_biomass_collect_active:
+		_play_sfx("sfx_pickup_biomass")
 
 func _on_enemy_died(world_position: Vector2) -> void:
 	_handle_enemy_death(world_position, null)
@@ -3645,7 +3702,7 @@ func _refresh_pause_stats_panel() -> void:
 	_append_pause_stats_row(lines, "Incoming Damage", "x%.2f (%.1f%% reduced)" % [incoming_damage_multiplier_value, damage_reduction_percent])
 	_append_pause_stats_row(lines, "Block Chance", "%.1f%%" % (block_chance_value * 100.0))
 	_append_pause_stats_row(lines, "Pickup Radius", "%.0f" % pickup_radius_value)
-	_append_pause_stats_row(lines, "Bonus Regen", "+%.1f HP/s" % _get_total_bonus_regen_per_second())
+	_append_pause_stats_row(lines, "Passive Regen", "+%.1f HP/s" % _get_total_bonus_regen_per_second())
 	_append_pause_stats_spacer(lines)
 
 	_append_pause_stats_heading(lines, "MULTIPLIERS")
@@ -4692,31 +4749,31 @@ func _build_crisis_reward_options(crisis_id: String) -> Array:
 				_build_crisis_reward_option(
 					"focused_instability",
 					"Focused Instability",
-					"+15% ability damage, but take 8% more incoming damage.",
+					"+10% ability damage.",
 					"offense_boost"
 				),
 				_build_crisis_reward_option(
 					"kinetic_reframing",
 					"Kinetic Reframing",
-					"+12% movement speed and +20% pickup radius.",
+					"+10% movement speed.",
 					"move_speed_boost"
 				),
 				_build_crisis_reward_option(
 					"adaptive_shelling",
 					"Adaptive Shelling",
-					"-12% incoming damage, -4% movement speed.",
+					"-9% incoming damage, -3% movement speed.",
 					"defense_boost"
 				),
 				_build_crisis_reward_option(
 					"metabolic_surge",
 					"Metabolic Surge",
-					"-12% global ability cooldowns.",
+					"+10% orbiter speed and +10% trail lifetime.",
 					"cooldown_boost"
 				),
 				_build_crisis_reward_option(
 					"containment_breach",
 					"Containment Breach",
-					"+10% favored-roll weight and +8% ability damage.",
+					"+7% ability damage and +4% movement speed.",
 					"proto_pulse"
 				)
 			]
@@ -4725,27 +4782,28 @@ func _build_crisis_reward_options(crisis_id: String) -> Array:
 				_build_crisis_reward_option(
 					"lance_overclock",
 					"Lance Overclock",
-					"+18% Puncture Lance cadence and +10% ability damage.",
+					"+12% ability damage and +8% pulse radius.",
 					"puncture_lance",
 					"lytic",
-					["puncture_lance"]
+					[],
+					["razor_halo", "puncture_lance"]
 				),
 				_build_crisis_reward_option(
 					"metabolic_surge",
 					"Metabolic Surge",
-					"-12% global ability cooldowns.",
+					"+10% orbiter speed and +10% trail lifetime.",
 					"cooldown_boost"
 				),
 				_build_crisis_reward_option(
 					"containment_breach",
 					"Containment Breach",
-					"+10% favored-roll weight and +8% ability damage.",
+					"+7% ability damage and +4% movement speed.",
 					"proto_pulse"
 				),
 				_build_crisis_reward_option(
 					"epidemic_catalyst",
 					"Epidemic Catalyst",
-					"+25% infection spread radius and +10% ability damage.",
+					"+16% trail lifetime and +9% ability damage.",
 					"chain_bloom",
 					"pandemic",
 					[],
@@ -4754,7 +4812,7 @@ func _build_crisis_reward_options(crisis_id: String) -> Array:
 				_build_crisis_reward_option(
 					"viral_density",
 					"Viral Density",
-					"Infected targets take extra damage and trails last longer.",
+					"+14% orbiter speed and +12% trail lifetime.",
 					"infective_secretion",
 					"pandemic",
 					[],
@@ -4763,7 +4821,7 @@ func _build_crisis_reward_options(crisis_id: String) -> Array:
 				_build_crisis_reward_option(
 					"hemotrophic_loop",
 					"Hemotrophic Loop",
-					"+1.8 HP regen/s and +15 max HP.",
+					"+0.9 HP regen/s and +10 max HP.",
 					"leech_tendril",
 					"parasitic",
 					[],
@@ -4772,7 +4830,7 @@ func _build_crisis_reward_options(crisis_id: String) -> Array:
 				_build_crisis_reward_option(
 					"focused_instability",
 					"Focused Instability",
-					"+15% ability damage, but take 8% more incoming damage.",
+					"+10% ability damage.",
 					"offense_boost"
 				)
 			]
@@ -4781,7 +4839,7 @@ func _build_crisis_reward_options(crisis_id: String) -> Array:
 				_build_crisis_reward_option(
 					"epidemic_catalyst",
 					"Epidemic Catalyst",
-					"+25% infection spread radius and +10% ability damage.",
+					"+16% trail lifetime and +9% ability damage.",
 					"chain_bloom",
 					"pandemic",
 					[],
@@ -4790,7 +4848,7 @@ func _build_crisis_reward_options(crisis_id: String) -> Array:
 				_build_crisis_reward_option(
 					"viral_density",
 					"Viral Density",
-					"Infected targets take extra damage and trails last longer.",
+					"+14% orbiter speed and +12% trail lifetime.",
 					"infective_secretion",
 					"pandemic",
 					[],
@@ -4799,7 +4857,7 @@ func _build_crisis_reward_options(crisis_id: String) -> Array:
 				_build_crisis_reward_option(
 					"hemotrophic_loop",
 					"Hemotrophic Loop",
-					"+1.8 HP regen/s and +15 max HP.",
+					"+0.9 HP regen/s and +10 max HP.",
 					"leech_tendril",
 					"parasitic",
 					[],
@@ -4808,21 +4866,22 @@ func _build_crisis_reward_options(crisis_id: String) -> Array:
 				_build_crisis_reward_option(
 					"lance_overclock",
 					"Lance Overclock",
-					"+18% Puncture Lance cadence and +10% ability damage.",
+					"+12% ability damage and +8% pulse radius.",
 					"puncture_lance",
 					"lytic",
-					["puncture_lance"]
+					[],
+					["razor_halo", "puncture_lance"]
 				),
 				_build_crisis_reward_option(
 					"adaptive_shelling",
 					"Adaptive Shelling",
-					"-12% incoming damage, -4% movement speed.",
+					"-9% incoming damage, -3% movement speed.",
 					"defense_boost"
 				),
 				_build_crisis_reward_option(
 					"kinetic_reframing",
 					"Kinetic Reframing",
-					"+12% movement speed and +20% pickup radius.",
+					"+10% movement speed.",
 					"move_speed_boost"
 				)
 			]
@@ -5020,40 +5079,44 @@ func _apply_crisis_reward_choice(choice_index: int) -> bool:
 func _apply_crisis_reward_effect(reward_id: String) -> bool:
 	match reward_id:
 		"focused_instability":
-			_reward_module_damage_multiplier *= 1.15
-			_reward_external_damage_multiplier *= 1.08
+			_reward_module_damage_multiplier = _multiply_reward_stat_with_cap(_reward_module_damage_multiplier, 1.10, 1.0, 1.60)
 		"kinetic_reframing":
-			_reward_move_speed_multiplier *= 1.12
+			_reward_move_speed_multiplier = _multiply_reward_stat_with_cap(_reward_move_speed_multiplier, 1.10, 1.0, 1.35)
 		"adaptive_shelling":
-			_reward_external_damage_multiplier *= 0.88
-			_reward_move_speed_multiplier *= 0.96
+			_reward_external_damage_multiplier = _multiply_reward_stat_with_cap(_reward_external_damage_multiplier, 0.91, 0.78, 1.0)
+			_reward_move_speed_multiplier = _multiply_reward_stat_with_cap(_reward_move_speed_multiplier, 0.97, 1.0, 1.35)
 		"lance_overclock":
-			_reward_module_damage_multiplier *= 1.10
-			_reward_pulse_radius_multiplier *= 1.05
+			_reward_module_damage_multiplier = _multiply_reward_stat_with_cap(_reward_module_damage_multiplier, 1.12, 1.0, 1.60)
+			_reward_pulse_radius_multiplier = _multiply_reward_stat_with_cap(_reward_pulse_radius_multiplier, 1.08, 1.0, 1.40)
 		"metabolic_surge":
-			_reward_orbiter_speed_multiplier *= 1.12
-			_reward_acid_lifetime_multiplier *= 1.08
+			_reward_orbiter_speed_multiplier = _multiply_reward_stat_with_cap(_reward_orbiter_speed_multiplier, 1.10, 1.0, 1.45)
+			_reward_acid_lifetime_multiplier = _multiply_reward_stat_with_cap(_reward_acid_lifetime_multiplier, 1.10, 1.0, 1.55)
 		"containment_breach":
-			_reward_module_damage_multiplier *= 1.08
-			_reward_move_speed_multiplier *= 1.04
+			_reward_module_damage_multiplier = _multiply_reward_stat_with_cap(_reward_module_damage_multiplier, 1.07, 1.0, 1.60)
+			_reward_move_speed_multiplier = _multiply_reward_stat_with_cap(_reward_move_speed_multiplier, 1.04, 1.0, 1.35)
 		"epidemic_catalyst":
-			_reward_acid_lifetime_multiplier *= 1.20
-			_reward_module_damage_multiplier *= 1.10
+			_reward_acid_lifetime_multiplier = _multiply_reward_stat_with_cap(_reward_acid_lifetime_multiplier, 1.16, 1.0, 1.55)
+			_reward_module_damage_multiplier = _multiply_reward_stat_with_cap(_reward_module_damage_multiplier, 1.09, 1.0, 1.60)
 		"viral_density":
-			_reward_module_damage_multiplier *= 1.10
-			_reward_pulse_radius_multiplier *= 1.10
+			_reward_orbiter_speed_multiplier = _multiply_reward_stat_with_cap(_reward_orbiter_speed_multiplier, 1.14, 1.0, 1.45)
+			_reward_acid_lifetime_multiplier = _multiply_reward_stat_with_cap(_reward_acid_lifetime_multiplier, 1.12, 1.0, 1.55)
 		"hemotrophic_loop":
-			_reward_passive_regen_per_second += 1.8
-			_reward_bonus_max_hp_flat += 15
+			_reward_passive_regen_per_second = minf(2.4, _reward_passive_regen_per_second + 0.9)
+			_reward_bonus_max_hp_flat = mini(40, _reward_bonus_max_hp_flat + 10)
 		"fallback_hardened_membrane":
-			_reward_bonus_max_hp_flat += 10
+			_reward_bonus_max_hp_flat = mini(40, _reward_bonus_max_hp_flat + 10)
 		"fallback_spike_density":
-			_reward_module_damage_multiplier *= 1.10
+			_reward_module_damage_multiplier = _multiply_reward_stat_with_cap(_reward_module_damage_multiplier, 1.10, 1.0, 1.60)
 		"fallback_metabolic_burst":
-			_reward_move_speed_multiplier *= 1.08
+			_reward_move_speed_multiplier = _multiply_reward_stat_with_cap(_reward_move_speed_multiplier, 1.08, 1.0, 1.35)
 		_:
 			return false
 	return true
+
+func _multiply_reward_stat_with_cap(current_value: float, factor: float, min_value: float, max_value: float) -> float:
+	var safe_factor: float = maxf(0.0, factor)
+	var multiplied_value: float = current_value * safe_factor
+	return clampf(multiplied_value, min_value, max_value)
 
 func _apply_runtime_reward_effects() -> void:
 	_recompute_active_tag_synergies()
@@ -5209,11 +5272,63 @@ func _maybe_log_active_tag_synergies() -> void:
 	synergy_names.sort()
 	print("[Synergy] Active: %s" % ", ".join(synergy_names))
 
+func _grant_biomass_bonus_for_reward_crisis(crisis_id: String) -> void:
+	if not _is_biomass_bonus_crisis(crisis_id):
+		return
+
+	var player_node := player as Node
+	if player_node == null or not is_instance_valid(player_node):
+		player_node = get_tree().get_first_node_in_group("player")
+	if player_node == null:
+		return
+
+	var biomass_nodes: Array = get_tree().get_nodes_in_group("biomass_pickups")
+	if biomass_nodes.is_empty():
+		return
+
+	var collected_pickups: int = 0
+	var total_bonus_xp: int = 0
+	_mass_biomass_collect_active = true
+	for biomass_variant in biomass_nodes:
+		var biomass_node := biomass_variant as Node
+		if biomass_node == null or not is_instance_valid(biomass_node):
+			continue
+		if not biomass_node.is_inside_tree():
+			continue
+		if not biomass_node.has_method("_on_body_entered"):
+			continue
+
+		var xp_variant: Variant = biomass_node.get("xp_value")
+		if xp_variant != null:
+			total_bonus_xp += maxi(0, int(xp_variant))
+
+		biomass_node.call("_on_body_entered", player_node)
+		collected_pickups += 1
+
+	_mass_biomass_collect_active = false
+
+	if collected_pickups <= 0:
+		return
+
+	_play_sfx("sfx_pickup_biomass", -3.0, 1.08)
+	_queue_runtime_popup(
+		"Containment Bonus",
+		"Absorbed all map biomass (+%d XP)." % total_bonus_xp,
+		false,
+		2.4,
+		false,
+		runtime_popup_top_offset + 30.0
+	)
+	if debug_log_crisis_timeline:
+		print("[GameManager] Biomass bonus applied after %s: %d pickups (+%d XP)" % [crisis_id, collected_pickups, total_bonus_xp])
+
 func _finish_crisis_reward_prompt() -> void:
+	var completed_reward_crisis_id: String = active_crisis_reward_id
 	crisis_reward_selection_active = false
 	active_crisis_reward_id = ""
 	crisis_reward_options.clear()
 	_complete_reward_phase_if_active()
+	_grant_biomass_bonus_for_reward_crisis(completed_reward_crisis_id)
 
 	if pending_levelup_count > 0:
 		pending_levelup_count -= 1

@@ -50,6 +50,9 @@ var _infection_tick_accumulator: float = 0.0
 var _viral_mark_time_left: float = 0.0
 var _viral_mark_damage_multiplier: float = 1.0
 var _next_converted_contact_time_by_target_id: Dictionary = {}
+var _difficulty_speed_multiplier_applied: float = 1.0
+var _difficulty_hp_multiplier_applied: float = 1.0
+var _difficulty_damage_multiplier_applied: float = 1.0
 
 @onready var animated_sprite: AnimatedSprite2D = get_node_or_null("AnimatedSprite2D")
 @onready var collision_shape: CollisionShape2D = get_node_or_null("CollisionShape2D")
@@ -249,6 +252,30 @@ func apply_spawn_scaling(speed_multiplier: float, hp_multiplier: float, damage_m
 	current_hp = max_hp
 	contact_damage = maxi(1, int(round(float(contact_damage) * safe_damage_multiplier)))
 	shot_damage = maxi(1, int(round(float(shot_damage) * safe_damage_multiplier)))
+
+func apply_difficulty_multipliers(speed_multiplier: float, hp_multiplier: float, damage_multiplier: float) -> void:
+	var safe_speed_multiplier: float = maxf(0.1, speed_multiplier)
+	var safe_hp_multiplier: float = maxf(0.1, hp_multiplier)
+	var safe_damage_multiplier: float = maxf(0.1, damage_multiplier)
+
+	var speed_ratio: float = safe_speed_multiplier / maxf(0.1, _difficulty_speed_multiplier_applied)
+	var hp_ratio_scale: float = safe_hp_multiplier / maxf(0.1, _difficulty_hp_multiplier_applied)
+	var damage_ratio: float = safe_damage_multiplier / maxf(0.1, _difficulty_damage_multiplier_applied)
+
+	var hp_ratio: float = 1.0
+	if max_hp > 0 and current_hp > 0:
+		hp_ratio = clampf(float(current_hp) / float(max_hp), 0.0, 1.0)
+
+	move_speed = maxf(1.0, move_speed * speed_ratio)
+	shot_interval_seconds = maxf(0.20, shot_interval_seconds / speed_ratio)
+	max_hp = maxi(1, int(round(float(max_hp) * hp_ratio_scale)))
+	current_hp = maxi(1, int(round(float(max_hp) * hp_ratio)))
+	contact_damage = maxi(1, int(round(float(contact_damage) * damage_ratio)))
+	shot_damage = maxi(1, int(round(float(shot_damage) * damage_ratio)))
+
+	_difficulty_speed_multiplier_applied = safe_speed_multiplier
+	_difficulty_hp_multiplier_applied = safe_hp_multiplier
+	_difficulty_damage_multiplier_applied = safe_damage_multiplier
 
 func apply_elite_profile(
 	speed_multiplier: float,

@@ -156,7 +156,7 @@ layout_mode = 2
 layout_mode = 2
 theme_override_font_sizes/font_size = 18
 theme_override_colors/font_color = Color(0.63, 0.77, 0.9, 0.9)
-text = "Press Esc to close options panel"
+text = "Press Esc to close open panels"
 horizontal_alignment = 1
 
 [node name="PanelBottomPadding" type="Control" parent="Root/MenuPanel/Content"]
@@ -251,6 +251,24 @@ layout_mode = 2
 theme_override_font_sizes/font_size = 16
 text = "Mute"
 
+[node name="DifficultyRow" type="HBoxContainer" parent="OptionsPanel/OptionsContent"]
+visible = false
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="DifficultyLabel" type="Label" parent="OptionsPanel/OptionsContent/DifficultyRow"]
+custom_minimum_size = Vector2(90, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+theme_override_colors/font_color = Color(0.74, 0.89, 0.98, 0.95)
+text = "Difficulty"
+
+[node name="DifficultyOptionButton" type="OptionButton" parent="OptionsPanel/OptionsContent/DifficultyRow"]
+custom_minimum_size = Vector2(220, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 18
+
 [node name="CloseOptionsButton" type="Button" parent="OptionsPanel/OptionsContent"]
 custom_minimum_size = Vector2(220, 54)
 layout_mode = 2
@@ -263,6 +281,105 @@ text = "Close"
 [node name="OptionsBottomPadding" type="Control" parent="OptionsPanel/OptionsContent"]
 custom_minimum_size = Vector2(0, 14)
 layout_mode = 2
+
+[node name="DifficultyPanel" type="PanelContainer" parent="."]
+visible = false
+custom_minimum_size = Vector2(720, 430)
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -360.0
+offset_top = -215.0
+offset_right = 360.0
+offset_bottom = 215.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 24
+theme_override_constants/margin_top = 20
+theme_override_constants/margin_right = 24
+theme_override_constants/margin_bottom = 20
+theme_override_styles/panel = SubResource("StyleBoxFlat_options_panel")
+
+[node name="DifficultyContent" type="VBoxContainer" parent="DifficultyPanel"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="DifficultyTitle" type="Label" parent="DifficultyPanel/DifficultyContent"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 38
+theme_override_colors/font_color = Color(0.9, 0.96, 1, 1)
+text = "SELECT DIFFICULTY"
+horizontal_alignment = 1
+
+[node name="DifficultySubtitle" type="Label" parent="DifficultyPanel/DifficultyContent"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+theme_override_colors/font_color = Color(0.74, 0.89, 0.98, 0.95)
+text = "Choose the outbreak pressure before starting the run."
+horizontal_alignment = 1
+
+[node name="DifficultyPickerRow" type="HBoxContainer" parent="DifficultyPanel/DifficultyContent"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="DifficultyLabel" type="Label" parent="DifficultyPanel/DifficultyContent/DifficultyPickerRow"]
+custom_minimum_size = Vector2(130, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 22
+theme_override_colors/font_color = Color(0.79, 0.91, 1, 0.95)
+text = "Difficulty"
+
+[node name="DifficultyOptionButton" type="OptionButton" parent="DifficultyPanel/DifficultyContent/DifficultyPickerRow"]
+custom_minimum_size = Vector2(260, 44)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 22
+
+[node name="DifficultyDescriptionPanel" type="PanelContainer" parent="DifficultyPanel/DifficultyContent"]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_menu_bg")
+
+[node name="DifficultyDescriptionPadding" type="MarginContainer" parent="DifficultyPanel/DifficultyContent/DifficultyDescriptionPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 14
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 14
+theme_override_constants/margin_bottom = 12
+
+[node name="DifficultyDescription" type="Label" parent="DifficultyPanel/DifficultyContent/DifficultyDescriptionPanel/DifficultyDescriptionPadding"]
+custom_minimum_size = Vector2(0, 150)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 20
+theme_override_colors/font_color = Color(0.86, 0.95, 1, 0.97)
+text = ""
+autowrap_mode = 3
+
+[node name="DifficultyButtons" type="HBoxContainer" parent="DifficultyPanel/DifficultyContent"]
+layout_mode = 2
+theme_override_constants/separation = 14
+alignment = 1
+
+[node name="ConfirmDifficultyButton" type="Button" parent="DifficultyPanel/DifficultyContent/DifficultyButtons"]
+custom_minimum_size = Vector2(230, 56)
+layout_mode = 2
+theme_override_font_sizes/font_size = 28
+theme_override_styles/normal = SubResource("StyleBoxFlat_button")
+theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_button_pressed")
+text = "Start Run"
+
+[node name="CancelDifficultyButton" type="Button" parent="DifficultyPanel/DifficultyContent/DifficultyButtons"]
+custom_minimum_size = Vector2(190, 56)
+layout_mode = 2
+theme_override_font_sizes/font_size = 26
+theme_override_styles/normal = SubResource("StyleBoxFlat_button")
+theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_button_pressed")
+text = "Cancel"
 
 [node name="CreditsPanel" type="PanelContainer" parent="."]
 visible = false
