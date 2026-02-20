@@ -6,6 +6,7 @@ const BIOHAZARD_LEAK_ZONE_SCENE: PackedScene = preload("res://scenes/systems/bio
 const STRAIN_BLOOM_ELITE_SCENE: PackedScene = preload("res://scenes/actors/enemy_elite.tscn")
 const ANTIVIRAL_DRONE_SCENE: PackedScene = preload("res://scenes/actors/enemy_ranged.tscn")
 const CONTAINMENT_PYLON_SCENE: PackedScene = preload("res://scenes/systems/containment_pylon.tscn")
+const GENOME_CACHE_POD_SCENE: PackedScene = preload("res://scenes/systems/genome_cache_pod.tscn")
 const PROTOCOL_OMEGA_BOSS_SCENE: PackedScene = preload("res://scenes/actors/protocol_omega_boss.tscn")
 const MUTATIONS_DATA = preload("res://data/mutations.gd")
 const MUTATION_ICON_PROTO_PULSE: Texture2D = preload("res://art/sprites/ui/icons/icon_proto_pulse.png")
@@ -230,8 +231,10 @@ var debug_log_drops: bool = false
 var levelup_options: Array = []
 var lineage_selection_active: bool = false
 var crisis_reward_selection_active: bool = false
+var genome_cache_selection_active: bool = false
 var active_crisis_reward_id: String = ""
 var crisis_reward_options: Array = []
+var pending_genome_cache_prompt_count: int = 0
 var game_over_main_menu_requested: bool = false
 var _last_player_hp: int = -1
 var _pending_crisis_failure_audio: bool = false
@@ -246,6 +249,11 @@ var _protocol_omega_boss_target: Node2D
 var _protocol_omega_boss_phase: int = 1
 var _active_antiviral_drones: Array[Node2D] = []
 var _active_containment_pylons: Array[Node2D] = []
+var _active_genome_cache_pods: Array[Node2D] = []
+var _containment_pylon_arrows: Dictionary = {}
+var _containment_arrow_elapsed_seconds: float = 0.0
+var _genome_cache_spawned_count: int = 0
+var _genome_cache_next_spawn_time_seconds: float = 0.0
 var _biohazard_leak_spawner_active: bool = false
 var _biohazard_leak_spawn_accumulator: float = 0.0
 var _biohazard_leak_position_sample_accumulator: float = 0.0
@@ -388,6 +396,24 @@ var _enemy_difficulty_damage_multiplier: float = 1.0
 @export var containment_seal_pylon_spawn_radius_min: float = 200.0
 @export var containment_seal_pylon_spawn_radius_max: float = 340.0
 @export var containment_seal_fail_if_objective_alive: bool = true
+@export var genome_cache_spawn_initial_delay_seconds: float = 70.0
+@export var genome_cache_spawn_interval_seconds: float = 60.0
+@export var genome_cache_spawn_interval_random_seconds: float = 5.0
+@export var genome_cache_spawn_interval_random_ratio_cap: float = 0.20
+@export var genome_cache_max_active_count: int = 1
+@export var genome_cache_max_spawns_per_run: int = 7
+@export var genome_cache_spawn_radius_min: float = 200.0
+@export var genome_cache_spawn_radius_max: float = 360.0
+@export var genome_cache_spawn_attempts: int = 10
+@export var genome_cache_spawn_margin_from_bounds: float = 32.0
+@export var containment_pylon_arrow_color: Color = Color(1.0, 0.23, 0.18, 1.0)
+@export var containment_pylon_arrow_ring_radius: float = 108.0
+@export var containment_pylon_arrow_vertical_offset: float = -24.0
+@export var containment_pylon_arrow_size: float = 22.0
+@export var containment_pylon_arrow_pulse_speed: float = 6.8
+@export var containment_pylon_arrow_min_alpha: float = 0.55
+@export var containment_pylon_arrow_max_alpha: float = 0.98
+@export var containment_pylon_arrow_z_index: int = 450
 @export var use_background_sprite_for_arena_bounds: bool = true
 @export var arena_world_center: Vector2 = Vector2(960.0, 540.0)
 @export var arena_world_size: Vector2 = Vector2(2048.0, 2048.0)
@@ -556,6 +582,8 @@ func _reset_runtime_state() -> void:
 	levelup_options.clear()
 	lineage_selection_active = false
 	crisis_reward_selection_active = false
+	genome_cache_selection_active = false
+	pending_genome_cache_prompt_count = 0
 	active_crisis_reward_id = ""
 	crisis_reward_options.clear()
 	_reward_module_damage_multiplier = 1.0
@@ -601,9 +629,12 @@ func _reset_runtime_state() -> void:
 	_clear_protocol_omega_boss()
 	_clear_antiviral_drones()
 	_clear_containment_pylons()
+	_clear_genome_cache_pods()
 	_clear_strain_bloom_state()
 	_containment_seal_active = false
 	_containment_seal_destroyed_count = 0
+	_genome_cache_spawned_count = 0
+	_schedule_next_genome_cache_spawn(true)
 	if crisis_director != null and crisis_director.has_method("reset_runtime_state"):
 		crisis_director.call("reset_runtime_state")
 	_apply_crisis_ui_accent("idle", "", 0.0)
@@ -1150,6 +1181,7 @@ func _on_containment_pylon_destroyed(
 	_containment_seal_destroyed_count += 1
 	if pylon_node != null:
 		_active_containment_pylons.erase(pylon_node)
+		_remove_containment_pylon_arrow(pylon_node)
 	_prune_containment_pylons()
 	_update_crisis_debug_banner()
 	if not _containment_seal_active:
@@ -1183,18 +1215,278 @@ func _clear_containment_pylons() -> void:
 			continue
 		pylon_node.queue_free()
 	_active_containment_pylons.clear()
+	_clear_containment_pylon_arrows()
 	_containment_seal_active = false
 	_containment_seal_destroyed_count = 0
 
 func _prune_containment_pylons() -> void:
+	var active_pylon_ids: Dictionary = {}
 	for idx in range(_active_containment_pylons.size() - 1, -1, -1):
 		var pylon_node: Node2D = _active_containment_pylons[idx]
 		if pylon_node == null or not is_instance_valid(pylon_node):
 			_active_containment_pylons.remove_at(idx)
+			continue
+		active_pylon_ids[pylon_node.get_instance_id()] = true
+	for arrow_id_variant in _containment_pylon_arrows.keys():
+		var arrow_id: int = int(arrow_id_variant)
+		if active_pylon_ids.has(arrow_id):
+			continue
+		var stale_arrow := _containment_pylon_arrows.get(arrow_id, null) as Node2D
+		if stale_arrow != null and is_instance_valid(stale_arrow):
+			stale_arrow.queue_free()
+		_containment_pylon_arrows.erase(arrow_id)
 
 func _get_active_containment_pylon_count() -> int:
 	_prune_containment_pylons()
 	return _active_containment_pylons.size()
+
+func _schedule_next_genome_cache_spawn(use_initial_delay: bool = false) -> void:
+	var base_delay_seconds: float = genome_cache_spawn_interval_seconds
+	if use_initial_delay:
+		base_delay_seconds = genome_cache_spawn_initial_delay_seconds
+	base_delay_seconds = maxf(4.0, base_delay_seconds)
+	var variance_seconds: float = maxf(0.0, genome_cache_spawn_interval_random_seconds)
+	var random_ratio_cap: float = clampf(genome_cache_spawn_interval_random_ratio_cap, 0.0, 0.45)
+	if random_ratio_cap > 0.0:
+		variance_seconds = minf(variance_seconds, base_delay_seconds * random_ratio_cap)
+	var jitter_seconds: float = 0.0
+	if variance_seconds > 0.0:
+		jitter_seconds = randf_range(-variance_seconds, variance_seconds)
+	_genome_cache_next_spawn_time_seconds = elapsed_seconds + maxf(4.0, base_delay_seconds + jitter_seconds)
+
+func _has_available_stat_upgrades_for_genome_cache() -> bool:
+	if mutation_system == null:
+		return false
+	if not mutation_system.has_method("has_available_stat_upgrades"):
+		return true
+	return bool(mutation_system.call("has_available_stat_upgrades"))
+
+func _tick_genome_cache_spawner(_delta: float) -> void:
+	if run_ended:
+		return
+	if not _has_available_stat_upgrades_for_genome_cache():
+		return
+
+	_prune_genome_cache_pods()
+	if _genome_cache_spawned_count >= maxi(0, genome_cache_max_spawns_per_run):
+		return
+	if elapsed_seconds < _genome_cache_next_spawn_time_seconds:
+		return
+	if _active_genome_cache_pods.size() >= maxi(1, genome_cache_max_active_count):
+		return
+
+	var spawned: bool = _spawn_genome_cache_pod()
+	if not spawned:
+		_genome_cache_next_spawn_time_seconds = elapsed_seconds + 6.0
+		return
+	_genome_cache_spawned_count += 1
+	_schedule_next_genome_cache_spawn(false)
+
+func _spawn_genome_cache_pod() -> bool:
+	if GENOME_CACHE_POD_SCENE == null:
+		return false
+
+	var player_node := player as Node2D
+	if player_node == null:
+		player_node = get_tree().get_first_node_in_group("player") as Node2D
+	if player_node == null:
+		return false
+
+	var cache_node := GENOME_CACHE_POD_SCENE.instantiate() as Node2D
+	if cache_node == null:
+		return false
+	cache_node.global_position = _resolve_genome_cache_spawn_position(player_node)
+
+	var spawn_parent: Node = get_tree().current_scene
+	if spawn_parent == null:
+		spawn_parent = self
+	spawn_parent.add_child(cache_node)
+	_active_genome_cache_pods.append(cache_node)
+
+	if cache_node.has_signal("destroyed"):
+		var destroyed_callable := Callable(self, "_on_genome_cache_pod_destroyed").bind(cache_node)
+		if not cache_node.is_connected("destroyed", destroyed_callable):
+			cache_node.connect("destroyed", destroyed_callable)
+
+	_queue_runtime_popup(
+		"GENOME CACHE DETECTED",
+		"Destroy it to choose one stat-only adaptation.",
+		true,
+		3.2,
+		false,
+		runtime_popup_top_offset + 74.0
+	)
+	return true
+
+func _resolve_genome_cache_spawn_position(player_node: Node2D) -> Vector2:
+	var arena_bounds: Rect2 = _resolve_arena_world_bounds()
+	var margin_value: float = maxf(0.0, genome_cache_spawn_margin_from_bounds)
+	var min_x: float = arena_bounds.position.x + margin_value
+	var max_x: float = arena_bounds.position.x + arena_bounds.size.x - margin_value
+	var min_y: float = arena_bounds.position.y + margin_value
+	var max_y: float = arena_bounds.position.y + arena_bounds.size.y - margin_value
+
+	var min_radius: float = maxf(40.0, genome_cache_spawn_radius_min)
+	var max_radius: float = maxf(min_radius + 1.0, genome_cache_spawn_radius_max)
+	var attempts: int = maxi(1, genome_cache_spawn_attempts)
+	var fallback_position: Vector2 = Vector2(
+		clampf(player_node.global_position.x, min_x, max_x),
+		clampf(player_node.global_position.y, min_y, max_y)
+	)
+	var best_position: Vector2 = fallback_position
+	var best_distance_score: float = -INF
+	for _attempt_index in range(attempts):
+		var spawn_angle: float = randf() * TAU
+		var spawn_radius: float = randf_range(min_radius, max_radius)
+		var candidate_position: Vector2 = player_node.global_position + Vector2.RIGHT.rotated(spawn_angle) * spawn_radius
+		candidate_position = Vector2(
+			clampf(candidate_position.x, min_x, max_x),
+			clampf(candidate_position.y, min_y, max_y)
+		)
+
+		var nearest_existing_dist_sq: float = INF
+		for existing_cache in _active_genome_cache_pods:
+			var existing_node := existing_cache as Node2D
+			if existing_node == null or not is_instance_valid(existing_node):
+				continue
+			var dist_sq: float = candidate_position.distance_squared_to(existing_node.global_position)
+			nearest_existing_dist_sq = minf(nearest_existing_dist_sq, dist_sq)
+		if nearest_existing_dist_sq < 120.0 * 120.0:
+			continue
+
+		var distance_score: float = candidate_position.distance_squared_to(player_node.global_position)
+		if distance_score > best_distance_score:
+			best_distance_score = distance_score
+			best_position = candidate_position
+
+	return best_position
+
+func _on_genome_cache_pod_destroyed(_world_position: Vector2, _signal_cache_node: Node, cache_node: Node2D) -> void:
+	if cache_node != null:
+		_active_genome_cache_pods.erase(cache_node)
+	_prune_genome_cache_pods()
+
+	var opened_prompt: bool = _open_genome_cache_prompt(true)
+	if opened_prompt:
+		return
+	if not _has_available_stat_upgrades_for_genome_cache():
+		_queue_runtime_popup(
+			"GENOME CACHE",
+			"All core stats are already maxed for this run.",
+			true,
+			2.8,
+			false,
+			runtime_popup_top_offset + 74.0
+		)
+
+func _clear_genome_cache_pods() -> void:
+	for cache_variant in _active_genome_cache_pods:
+		var cache_node := cache_variant as Node2D
+		if cache_node == null:
+			continue
+		if not is_instance_valid(cache_node):
+			continue
+		cache_node.queue_free()
+	_active_genome_cache_pods.clear()
+
+func _prune_genome_cache_pods() -> void:
+	for index in range(_active_genome_cache_pods.size() - 1, -1, -1):
+		var cache_node := _active_genome_cache_pods[index] as Node2D
+		if cache_node == null or not is_instance_valid(cache_node):
+			_active_genome_cache_pods.remove_at(index)
+
+func _tick_containment_pylon_arrows(delta: float) -> void:
+	if not _containment_seal_active:
+		_clear_containment_pylon_arrows()
+		return
+	_prune_containment_pylons()
+	if _active_containment_pylons.is_empty():
+		_clear_containment_pylon_arrows()
+		return
+
+	var player_node := player as Node2D
+	if player_node == null:
+		player_node = get_tree().get_first_node_in_group("player") as Node2D
+	if player_node == null:
+		_clear_containment_pylon_arrows()
+		return
+
+	_containment_arrow_elapsed_seconds += maxf(0.0, delta)
+	var ring_radius: float = maxf(24.0, containment_pylon_arrow_ring_radius)
+	var vertical_offset: Vector2 = Vector2(0.0, containment_pylon_arrow_vertical_offset)
+	var pulse: float = (sin(_containment_arrow_elapsed_seconds * containment_pylon_arrow_pulse_speed) + 1.0) * 0.5
+	var alpha_value: float = lerpf(containment_pylon_arrow_min_alpha, containment_pylon_arrow_max_alpha, pulse)
+	var scale_value: float = lerpf(0.92, 1.10, pulse)
+
+	for pylon_node in _active_containment_pylons:
+		if pylon_node == null or not is_instance_valid(pylon_node):
+			continue
+		var arrow_marker: Node2D = _get_or_create_containment_pylon_arrow(pylon_node)
+		if arrow_marker == null or not is_instance_valid(arrow_marker):
+			continue
+		var direction: Vector2 = pylon_node.global_position - player_node.global_position
+		if direction.length_squared() < 0.001:
+			direction = Vector2.RIGHT
+		var normalized_direction: Vector2 = direction.normalized()
+		arrow_marker.global_position = player_node.global_position + normalized_direction * ring_radius + vertical_offset
+		arrow_marker.rotation = normalized_direction.angle()
+		arrow_marker.scale = Vector2.ONE * scale_value
+		arrow_marker.modulate = Color(
+			containment_pylon_arrow_color.r,
+			containment_pylon_arrow_color.g,
+			containment_pylon_arrow_color.b,
+			clampf(alpha_value, 0.0, 1.0)
+		)
+
+func _get_or_create_containment_pylon_arrow(pylon_node: Node2D) -> Node2D:
+	if pylon_node == null:
+		return null
+	var pylon_id: int = pylon_node.get_instance_id()
+	if _containment_pylon_arrows.has(pylon_id):
+		var existing_arrow := _containment_pylon_arrows.get(pylon_id, null) as Node2D
+		if existing_arrow != null and is_instance_valid(existing_arrow):
+			return existing_arrow
+
+	var arrow_marker: Polygon2D = _build_containment_arrow_marker()
+	add_child(arrow_marker)
+	_containment_pylon_arrows[pylon_id] = arrow_marker
+	return arrow_marker
+
+func _build_containment_arrow_marker() -> Polygon2D:
+	var arrow_marker := Polygon2D.new()
+	var marker_size: float = maxf(8.0, containment_pylon_arrow_size)
+	arrow_marker.polygon = PackedVector2Array([
+		Vector2(marker_size, 0.0),
+		Vector2(-marker_size * 0.52, marker_size * 0.44),
+		Vector2(-marker_size * 0.12, 0.0),
+		Vector2(-marker_size * 0.52, -marker_size * 0.44)
+	])
+	arrow_marker.color = containment_pylon_arrow_color
+	arrow_marker.z_as_relative = false
+	arrow_marker.z_index = containment_pylon_arrow_z_index
+	return arrow_marker
+
+func _remove_containment_pylon_arrow(pylon_node: Node2D) -> void:
+	if pylon_node == null:
+		return
+	var pylon_id: int = pylon_node.get_instance_id()
+	if not _containment_pylon_arrows.has(pylon_id):
+		return
+	var arrow_marker := _containment_pylon_arrows.get(pylon_id, null) as Node2D
+	if arrow_marker != null and is_instance_valid(arrow_marker):
+		arrow_marker.queue_free()
+	_containment_pylon_arrows.erase(pylon_id)
+
+func _clear_containment_pylon_arrows() -> void:
+	for arrow_variant in _containment_pylon_arrows.values():
+		var arrow_marker := arrow_variant as Node2D
+		if arrow_marker == null:
+			continue
+		if not is_instance_valid(arrow_marker):
+			continue
+		arrow_marker.queue_free()
+	_containment_pylon_arrows.clear()
+	_containment_arrow_elapsed_seconds = 0.0
 
 func _spawn_strain_bloom_elite(crisis_id: String = "hunter_deployment") -> void:
 	_clear_strain_bloom_state()
@@ -2097,6 +2389,8 @@ func _process(delta: float) -> void:
 	_tick_crisis_director(delta)
 	_tick_biohazard_leak_spawner(delta)
 	_tick_final_crisis_layers(delta)
+	_tick_genome_cache_spawner(delta)
+	_tick_containment_pylon_arrows(delta)
 	_update_crisis_debug_banner()
 
 func _get_total_bonus_regen_per_second() -> float:
@@ -2226,12 +2520,16 @@ func _refresh_choice_panel_labels() -> void:
 	if levelup_title_label != null:
 		if crisis_reward_selection_active:
 			levelup_title_label.text = "EVENT REWARD"
+		elif genome_cache_selection_active:
+			levelup_title_label.text = "GENOME CACHE"
 		else:
 			levelup_title_label.text = "EVOLVE"
 
 	if levelup_lineage_prompt_label != null:
 		if crisis_reward_selection_active:
 			levelup_lineage_prompt_label.text = "Choose one adaptation"
+		elif genome_cache_selection_active:
+			levelup_lineage_prompt_label.text = "Choose one stat adaptation"
 		elif lineage_selection_active:
 			levelup_lineage_prompt_label.text = "Choose your variant"
 		else:
@@ -2243,6 +2541,8 @@ func _refresh_choice_panel_labels() -> void:
 				levelup_help_label.text = "Event bonus applies immediately. End bonus: absorb all map biomass."
 			else:
 				levelup_help_label.text = "Event bonus applies immediately for this run."
+		elif genome_cache_selection_active:
+			levelup_help_label.text = "Cache breach grants a stat-only boost."
 		elif lineage_selection_active:
 			levelup_help_label.text = "Choose once. It grants your starter spell and biases future options."
 		else:
@@ -3340,6 +3640,8 @@ func _end_run_common() -> void:
 	run_paused_for_menu = false
 	lineage_selection_active = false
 	crisis_reward_selection_active = false
+	genome_cache_selection_active = false
+	pending_genome_cache_prompt_count = 0
 	active_crisis_reward_id = ""
 	crisis_reward_options.clear()
 	if levelup_ui != null:
@@ -3360,6 +3662,7 @@ func _end_run_common() -> void:
 	_clear_biohazard_leaks()
 	_clear_antiviral_drones()
 	_clear_containment_pylons()
+	_clear_genome_cache_pods()
 	_clear_strain_bloom_state()
 	_containment_seal_active = false
 	run_ended = true
@@ -3548,6 +3851,12 @@ func _on_levelup_choice_pressed(choice_index: int) -> void:
 		_finish_crisis_reward_prompt()
 		return
 
+	if genome_cache_selection_active:
+		if mutation_system != null and mutation_system.has_method("apply_option_index"):
+			mutation_system.call("apply_option_index", choice_index)
+		_finish_genome_cache_prompt()
+		return
+
 	if lineage_selection_active:
 		var lineage_applied: bool = _apply_lineage_choice(choice_index)
 		if not lineage_applied:
@@ -3556,6 +3865,13 @@ func _on_levelup_choice_pressed(choice_index: int) -> void:
 	else:
 		if mutation_system != null and mutation_system.has_method("apply_option_index"):
 			mutation_system.call("apply_option_index", choice_index)
+
+	if pending_genome_cache_prompt_count > 0:
+		pending_genome_cache_prompt_count -= 1
+		var did_open_cache_prompt: bool = _open_genome_cache_prompt(false)
+		if did_open_cache_prompt:
+			return
+		pending_genome_cache_prompt_count = 0
 
 	if pending_levelup_count > 0:
 		pending_levelup_count -= 1
@@ -4487,6 +4803,7 @@ func _debug_fast_forward_time() -> void:
 	_update_timer_label()
 	_tick_crisis_director(seconds_to_skip)
 	_tick_biohazard_leak_spawner(seconds_to_skip)
+	_tick_genome_cache_spawner(seconds_to_skip)
 
 	for spawner_variant in get_tree().get_nodes_in_group("enemy_spawners"):
 		var spawner_node := spawner_variant as Node
@@ -4558,6 +4875,7 @@ func _debug_jump_to_final_crisis_threshold() -> void:
 
 	_tick_crisis_director(0.1)
 	_tick_biohazard_leak_spawner(0.1)
+	_tick_genome_cache_spawner(0.1)
 	_update_crisis_debug_banner()
 	if reached_final:
 		print("Debug jump: moved directly to final event at %.1fs" % elapsed_seconds)
@@ -5334,6 +5652,13 @@ func _finish_crisis_reward_prompt() -> void:
 	_complete_reward_phase_if_active()
 	_grant_biomass_bonus_for_reward_crisis(completed_reward_crisis_id)
 
+	if pending_genome_cache_prompt_count > 0:
+		pending_genome_cache_prompt_count -= 1
+		var did_open_cache_prompt: bool = _open_genome_cache_prompt(false)
+		if did_open_cache_prompt:
+			return
+		pending_genome_cache_prompt_count = 0
+
 	if pending_levelup_count > 0:
 		pending_levelup_count -= 1
 		var did_open_prompt: bool = _open_levelup_prompt(false)
@@ -5352,6 +5677,63 @@ func _complete_reward_phase_if_active() -> void:
 	if debug_log_crisis_timeline and completed_early:
 		print("[GameManager] Event reward phase completed early via selection")
 
+func _finish_genome_cache_prompt() -> void:
+	genome_cache_selection_active = false
+
+	if pending_genome_cache_prompt_count > 0:
+		pending_genome_cache_prompt_count -= 1
+		var did_open_cache_prompt: bool = _open_genome_cache_prompt(false)
+		if did_open_cache_prompt:
+			return
+		pending_genome_cache_prompt_count = 0
+
+	if pending_levelup_count > 0:
+		pending_levelup_count -= 1
+		var did_open_levelup_prompt: bool = _open_levelup_prompt(false)
+		if did_open_levelup_prompt:
+			return
+		pending_levelup_count = 0
+
+	_close_levelup_prompt()
+
+func _open_genome_cache_prompt(play_sound: bool = true) -> bool:
+	if run_ended:
+		return false
+	if run_paused_for_menu:
+		pending_genome_cache_prompt_count += 1
+		return false
+	if crisis_reward_selection_active or lineage_selection_active:
+		pending_genome_cache_prompt_count += 1
+		return false
+
+	var options: Array = []
+	if mutation_system != null and mutation_system.has_method("get_stat_only_options"):
+		var options_variant: Variant = mutation_system.call("get_stat_only_options", 3)
+		if options_variant is Array:
+			options = options_variant
+	if options.is_empty():
+		return false
+
+	levelup_options = options
+	genome_cache_selection_active = true
+	crisis_reward_selection_active = false
+	lineage_selection_active = false
+	active_crisis_reward_id = ""
+	crisis_reward_options.clear()
+	_set_levelup_mode(false)
+	_set_choice_button_text(levelup_choice_1, levelup_choice_1_icon, levelup_choice_1_text, levelup_options, 0)
+	_set_choice_button_text(levelup_choice_2, levelup_choice_2_icon, levelup_choice_2_text, levelup_options, 1)
+	_set_choice_button_text(levelup_choice_3, levelup_choice_3_icon, levelup_choice_3_text, levelup_options, 2)
+	_refresh_choice_panel_labels()
+
+	run_paused_for_levelup = true
+	_set_gameplay_active(false)
+	if levelup_ui != null:
+		levelup_ui.visible = true
+	if play_sound:
+		_play_sfx("sfx_levelup")
+	return true
+
 func _open_levelup_prompt(play_sound: bool = true) -> bool:
 	if run_ended:
 		return false
@@ -5361,8 +5743,12 @@ func _open_levelup_prompt(play_sound: bool = true) -> bool:
 	if crisis_reward_selection_active:
 		_queue_pending_levelup("crisis_reward_active")
 		return false
+	if genome_cache_selection_active:
+		_queue_pending_levelup("genome_cache_active")
+		return false
 
 	crisis_reward_selection_active = false
+	genome_cache_selection_active = false
 	active_crisis_reward_id = ""
 	crisis_reward_options.clear()
 
@@ -5388,6 +5774,7 @@ func _close_levelup_prompt() -> void:
 		levelup_ui.visible = false
 	run_paused_for_levelup = false
 	crisis_reward_selection_active = false
+	genome_cache_selection_active = false
 	active_crisis_reward_id = ""
 	crisis_reward_options.clear()
 	_refresh_lineage_labels()

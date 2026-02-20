@@ -1,0 +1,95 @@
+[gd_scene format=3 uid="uid://bx3xfxiuxjxan"]
+
+[ext_resource type="Script" uid="uid://cnkbv6q5hgwvd" path="res://scripts/systems/genome_cache_pod.gd" id="1_4r5km"]
+[ext_resource type="Texture2D" uid="uid://do46xtpxrtf3t" path="res://art/sprites/props/genome_cache_pod_sheet.png" id="2_pyi66"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_wgt5m"]
+radius = 18.0
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_61kl6"]
+atlas = ExtResource("2_pyi66")
+region = Rect2(16, 4, 326, 340)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_3hy50"]
+atlas = ExtResource("2_pyi66")
+region = Rect2(342, 4, 326, 340)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_s7m44"]
+atlas = ExtResource("2_pyi66")
+region = Rect2(668, 4, 326, 340)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_h27tj"]
+atlas = ExtResource("2_pyi66")
+region = Rect2(16, 344, 326, 340)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_1t5qe"]
+atlas = ExtResource("2_pyi66")
+region = Rect2(342, 344, 326, 340)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_n5gbj"]
+atlas = ExtResource("2_pyi66")
+region = Rect2(668, 344, 326, 340)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_uf5na"]
+atlas = ExtResource("2_pyi66")
+region = Rect2(16, 684, 326, 340)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_oddnu"]
+atlas = ExtResource("2_pyi66")
+region = Rect2(342, 684, 326, 340)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_mog5a"]
+atlas = ExtResource("2_pyi66")
+region = Rect2(668, 684, 326, 340)
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_a521a"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_61kl6")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_3hy50")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_s7m44")
+}],
+"loop": true,
+"name": &"idle",
+"speed": 6.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_h27tj")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_1t5qe")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_n5gbj")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_uf5na")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_oddnu")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_mog5a")
+}],
+"loop": false,
+"name": &"open",
+"speed": 6.0
+}]
+
+[node name="GenomeCachePod" type="StaticBody2D" unique_id=1427435535]
+script = ExtResource("1_4r5km")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=842422002]
+shape = SubResource("CircleShape2D_wgt5m")
+
+[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="." unique_id=17661616]
+texture_filter = 5
+scale = Vector2(0.2, 0.2)
+sprite_frames = SubResource("SpriteFrames_a521a")
+animation = &"open"

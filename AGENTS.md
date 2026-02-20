@@ -145,12 +145,17 @@ Current run progression systems:
 - Variant-tag recombinations visible in HUD.
 - Run inventory UI rows for Build, Rewards, and Synergies.
 - Tooltips for mutations/rewards/synergies with value summaries.
+- Genome Cache pods spawn at fair-random intervals; destroying one opens a stat-only adaptation choice.
+- Genome Cache visuals use a dedicated `AnimatedSprite2D` with separate `idle` and `open` animations.
 
 Current debug helpers:
 - Debug XP grant (debug-build gated).
 - Debug fast-forward time.
 - Debug jump to next active crisis.
 - Debug jump near final-crisis threshold.
+
+Animation integration note:
+- For props and interactables with state transitions, prefer explicit animation names per state (example: `idle`, `open`) instead of one mixed clip.
 
 ---
 

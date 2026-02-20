@@ -195,6 +195,25 @@ func get_levelup_options(count: int = 3) -> Array[Dictionary]:
 	current_levelup_options = selected_options
 	return selected_options
 
+func get_stat_only_options(count: int = 3) -> Array[Dictionary]:
+	var safe_count: int = maxi(1, count)
+	var stat_option_pool: Array[Dictionary] = _build_available_stat_options()
+	if stat_option_pool.is_empty():
+		current_levelup_options = []
+		return []
+
+	var selected_options: Array[Dictionary] = _pick_weighted_options(stat_option_pool, safe_count)
+	if selected_options.size() < safe_count:
+		selected_options.append_array(_pick_weighted_options(stat_option_pool, safe_count - selected_options.size(), selected_options))
+	selected_options = _shuffle_options(selected_options)
+	if selected_options.size() > safe_count:
+		selected_options.resize(safe_count)
+	current_levelup_options = selected_options
+	return selected_options
+
+func has_available_stat_upgrades() -> bool:
+	return not _build_available_stat_options().is_empty()
+
 func apply_option_index(index: int) -> bool:
 	if index < 0 or index >= current_levelup_options.size():
 		return false
