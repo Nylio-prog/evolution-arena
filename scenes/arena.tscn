@@ -12,6 +12,8 @@
 [ext_resource type="Script" uid="uid://bkpmxrcd71u3k" path="res://scripts/systems/mutation_system.gd" id="10_6wsqv"]
 [ext_resource type="Script" uid="uid://74p2agjx4iod" path="res://scripts/systems/crisis_director.gd" id="11_oj863"]
 [ext_resource type="PackedScene" path="res://scenes/ui/victory.tscn" id="12_jbq7r"]
+[ext_resource type="Material" uid="uid://bqs0qyq5eg6fs" path="res://materials/postprocess_biolab.tres" id="13_0w2d7"]
+[ext_resource type="Script" uid="uid://bls4adl8phyfq" path="res://scripts/ui/postprocess_overlay.gd" id="14_fy3as"]
 
 [node name="Arena" type="Node2D" unique_id=1478589997]
 script = ExtResource("4_6g2vy")
@@ -24,6 +26,23 @@ texture = ExtResource("2_8vbsj")
 
 [node name="Player" parent="." unique_id=1353408687 instance=ExtResource("1_e05a3")]
 position = Vector2(972, 487)
+
+[node name="PostProcessLayer" type="CanvasLayer" parent="." unique_id=84129370]
+layer = 0
+
+[node name="BackBufferCopy" type="BackBufferCopy" parent="PostProcessLayer" unique_id=2004577195]
+copy_mode = 2
+
+[node name="PostProcessOverlay" type="ColorRect" parent="PostProcessLayer" unique_id=1993548522]
+z_index = 900
+material = ExtResource("13_0w2d7")
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("14_fy3as")
 
 [node name="XpSystem" type="Node" parent="." unique_id=364193305]
 script = ExtResource("7_x7sj1")
