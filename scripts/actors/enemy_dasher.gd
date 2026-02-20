@@ -3,10 +3,13 @@ extends CharacterBody2D
 signal died(world_position: Vector2)
 signal died_detailed(world_position: Vector2, enemy_node: Node)
 
+const PHYSICS_LAYER_WORLD: int = 1
+const PHYSICS_LAYER_ENEMY: int = 2
+
 @export var move_speed: float = 90.0
 @export var dash_speed: float = 320.0
-@export var max_hp: int = 12
-@export var contact_damage: int = 10
+@export var max_hp: int = 18
+@export var contact_damage: int = 14
 @export var dot_damage_multiplier: float = 0.68
 @export var visual_radius: float = 9.0
 @export var idle_animation_name: StringName = &"idle"
@@ -68,6 +71,7 @@ func _ready() -> void:
 	current_hp = max_hp
 	add_to_group("enemies")
 	add_to_group("hostile_enemies")
+	_configure_ghost_collision_profile()
 	_setup_animated_sprite()
 	queue_redraw()
 
@@ -155,20 +159,7 @@ func _apply_contact_damage() -> void:
 	if not _is_converted_host:
 		_try_damage_player_by_contact_range()
 		return
-
-	for i in range(get_slide_collision_count()):
-		var collision := get_slide_collision(i)
-		var collider := collision.get_collider() as Node
-		if collider == null:
-			continue
-		if not collider.is_in_group("hostile_enemies"):
-			continue
-		if collider == self:
-			continue
-		if not _can_hit_converted_target_now(collider):
-			continue
-		if collider.has_method("take_damage"):
-			collider.call("take_damage", maxi(1, int(round(float(contact_damage) * converted_damage_multiplier))))
+	_try_damage_hostiles_by_contact_range()
 
 func take_damage(amount: int) -> void:
 	if amount <= 0:
@@ -470,6 +461,12 @@ func _ensure_player_collision_exception() -> void:
 	add_collision_exception_with(_player)
 	_player_collision_exception_added = true
 
+func _configure_ghost_collision_profile() -> void:
+	set_collision_layer_value(PHYSICS_LAYER_WORLD, true)
+	set_collision_layer_value(PHYSICS_LAYER_ENEMY, false)
+	set_collision_mask_value(PHYSICS_LAYER_WORLD, false)
+	set_collision_mask_value(PHYSICS_LAYER_ENEMY, false)
+
 func _try_damage_player_by_contact_range() -> void:
 	if not is_instance_valid(_player):
 		return
@@ -486,8 +483,26 @@ func _try_damage_player_by_contact_range() -> void:
 	if distance_sq > contact_distance * contact_distance:
 		return
 
-	_player.call("take_damage", contact_damage)
+	_player.call("take_damage", contact_damage, self)
 	_next_player_contact_time_seconds = now_seconds + maxf(0.05, player_contact_cooldown_seconds)
+
+func _try_damage_hostiles_by_contact_range() -> void:
+	var attack_radius: float = _get_collision_radius()
+	for enemy_variant in get_tree().get_nodes_in_group("hostile_enemies"):
+		var enemy_node := enemy_variant as Node2D
+		if enemy_node == null:
+			continue
+		if enemy_node == self:
+			continue
+		if not enemy_node.has_method("take_damage"):
+			continue
+		if not _can_hit_converted_target_now(enemy_node):
+			continue
+		var contact_distance: float = attack_radius + _get_node_contact_radius(enemy_node)
+		var distance_sq: float = global_position.distance_squared_to(enemy_node.global_position)
+		if distance_sq > contact_distance * contact_distance:
+			continue
+		enemy_node.call("take_damage", maxi(1, int(round(float(contact_damage) * converted_damage_multiplier))))
 
 func _can_hit_converted_target_now(target: Node) -> bool:
 	if target == null:
@@ -506,4 +521,17 @@ func _get_player_contact_radius() -> float:
 	var player_visual_radius_variant: Variant = _player.get("visual_radius")
 	if player_visual_radius_variant != null:
 		return maxf(1.0, float(player_visual_radius_variant))
+	return 12.0
+
+func _get_node_contact_radius(target_node: Node2D) -> float:
+	if target_node == null:
+		return 12.0
+	var target_collision_shape: CollisionShape2D = target_node.get_node_or_null("CollisionShape2D") as CollisionShape2D
+	if target_collision_shape != null:
+		var circle_shape := target_collision_shape.shape as CircleShape2D
+		if circle_shape != null:
+			return maxf(1.0, circle_shape.radius)
+	var target_visual_radius_variant: Variant = target_node.get("visual_radius")
+	if target_visual_radius_variant != null:
+		return maxf(1.0, float(target_visual_radius_variant))
 	return 12.0

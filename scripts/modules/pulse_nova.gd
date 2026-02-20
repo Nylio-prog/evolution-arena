@@ -10,11 +10,11 @@ const PULSE_NOVA_SPRITE_TEXTURE: Texture2D = preload("res://art/sprites/mutation
 @export var pulse_outline_color: Color = Color(0.12, 0.2, 0.26, 1.0)
 @export var pulse_sprite_texture: Texture2D = PULSE_NOVA_SPRITE_TEXTURE
 @export var pulse_sprite_scale_multiplier: float = 1.15
-@export_range(0.0, 1.0, 0.01) var block_chance_level_1: float = 0.06
-@export_range(0.0, 1.0, 0.01) var block_chance_level_2: float = 0.10
-@export_range(0.0, 1.0, 0.01) var block_chance_level_3: float = 0.14
-@export_range(0.0, 1.0, 0.01) var block_chance_level_4: float = 0.18
-@export_range(0.0, 1.0, 0.01) var block_chance_level_5: float = 0.22
+@export_range(0.0, 1.0, 0.01) var block_chance_level_1: float = 0.10
+@export_range(0.0, 1.0, 0.01) var block_chance_level_2: float = 0.17
+@export_range(0.0, 1.0, 0.01) var block_chance_level_3: float = 0.25
+@export_range(0.0, 1.0, 0.01) var block_chance_level_4: float = 0.33
+@export_range(0.0, 1.0, 0.01) var block_chance_level_5: float = 0.40
 @export var debug_log_hits: bool = false
 
 @onready var audio_manager: Node = get_node_or_null("/root/AudioManager")
@@ -67,21 +67,21 @@ func _configure_level_stats() -> void:
 			_pulse_radius = base_pulse_radius
 			_pulse_interval_seconds = base_pulse_interval_seconds
 		2:
-			_pulse_damage = int(round(float(base_pulse_damage) * 1.35))
-			_pulse_radius = base_pulse_radius + 16.0
-			_pulse_interval_seconds = maxf(0.40, base_pulse_interval_seconds * 0.86)
+			_pulse_damage = int(round(float(base_pulse_damage) * 1.45))
+			_pulse_radius = base_pulse_radius + 20.0
+			_pulse_interval_seconds = maxf(0.36, base_pulse_interval_seconds * 0.84)
 		3:
-			_pulse_damage = int(round(float(base_pulse_damage) * 1.75))
-			_pulse_radius = base_pulse_radius + 30.0
-			_pulse_interval_seconds = maxf(0.34, base_pulse_interval_seconds * 0.74)
+			_pulse_damage = int(round(float(base_pulse_damage) * 1.90))
+			_pulse_radius = base_pulse_radius + 38.0
+			_pulse_interval_seconds = maxf(0.30, base_pulse_interval_seconds * 0.70)
 		4:
-			_pulse_damage = int(round(float(base_pulse_damage) * 2.10))
-			_pulse_radius = base_pulse_radius + 44.0
-			_pulse_interval_seconds = maxf(0.30, base_pulse_interval_seconds * 0.66)
-		5:
-			_pulse_damage = int(round(float(base_pulse_damage) * 2.45))
+			_pulse_damage = int(round(float(base_pulse_damage) * 2.35))
 			_pulse_radius = base_pulse_radius + 58.0
-			_pulse_interval_seconds = maxf(0.26, base_pulse_interval_seconds * 0.58)
+			_pulse_interval_seconds = maxf(0.26, base_pulse_interval_seconds * 0.60)
+		5:
+			_pulse_damage = int(round(float(base_pulse_damage) * 2.80))
+			_pulse_radius = base_pulse_radius + 80.0
+			_pulse_interval_seconds = maxf(0.22, base_pulse_interval_seconds * 0.52)
 		_:
 			_pulse_damage = 0
 			_pulse_radius = 0.0

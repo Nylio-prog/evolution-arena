@@ -42,7 +42,7 @@ const STAT_DEFS: Dictionary = {
 	"offense_boost": {
 		"id": "offense_boost",
 		"name": "Cytotoxicity",
-		"short_by_level": {1: "+6% damage", 2: "+12% damage", 3: "+18% damage"},
+		"short_by_level": {1: "+10% damage", 2: "+22% damage", 3: "+36% damage"},
 		"description": "Increase damage dealt by all abilities.",
 		"icon_id": "stat_offense",
 		"max_level": 3
@@ -50,7 +50,7 @@ const STAT_DEFS: Dictionary = {
 	"defense_boost": {
 		"id": "defense_boost",
 		"name": "Reinforced Envelope",
-		"short_by_level": {1: "-6% incoming", 2: "-11% incoming", 3: "-16% incoming"},
+		"short_by_level": {1: "-10% incoming", 2: "-22% incoming", 3: "-34% incoming"},
 		"description": "Reduce incoming damage from hostile sources.",
 		"icon_id": "stat_defense",
 		"max_level": 3
@@ -58,7 +58,7 @@ const STAT_DEFS: Dictionary = {
 	"pickup_radius_boost": {
 		"id": "pickup_radius_boost",
 		"name": "Collector Tendrils",
-		"short_by_level": {1: "+60 pickup", 2: "+130 pickup", 3: "+220 pickup"},
+		"short_by_level": {1: "+100 pickup", 2: "+220 pickup", 3: "+360 pickup"},
 		"description": "Increase pickup radius for biomass collection by a flat amount.",
 		"icon_id": "stat_pickup",
 		"max_level": 3
@@ -66,7 +66,7 @@ const STAT_DEFS: Dictionary = {
 	"move_speed_boost": {
 		"id": "move_speed_boost",
 		"name": "Motility Shift",
-		"short_by_level": {1: "+6% move", 2: "+12% move", 3: "+18% move"},
+		"short_by_level": {1: "+9% move", 2: "+19% move", 3: "+30% move"},
 		"description": "Increase movement speed.",
 		"icon_id": "stat_speed",
 		"max_level": 3
@@ -74,7 +74,7 @@ const STAT_DEFS: Dictionary = {
 	"cooldown_boost": {
 		"id": "cooldown_boost",
 		"name": "Replication Tempo",
-		"short_by_level": {1: "-5% cooldown", 2: "-10% cooldown", 3: "-15% cooldown"},
+		"short_by_level": {1: "-8% cooldown", 2: "-18% cooldown", 3: "-28% cooldown"},
 		"description": "Reduce global ability cooldowns.",
 		"icon_id": "stat_cooldown",
 		"max_level": 3
@@ -82,35 +82,36 @@ const STAT_DEFS: Dictionary = {
 	"vitality_boost": {
 		"id": "vitality_boost",
 		"name": "Viral Mass",
-		"short_by_level": {1: "+12 HP", 2: "+25 HP", 3: "+40 HP"},
+		"short_by_level": {1: "+35 HP", 2: "+80 HP", 3: "+140 HP"},
 		"description": "Increase max HP and heal instantly on upgrade.",
 		"icon_id": "stat_vitality",
 		"max_level": 3
 	}
 }
 
-const OFFENSE_MULTIPLIER_BY_LEVEL: Dictionary = {0: 1.0, 1: 1.06, 2: 1.12, 3: 1.18}
-const DEFENSE_MULTIPLIER_BY_LEVEL: Dictionary = {0: 1.0, 1: 0.94, 2: 0.89, 3: 0.84}
-const PICKUP_FLAT_BONUS_BY_LEVEL: Dictionary = {0: 0.0, 1: 60.0, 2: 130.0, 3: 220.0}
-const MOVE_MULTIPLIER_BY_LEVEL: Dictionary = {0: 1.0, 1: 1.06, 2: 1.12, 3: 1.18}
-const COOLDOWN_MULTIPLIER_BY_LEVEL: Dictionary = {0: 1.0, 1: 0.95, 2: 0.90, 3: 0.85}
-const VITALITY_HP_BONUS_BY_LEVEL: Dictionary = {0: 0, 1: 12, 2: 25, 3: 40}
+const OFFENSE_MULTIPLIER_BY_LEVEL: Dictionary = {0: 1.0, 1: 1.10, 2: 1.22, 3: 1.36}
+const DEFENSE_MULTIPLIER_BY_LEVEL: Dictionary = {0: 1.0, 1: 0.90, 2: 0.78, 3: 0.66}
+const PICKUP_FLAT_BONUS_BY_LEVEL: Dictionary = {0: 0.0, 1: 100.0, 2: 220.0, 3: 360.0}
+const MOVE_MULTIPLIER_BY_LEVEL: Dictionary = {0: 1.0, 1: 1.09, 2: 1.19, 3: 1.30}
+const COOLDOWN_MULTIPLIER_BY_LEVEL: Dictionary = {0: 1.0, 1: 0.92, 2: 0.82, 3: 0.72}
+const VITALITY_HP_BONUS_BY_LEVEL: Dictionary = {0: 0, 1: 35, 2: 80, 3: 140}
 
 signal mutation_applied(mutation_id: String, new_level: int)
 signal lineage_changed(lineage_id: String, lineage_name: String)
 signal variant_changed(variant_id: String, variant_name: String)
 
 @export var debug_log_weighted_rolls: bool = false
-@export var level_scaling_damage_per_level: float = 0.012
-@export var level_scaling_damage_cap: float = 1.60
-@export var level_scaling_cooldown_reduction_per_level: float = 0.0035
-@export var level_scaling_cooldown_multiplier_floor: float = 0.80
-@export var level_scaling_orbiter_speed_per_level: float = 0.007
-@export var level_scaling_orbiter_speed_cap: float = 1.30
-@export var level_scaling_pulse_radius_per_level: float = 0.005
-@export var level_scaling_pulse_radius_cap: float = 1.24
-@export var level_scaling_acid_lifetime_per_level: float = 0.007
-@export var level_scaling_acid_lifetime_cap: float = 1.35
+@export var level_scaling_damage_per_level: float = 0.018
+@export var level_scaling_damage_cap: float = 2.00
+@export var level_scaling_cooldown_reduction_per_level: float = 0.0055
+@export var level_scaling_cooldown_multiplier_floor: float = 0.65
+@export var level_scaling_orbiter_speed_per_level: float = 0.012
+@export var level_scaling_orbiter_speed_cap: float = 1.55
+@export var virion_orbit_runtime_base_speed_cap: float = 1.55
+@export var level_scaling_pulse_radius_per_level: float = 0.009
+@export var level_scaling_pulse_radius_cap: float = 1.45
+@export var level_scaling_acid_lifetime_per_level: float = 0.012
+@export var level_scaling_acid_lifetime_cap: float = 1.65
 
 var player: Node2D
 var mutation_defs: Dictionary = {}
@@ -692,7 +693,8 @@ func _apply_runtime_to_virion_orbit(module_node: Node, damage_multiplier: float,
 	var base_damage: int = int(base_entry.get("orbiter_damage", module_node.get("orbiter_damage")))
 	var base_speed: float = float(base_entry.get("base_orbit_speed_rps", module_node.get("base_orbit_speed_rps")))
 	module_node.set("orbiter_damage", maxi(1, int(round(float(base_damage) * damage_multiplier))))
-	module_node.set("base_orbit_speed_rps", maxf(0.1, base_speed * orbiter_speed_multiplier))
+	var adjusted_base_speed: float = maxf(0.1, base_speed * orbiter_speed_multiplier)
+	module_node.set("base_orbit_speed_rps", minf(adjusted_base_speed, maxf(0.1, virion_orbit_runtime_base_speed_cap)))
 	if module_node.has_method("set_level"):
 		module_node.call("set_level", get_mutation_level("virion_orbit"))
 

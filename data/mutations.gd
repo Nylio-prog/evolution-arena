@@ -76,11 +76,11 @@ const MUTATIONS: Dictionary = {
 		"icon_id": "lytic_burst",
 		"max_level": 5,
 		"levels": {
-			1: {"short": "burst + guard", "description": "Emit periodic bursts and gain 6% block chance."},
-			2: {"short": "wider guard burst", "description": "Burst area and damage increase. Block chance rises to 10%."},
-			3: {"short": "reinforced burst", "description": "Burst cadence improves and block chance rises to 14%."},
-			4: {"short": "hardened burst", "description": "Burst gets stronger and block chance rises to 18%."},
-			5: {"short": "fortress burst", "description": "Peak burst pressure and 22% block chance."}
+			1: {"short": "burst + guard", "description": "Emit periodic bursts and gain 10% block chance."},
+			2: {"short": "wider guard burst", "description": "Burst area and damage increase. Block chance rises to 17%."},
+			3: {"short": "reinforced burst", "description": "Burst cadence improves and block chance rises to 25%."},
+			4: {"short": "hardened burst", "description": "Burst gets stronger and block chance rises to 33%."},
+			5: {"short": "fortress burst", "description": "Peak burst pressure and 40% block chance."}
 		}
 	},
 	"infective_secretion": {
@@ -168,8 +168,8 @@ const MUTATIONS: Dictionary = {
 	"protein_shell": {
 		"id": "protein_shell",
 		"name": "Protein Shell",
-		"description": "Harden your outer shell to reduce incoming damage.",
-		"short": "damage reduction shell",
+		"description": "Harden your outer shell to reduce incoming damage and reflect part of it.",
+		"short": "damage reduction + reflect shell",
 		"tags": ["sustain", "defense", "parasitic", "parasitic_core"],
 		"variant": "parasitic",
 		"tier": "core",
@@ -179,11 +179,11 @@ const MUTATIONS: Dictionary = {
 		"icon_id": "protein_shell",
 		"max_level": 5,
 		"levels": {
-			1: {"short": "-12% dmg", "description": "Reduce incoming damage."},
-			2: {"short": "-22% dmg", "description": "Further reduce incoming damage."},
-			3: {"short": "-32% dmg", "description": "Strong shell sustain."},
-			4: {"short": "-40% dmg", "description": "Heavy shell reinforcement."},
-			5: {"short": "-48% dmg", "description": "Near-maximum shell fortification."}
+			1: {"short": "-12% dmg +4% reflect", "description": "Reduce incoming damage and reflect a small part to attackers."},
+			2: {"short": "-22% dmg +6% reflect", "description": "Stronger shell reduction with improved reflect."},
+			3: {"short": "-32% dmg +8% reflect", "description": "Strong shell sustain and noticeable damage reflect."},
+			4: {"short": "-40% dmg +10% reflect", "description": "Heavy shell reinforcement with strong reflect response."},
+			5: {"short": "-48% dmg +12% reflect", "description": "Maximum shell fortification and peak reflect."}
 		}
 	},
 	"host_override": {

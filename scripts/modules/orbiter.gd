@@ -8,7 +8,7 @@ const ORBITER_SPRITE_TEXTURE: Texture2D = preload("res://art/sprites/modules/vir
 @export var orbit_radius_bonus_level_3: float = 34.0
 @export var orbit_radius_bonus_level_4: float = 52.0
 @export var orbit_radius_bonus_level_5: float = 74.0
-@export var base_orbit_speed_rps: float = 2.5
+@export var base_orbit_speed_rps: float = 1.15
 @export var orbiter_collision_radius: float = 9.0
 @export var orbiter_color: Color = Color(0.85, 0.95, 1.0, 1.0)
 @export var orbiter_outline_color: Color = Color(0.08, 0.14, 0.18, 0.95)
@@ -84,11 +84,11 @@ func _configure_level_stats() -> void:
 		_current_orbit_radius += maxf(0.0, orbit_radius_bonus_level_5)
 
 	if orbiter_level >= 3:
-		_current_orbit_speed_rps = base_orbit_speed_rps * 1.5
+		_current_orbit_speed_rps = base_orbit_speed_rps * 1.2
 	if orbiter_level >= 4:
-		_current_orbit_speed_rps = base_orbit_speed_rps * 1.8
+		_current_orbit_speed_rps = base_orbit_speed_rps * 1.35
 	if orbiter_level >= 5:
-		_current_orbit_speed_rps = base_orbit_speed_rps * 2.1
+		_current_orbit_speed_rps = base_orbit_speed_rps * 1.5
 
 func _rebuild_orbiter_areas() -> void:
 	for child in get_children():

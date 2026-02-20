@@ -14,6 +14,7 @@ const GAMEPLAY_SETTINGS = preload("res://scripts/systems/gameplay_settings.gd")
 @onready var sfx_mute_toggle: CheckButton = get_node_or_null("OptionsPanel/OptionsContent/AudioRows/SfxRow/SfxMuteToggle")
 @onready var music_slider: HSlider = get_node_or_null("OptionsPanel/OptionsContent/AudioRows/MusicRow/MusicSlider")
 @onready var music_mute_toggle: CheckButton = get_node_or_null("OptionsPanel/OptionsContent/AudioRows/MusicRow/MusicMuteToggle")
+@onready var fps_limit_option_button: OptionButton = get_node_or_null("OptionsPanel/OptionsContent/FpsLimitRow/FpsLimitOptionButton")
 @onready var options_difficulty_row: HBoxContainer = get_node_or_null("OptionsPanel/OptionsContent/DifficultyRow")
 @onready var difficulty_option_button: OptionButton = get_node_or_null("DifficultyPanel/DifficultyContent/DifficultyPickerRow/DifficultyOptionButton")
 @onready var difficulty_description_label: Label = get_node_or_null("DifficultyPanel/DifficultyContent/DifficultyDescriptionPanel/DifficultyDescriptionPadding/DifficultyDescription")
@@ -30,9 +31,12 @@ var _arena_scene_cache: PackedScene
 var _play_requested_while_loading: bool = false
 var _sfx_reentry_guard: bool = false
 var _selected_difficulty_id: String = "medium"
+var _selected_fps_limit_id: String = "unlimited"
+var _syncing_fps_controls: bool = false
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
+	GAMEPLAY_SETTINGS.apply_saved_fps_limit()
 	_connect_ui()
 	_set_options_visible(false)
 	_set_credits_visible(false)
@@ -192,6 +196,47 @@ func _setup_audio_controls() -> void:
 			music_mute_toggle.toggled.connect(music_toggle_callable)
 		_on_music_mute_toggled(music_mute_toggle.button_pressed)
 
+	_setup_fps_limit_controls()
+
+func _setup_fps_limit_controls() -> void:
+	if fps_limit_option_button == null:
+		return
+	_selected_fps_limit_id = GAMEPLAY_SETTINGS.load_fps_limit_id()
+	_style_option_picker(fps_limit_option_button)
+	fps_limit_option_button.clear()
+
+	var fps_limit_ids: Array[String] = GAMEPLAY_SETTINGS.get_ordered_fps_limit_ids()
+	var selected_index: int = 0
+	for index in range(fps_limit_ids.size()):
+		var fps_limit_id: String = String(fps_limit_ids[index])
+		var display_name: String = GAMEPLAY_SETTINGS.get_fps_limit_display_name(fps_limit_id)
+		fps_limit_option_button.add_item(display_name)
+		if fps_limit_id == _selected_fps_limit_id:
+			selected_index = index
+
+	var selected_callable := Callable(self, "_on_fps_limit_option_selected")
+	if not fps_limit_option_button.item_selected.is_connected(selected_callable):
+		fps_limit_option_button.item_selected.connect(selected_callable)
+
+	_syncing_fps_controls = true
+	fps_limit_option_button.select(selected_index)
+	_syncing_fps_controls = false
+	GAMEPLAY_SETTINGS.apply_fps_limit_id(_selected_fps_limit_id)
+
+func _on_fps_limit_option_selected(index: int) -> void:
+	if _syncing_fps_controls:
+		return
+	if fps_limit_option_button == null:
+		return
+	var fps_limit_ids: Array[String] = GAMEPLAY_SETTINGS.get_ordered_fps_limit_ids()
+	if fps_limit_ids.is_empty():
+		return
+	var clamped_index: int = clampi(index, 0, fps_limit_ids.size() - 1)
+	_selected_fps_limit_id = GAMEPLAY_SETTINGS.sanitize_fps_limit_id(String(fps_limit_ids[clamped_index]))
+	GAMEPLAY_SETTINGS.save_fps_limit_id(_selected_fps_limit_id)
+	GAMEPLAY_SETTINGS.apply_fps_limit_id(_selected_fps_limit_id)
+	_play_sfx("sfx_ui_click")
+
 func _setup_difficulty_controls() -> void:
 	_selected_difficulty_id = GAMEPLAY_SETTINGS.load_difficulty_id()
 	if options_difficulty_row != null:
@@ -275,9 +320,12 @@ func _build_difficulty_description(difficulty_id: String) -> String:
 		speed_multiplier
 	]
 
-func _style_difficulty_picker() -> void:
-	if difficulty_option_button == null:
+func _style_option_picker(option_button: OptionButton) -> void:
+	if option_button == null:
 		return
+	option_button.flat = false
+	option_button.alignment = HORIZONTAL_ALIGNMENT_LEFT
+	option_button.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 
 	var border_color := Color(0.40, 0.73, 0.96, 0.82)
 	var normal_style := _create_flat_stylebox(Color(0.05, 0.11, 0.18, 0.98), border_color, 9, 1)
@@ -293,18 +341,18 @@ func _style_difficulty_picker() -> void:
 	disabled_style.content_margin_left = 14.0
 	disabled_style.content_margin_right = 36.0
 
-	difficulty_option_button.add_theme_stylebox_override("normal", normal_style)
-	difficulty_option_button.add_theme_stylebox_override("hover", hover_style)
-	difficulty_option_button.add_theme_stylebox_override("pressed", pressed_style)
-	difficulty_option_button.add_theme_stylebox_override("focus", hover_style)
-	difficulty_option_button.add_theme_stylebox_override("disabled", disabled_style)
-	difficulty_option_button.add_theme_color_override("font_color", Color(0.92, 0.97, 1.0, 1.0))
-	difficulty_option_button.add_theme_color_override("font_hover_color", Color(0.97, 0.99, 1.0, 1.0))
-	difficulty_option_button.add_theme_color_override("font_focus_color", Color(0.97, 0.99, 1.0, 1.0))
-	difficulty_option_button.add_theme_color_override("font_pressed_color", Color(0.97, 0.99, 1.0, 1.0))
-	difficulty_option_button.add_theme_color_override("font_disabled_color", Color(0.70, 0.80, 0.89, 0.85))
+	option_button.add_theme_stylebox_override("normal", normal_style)
+	option_button.add_theme_stylebox_override("hover", hover_style)
+	option_button.add_theme_stylebox_override("pressed", pressed_style)
+	option_button.add_theme_stylebox_override("focus", hover_style)
+	option_button.add_theme_stylebox_override("disabled", disabled_style)
+	option_button.add_theme_color_override("font_color", Color(0.92, 0.97, 1.0, 1.0))
+	option_button.add_theme_color_override("font_hover_color", Color(0.97, 0.99, 1.0, 1.0))
+	option_button.add_theme_color_override("font_focus_color", Color(0.97, 0.99, 1.0, 1.0))
+	option_button.add_theme_color_override("font_pressed_color", Color(0.97, 0.99, 1.0, 1.0))
+	option_button.add_theme_color_override("font_disabled_color", Color(0.70, 0.80, 0.89, 0.85))
 
-	var popup: PopupMenu = difficulty_option_button.get_popup()
+	var popup: PopupMenu = option_button.get_popup()
 	if popup == null:
 		return
 	popup.add_theme_stylebox_override("panel", _create_flat_stylebox(Color(0.04, 0.10, 0.17, 0.99), border_color, 8, 1))
@@ -314,6 +362,11 @@ func _style_difficulty_picker() -> void:
 	popup.add_theme_color_override("font_disabled_color", Color(0.67, 0.77, 0.86, 0.75))
 	popup.add_theme_color_override("font_separator_color", Color(0.63, 0.82, 0.95, 0.75))
 	popup.add_theme_color_override("font_accelerator_color", Color(0.72, 0.87, 0.97, 0.85))
+
+func _style_difficulty_picker() -> void:
+	if difficulty_option_button == null:
+		return
+	_style_option_picker(difficulty_option_button)
 
 func _create_flat_stylebox(background: Color, border: Color, radius: int, border_width: int) -> StyleBoxFlat:
 	var style := StyleBoxFlat.new()

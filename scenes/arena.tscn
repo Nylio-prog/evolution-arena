@@ -18,6 +18,9 @@
 [node name="Arena" type="Node2D" unique_id=1478589997]
 script = ExtResource("4_6g2vy")
 debug_allow_grant_xp = true
+crisis_postprocess_event_tint = Color(1.0048864, 0, 0, 1)
+genome_cache_spawn_radius_min = 300.0
+genome_cache_spawn_radius_max = 500.0
 
 [node name="Sprite2D" type="Sprite2D" parent="." unique_id=1995012003]
 z_index = -100

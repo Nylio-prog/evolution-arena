@@ -251,6 +251,23 @@ layout_mode = 2
 theme_override_font_sizes/font_size = 16
 text = "Mute"
 
+[node name="FpsLimitRow" type="HBoxContainer" parent="OptionsPanel/OptionsContent"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="FpsLimitLabel" type="Label" parent="OptionsPanel/OptionsContent/FpsLimitRow"]
+custom_minimum_size = Vector2(70, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+theme_override_colors/font_color = Color(0.74, 0.89, 0.98, 0.95)
+text = "FPS"
+
+[node name="FpsLimitOptionButton" type="OptionButton" parent="OptionsPanel/OptionsContent/FpsLimitRow"]
+custom_minimum_size = Vector2(220, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 18
+
 [node name="DifficultyRow" type="HBoxContainer" parent="OptionsPanel/OptionsContent"]
 visible = false
 layout_mode = 2

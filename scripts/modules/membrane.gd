@@ -53,21 +53,38 @@ func _apply_to_player() -> void:
 		return
 
 	owner_player.call("set_incoming_damage_multiplier", _get_damage_multiplier_for_level(membrane_level))
+	if owner_player.has_method("set_damage_reflect_ratio"):
+		owner_player.call("set_damage_reflect_ratio", _get_reflect_ratio_for_level(membrane_level))
 
 func _get_damage_multiplier_for_level(level: int) -> float:
 	match level:
 		1:
-			return 0.85
+			return 0.88
 		2:
-			return 0.70
+			return 0.78
 		3:
-			return 0.55
+			return 0.68
 		4:
-			return 0.45
+			return 0.60
 		5:
-			return 0.35
+			return 0.52
 		_:
 			return 1.0
+
+func _get_reflect_ratio_for_level(level: int) -> float:
+	match level:
+		1:
+			return 0.04
+		2:
+			return 0.06
+		3:
+			return 0.08
+		4:
+			return 0.10
+		5:
+			return 0.12
+		_:
+			return 0.0
 
 func _draw() -> void:
 	pass

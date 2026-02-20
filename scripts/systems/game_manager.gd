@@ -106,42 +106,44 @@ const MUTATION_TAG_SYNERGY_RULES: Array[Dictionary] = [
 		"id": "lytic_pair",
 		"name": "Lytic Pressure",
 		"tags": ["lytic_starter", "lytic_core"],
-		"module_damage_multiplier": 1.10
+		"module_damage_multiplier": 1.18
 	},
 	{
 		"id": "lytic_apex",
 		"name": "Lytic Overrun",
 		"tags": ["lytic_starter", "lytic_core", "lytic_capstone"],
-		"module_damage_multiplier": 1.08,
-		"pulse_radius_multiplier": 1.06
+		"module_damage_multiplier": 1.14,
+		"pulse_radius_multiplier": 1.12
 	},
 	{
 		"id": "pandemic_pair",
 		"name": "Volatile Secretion",
 		"tags": ["pandemic_starter", "pandemic_core"],
-		"acid_lifetime_multiplier": 1.20,
-		"pulse_radius_multiplier": 1.08
+		"module_damage_multiplier": 1.08,
+		"acid_lifetime_multiplier": 1.32,
+		"pulse_radius_multiplier": 1.14
 	},
 	{
 		"id": "pandemic_apex",
 		"name": "Epidemic Cascade",
 		"tags": ["pandemic_starter", "pandemic_core", "pandemic_capstone"],
-		"module_damage_multiplier": 1.10,
-		"acid_lifetime_multiplier": 1.12
+		"module_damage_multiplier": 1.18,
+		"acid_lifetime_multiplier": 1.22
 	},
 	{
 		"id": "parasitic_pair",
 		"name": "Armored Pressure",
 		"tags": ["parasitic_starter", "parasitic_core"],
-		"external_damage_multiplier": 0.95
+		"module_damage_multiplier": 1.08,
+		"external_damage_multiplier": 0.90
 	},
 	{
 		"id": "parasitic_apex",
 		"name": "Host Dominion",
 		"tags": ["parasitic_starter", "parasitic_core", "parasitic_capstone"],
-		"passive_regen_per_second": 0.6,
-		"external_damage_multiplier": 0.98,
-		"module_damage_multiplier": 1.04
+		"passive_regen_per_second": 1.2,
+		"external_damage_multiplier": 0.94,
+		"module_damage_multiplier": 1.10
 	}
 ]
 
@@ -217,9 +219,11 @@ const MUTATION_TAG_SYNERGY_RULES: Array[Dictionary] = [
 @onready var pause_sfx_mute_toggle: CheckButton = get_node_or_null("PauseMenu/Root/Content/OptionsPanel/Padding/AudioRows/SfxRow/SfxMuteToggle")
 @onready var pause_music_slider: HSlider = get_node_or_null("PauseMenu/Root/Content/OptionsPanel/Padding/AudioRows/MusicRow/MusicSlider")
 @onready var pause_music_mute_toggle: CheckButton = get_node_or_null("PauseMenu/Root/Content/OptionsPanel/Padding/AudioRows/MusicRow/MusicMuteToggle")
+@onready var pause_fps_option_button: OptionButton = get_node_or_null("PauseMenu/Root/Content/OptionsPanel/Padding/AudioRows/FpsRow/FpsOptionButton")
 @onready var pause_stats_text: RichTextLabel = get_node_or_null("PauseMenu/Root/StatsPanel/StatsPadding/StatsColumn/StatsText")
 @onready var crisis_director: Node = get_node_or_null("CrisisDirector")
 @onready var audio_manager: Node = get_node_or_null("/root/AudioManager")
+@onready var postprocess_overlay: ColorRect = get_node_or_null("PostProcessLayer/PostProcessOverlay")
 
 var elapsed_seconds: float = 0.0
 var level_reached: int = 1
@@ -314,6 +318,7 @@ var _score_history_entries: Array[Dictionary] = []
 var _final_victory_sequence_active: bool = false
 var _final_victory_resolution_started: bool = false
 var _cached_biomass_pickup_base_radius: float = -1.0
+var _postprocess_shader_material: ShaderMaterial
 var _selected_difficulty_id: String = "medium"
 var _enemy_difficulty_speed_multiplier: float = 1.0
 var _enemy_difficulty_hp_multiplier: float = 1.0
@@ -348,6 +353,14 @@ var _enemy_difficulty_damage_multiplier: float = 1.0
 @export var run_intro_popup_enabled: bool = true
 @export var run_intro_popup_duration_seconds: float = 8.0
 @export var enable_crisis_ui_accents: bool = true
+@export var enable_crisis_postprocess_tint: bool = true
+@export var crisis_postprocess_base_tint: Color = Color(0.98, 1.0, 1.03, 1.0)
+@export var crisis_postprocess_event_tint: Color = Color(1.08, 0.92, 0.93, 1.0)
+@export var crisis_postprocess_active_tint_strength: float = 0.12
+@export var crisis_postprocess_reward_tint_strength: float = 0.07
+@export var crisis_postprocess_final_tint_strength: float = 0.18
+@export var crisis_postprocess_breath_amplitude: float = 0.05
+@export var crisis_postprocess_breath_speed_hz: float = 0.82
 @export var crisis_spawn_wait_multiplier_active: float = 1.45
 @export var containment_sweep_concurrent_count: int = 3
 @export var containment_sweep_spacing: float = 220.0
@@ -426,6 +439,8 @@ func _ready() -> void:
 	_load_score_history()
 	_reset_runtime_state()
 	_load_run_difficulty_settings()
+	GAMEPLAY_SETTINGS.apply_saved_fps_limit()
+	_cache_postprocess_shader_material()
 
 	if OS.has_feature("standalone") and not OS.has_feature("dev_cheats"):
 		debug_allow_grant_xp = false
@@ -2160,6 +2175,7 @@ func _get_crisis_accent_color(phase_name: String, crisis_id: String) -> Color:
 
 func _apply_crisis_ui_accent(phase_name: String, crisis_id: String, phase_seconds_remaining: float) -> void:
 	if not enable_crisis_ui_accents:
+		_apply_crisis_postprocess_tint(phase_name, crisis_id, phase_seconds_remaining, 0.0)
 		if timer_label != null:
 			timer_label.remove_theme_color_override("font_color")
 		if score_label != null:
@@ -2247,6 +2263,71 @@ func _apply_crisis_ui_accent(phase_name: String, crisis_id: String, phase_second
 			crisis_panel_mix
 		)
 		crisis_backdrop.self_modulate = crisis_panel_modulate
+	_apply_crisis_postprocess_tint(phase_name, crisis_id, phase_seconds_remaining, accent_strength)
+
+func _cache_postprocess_shader_material() -> void:
+	_postprocess_shader_material = null
+	if postprocess_overlay == null:
+		return
+	var shader_material := postprocess_overlay.material as ShaderMaterial
+	if shader_material == null:
+		return
+	_postprocess_shader_material = shader_material
+	_set_postprocess_tint(crisis_postprocess_base_tint)
+
+func _set_postprocess_tint(tint_color: Color) -> void:
+	if _postprocess_shader_material == null:
+		return
+	var tint_vector: Vector3 = Vector3(
+		clampf(tint_color.r, 0.0, 2.0),
+		clampf(tint_color.g, 0.0, 2.0),
+		clampf(tint_color.b, 0.0, 2.0)
+	)
+	_postprocess_shader_material.set_shader_parameter("color_tint", tint_vector)
+
+func _apply_crisis_postprocess_tint(phase_name: String, crisis_id: String, phase_seconds_remaining: float, ui_accent_strength: float) -> void:
+	if _postprocess_shader_material == null:
+		_cache_postprocess_shader_material()
+	if _postprocess_shader_material == null:
+		return
+	if not enable_crisis_postprocess_tint:
+		_set_postprocess_tint(crisis_postprocess_base_tint)
+		return
+
+	var target_tint_strength: float = 0.0
+	var pulse_amplitude: float = 0.0
+	match phase_name:
+		"active":
+			target_tint_strength = crisis_postprocess_active_tint_strength + (ui_accent_strength * 0.20)
+			pulse_amplitude = crisis_postprocess_breath_amplitude
+		"reward":
+			target_tint_strength = crisis_postprocess_reward_tint_strength + (ui_accent_strength * 0.08)
+			pulse_amplitude = crisis_postprocess_breath_amplitude * 0.45
+		"final":
+			target_tint_strength = crisis_postprocess_final_tint_strength + (ui_accent_strength * 0.22)
+			pulse_amplitude = crisis_postprocess_breath_amplitude * 1.2
+		_:
+			target_tint_strength = 0.0
+			pulse_amplitude = 0.0
+
+	if (phase_name == "active" or phase_name == "final") and phase_seconds_remaining > 0.0 and phase_seconds_remaining <= 3.0:
+		target_tint_strength += 0.03
+
+	target_tint_strength = clampf(target_tint_strength, 0.0, 0.45)
+	pulse_amplitude = clampf(pulse_amplitude, 0.0, 0.20)
+
+	var pulse_strength: float = 0.0
+	if pulse_amplitude > 0.0 and target_tint_strength > 0.0:
+		var phase_offset: float = 0.0
+		if not crisis_id.is_empty():
+			phase_offset = float(abs(crisis_id.hash() % 360)) * 0.0174532925
+		var pulse_speed_hz: float = maxf(0.05, crisis_postprocess_breath_speed_hz)
+		pulse_strength = sin((elapsed_seconds * pulse_speed_hz * TAU) + phase_offset)
+
+	var final_strength: float = target_tint_strength + (pulse_strength * pulse_amplitude * 0.5)
+	final_strength = clampf(final_strength, 0.0, 0.48)
+	var resolved_tint: Color = crisis_postprocess_base_tint.lerp(crisis_postprocess_event_tint, final_strength)
+	_set_postprocess_tint(resolved_tint)
 
 func _on_crisis_started(crisis_id: String, is_final: bool, duration_seconds: float) -> void:
 	if is_final:
@@ -2265,7 +2346,7 @@ func _on_crisis_started(crisis_id: String, is_final: bool, duration_seconds: flo
 				true,
 				-1.0,
 				false,
-				runtime_popup_top_offset + 30.0
+				runtime_popup_top_offset + 60.0
 			)
 	if not is_final:
 		match crisis_id:
@@ -3365,6 +3446,8 @@ func _build_mutation_tooltip_text(mutation_id: String) -> String:
 	if mutation_id == "protein_shell" and player != null:
 		var incoming_multiplier: float = clampf(float(player.get("incoming_damage_multiplier")), 0.05, 1.0)
 		lines.append("Current total reduction: %.1f%%" % ((1.0 - incoming_multiplier) * 100.0))
+		if player.has_method("get_damage_reflect_ratio"):
+			lines.append("Current reflect: %.1f%%" % (float(player.call("get_damage_reflect_ratio")) * 100.0))
 	if mutation_id == "host_override":
 		var host_count: int = 0
 		for host_variant in get_tree().get_nodes_in_group("allied_hosts"):
@@ -3868,7 +3951,7 @@ func _on_levelup_choice_pressed(choice_index: int) -> void:
 
 	if pending_genome_cache_prompt_count > 0:
 		pending_genome_cache_prompt_count -= 1
-		var did_open_cache_prompt: bool = _open_genome_cache_prompt(false)
+		var did_open_cache_prompt: bool = _open_genome_cache_prompt(false, true)
 		if did_open_cache_prompt:
 			return
 		pending_genome_cache_prompt_count = 0
@@ -3968,6 +4051,7 @@ func _refresh_pause_stats_panel() -> void:
 	var hp_max: int = 0
 	var move_speed_value: float = 0.0
 	var incoming_damage_multiplier_value: float = 1.0
+	var damage_reflect_ratio_value: float = 0.0
 	var block_chance_value: float = 0.0
 	var pickup_radius_multiplier_value: float = 1.0
 	var pickup_radius_flat_bonus_value: float = 0.0
@@ -3977,6 +4061,8 @@ func _refresh_pause_stats_panel() -> void:
 		hp_max = maxi(1, int(player.get("max_hp")))
 		move_speed_value = float(player.get("move_speed"))
 		incoming_damage_multiplier_value = clampf(float(player.get("incoming_damage_multiplier")), 0.05, 1.0)
+		if player.has_method("get_damage_reflect_ratio"):
+			damage_reflect_ratio_value = clampf(float(player.call("get_damage_reflect_ratio")), 0.0, 1.0)
 		if player.has_method("get_block_chance"):
 			block_chance_value = clampf(float(player.call("get_block_chance")), 0.0, 0.95)
 		if player.has_method("get_pickup_radius_multiplier"):
@@ -4008,6 +4094,7 @@ func _refresh_pause_stats_panel() -> void:
 	_append_pause_stats_row(lines, "Time", "%ds" % int(elapsed_seconds))
 	_append_pause_stats_row(lines, "Score", _format_score_value(_run_score_value))
 	_append_pause_stats_row(lines, "Best Score", _format_score_value(_get_highest_score_value()))
+	_append_pause_stats_row(lines, "Difficulty", GAMEPLAY_SETTINGS.get_difficulty_display_name(_selected_difficulty_id))
 	_append_pause_stats_row(lines, "Variant", _get_current_lineage_name())
 	_append_pause_stats_row(lines, "Level", str(level_reached))
 	_append_pause_stats_row(lines, "XP", "%d / %d" % [xp_current, xp_to_next])
@@ -4020,6 +4107,7 @@ func _refresh_pause_stats_panel() -> void:
 	_append_pause_stats_row(lines, "HP", "%d / %d" % [hp_current, hp_max])
 	_append_pause_stats_row(lines, "Move Speed", "%.1f" % move_speed_value)
 	_append_pause_stats_row(lines, "Incoming Damage", "x%.2f (%.1f%% reduced)" % [incoming_damage_multiplier_value, damage_reduction_percent])
+	_append_pause_stats_row(lines, "Damage Reflect", "%.1f%%" % (damage_reflect_ratio_value * 100.0))
 	_append_pause_stats_row(lines, "Block Chance", "%.1f%%" % (block_chance_value * 100.0))
 	_append_pause_stats_row(lines, "Pickup Radius", "%.0f" % pickup_radius_value)
 	_append_pause_stats_row(lines, "Passive Regen", "+%.1f HP/s" % _get_total_bonus_regen_per_second())
@@ -4252,30 +4340,45 @@ func _get_orbiter_count_for_level(level_value: int) -> int:
 func _get_membrane_reduction_for_level(level_value: int) -> float:
 	match level_value:
 		1:
-			return 15.0
+			return 12.0
 		2:
-			return 30.0
+			return 22.0
 		3:
-			return 45.0
+			return 32.0
 		4:
-			return 55.0
+			return 40.0
 		5:
-			return 65.0
+			return 48.0
+		_:
+			return 0.0
+
+func _get_membrane_reflect_percent_for_level(level_value: int) -> float:
+	match level_value:
+		1:
+			return 4.0
+		2:
+			return 6.0
+		3:
+			return 8.0
+		4:
+			return 10.0
+		5:
+			return 12.0
 		_:
 			return 0.0
 
 func _get_lytic_guard_block_chance_for_level(level_value: int) -> float:
 	match level_value:
 		1:
-			return 0.06
-		2:
 			return 0.10
+		2:
+			return 0.17
 		3:
-			return 0.14
+			return 0.25
 		4:
-			return 0.18
+			return 0.33
 		5:
-			return 0.22
+			return 0.40
 		_:
 			return 0.0
 
@@ -4284,13 +4387,13 @@ func _get_pulse_damage_for_level(level_value: int) -> int:
 		1:
 			return 8
 		2:
-			return int(round(8.0 * 1.35))
+			return int(round(8.0 * 1.45))
 		3:
-			return int(round(8.0 * 1.75))
+			return int(round(8.0 * 1.90))
 		4:
-			return int(round(8.0 * 2.10))
+			return int(round(8.0 * 2.35))
 		5:
-			return int(round(8.0 * 2.45))
+			return int(round(8.0 * 2.80))
 		_:
 			return 0
 
@@ -4299,13 +4402,13 @@ func _get_pulse_radius_for_level(level_value: int) -> float:
 		1:
 			return 80.0
 		2:
-			return 96.0
+			return 100.0
 		3:
-			return 110.0
+			return 118.0
 		4:
-			return 124.0
-		5:
 			return 138.0
+		5:
+			return 160.0
 		_:
 			return 0.0
 
@@ -4314,13 +4417,13 @@ func _get_pulse_interval_for_level(level_value: int) -> float:
 		1:
 			return 1.85
 		2:
-			return maxf(0.40, 1.85 * 0.86)
+			return maxf(0.36, 1.85 * 0.84)
 		3:
-			return maxf(0.34, 1.85 * 0.74)
+			return maxf(0.30, 1.85 * 0.70)
 		4:
-			return maxf(0.30, 1.85 * 0.66)
+			return maxf(0.26, 1.85 * 0.60)
 		5:
-			return maxf(0.26, 1.85 * 0.58)
+			return maxf(0.22, 1.85 * 0.52)
 		_:
 			return 999.0
 
@@ -4413,165 +4516,495 @@ func _get_preview_acid_lifetime_multiplier() -> float:
 
 func _build_mutation_gain_summary_for_level(mutation_id: String, level_value: int) -> String:
 	var clamped_level: int = clampi(level_value, 1, 5)
+	var previous_level: int = maxi(0, clamped_level - 1)
 	var module_damage_multiplier: float = _get_preview_module_damage_multiplier()
 	match mutation_id:
 		"proto_pulse":
-			var proto_damage_base: float = 6.0
+			var curr_damage_scale: float = 1.0
 			match clamped_level:
 				2:
-					proto_damage_base *= 1.35
+					curr_damage_scale = 1.35
 				3:
-					proto_damage_base *= 1.65
+					curr_damage_scale = 1.65
 				4:
-					proto_damage_base *= 2.0
+					curr_damage_scale = 2.0
 				5:
-					proto_damage_base *= 2.35
-			var proto_radius_base: float = 92.0
+					curr_damage_scale = 2.35
+			var prev_damage_scale: float = 0.0
+			match previous_level:
+				1:
+					prev_damage_scale = 1.0
+				2:
+					prev_damage_scale = 1.35
+				3:
+					prev_damage_scale = 1.65
+				4:
+					prev_damage_scale = 2.0
+				5:
+					prev_damage_scale = 2.35
+			var curr_damage: int = maxi(1, int(round(6.0 * curr_damage_scale * module_damage_multiplier)))
+			var prev_damage: int = 0
+			if previous_level > 0:
+				prev_damage = maxi(1, int(round(6.0 * prev_damage_scale * module_damage_multiplier)))
+
+			var curr_radius_base: float = 92.0
 			match clamped_level:
 				2:
-					proto_radius_base += 12.0
+					curr_radius_base += 12.0
 				3:
-					proto_radius_base += 24.0
+					curr_radius_base += 24.0
 				4:
-					proto_radius_base += 38.0
+					curr_radius_base += 38.0
 				5:
-					proto_radius_base += 54.0
-			var proto_damage: int = maxi(1, int(round(proto_damage_base * module_damage_multiplier)))
-			var proto_radius: float = proto_radius_base * _get_preview_pulse_radius_multiplier()
-			return "Gain: %d pulse dmg | %.0f range" % [proto_damage, proto_radius]
+					curr_radius_base += 54.0
+			var prev_radius_base: float = 0.0
+			if previous_level > 0:
+				prev_radius_base = 92.0
+				match previous_level:
+					2:
+						prev_radius_base += 12.0
+					3:
+						prev_radius_base += 24.0
+					4:
+						prev_radius_base += 38.0
+					5:
+						prev_radius_base += 54.0
+			var curr_radius: float = curr_radius_base * _get_preview_pulse_radius_multiplier()
+			var prev_radius: float = prev_radius_base * _get_preview_pulse_radius_multiplier()
+
+			var parts: Array[String] = []
+			var delta_damage: int = curr_damage - prev_damage
+			var delta_radius: float = curr_radius - prev_radius
+			if delta_damage != 0:
+				parts.append("%+d pulse dmg" % delta_damage)
+			if absf(delta_radius) > 0.05:
+				parts.append("%+.0f range" % delta_radius)
+			if parts.is_empty():
+				return "Gain: no direct numeric change"
+			return "Gain: %s" % " | ".join(parts)
 		"razor_halo":
-			var blade_count: int = _get_spike_count_for_level(clamped_level)
-			var blade_damage: int = maxi(1, int(round(8.0 * module_damage_multiplier)))
-			var sustain_heal_per_hit: int = clamped_level
-			return "Gain: %d blades | %d contact dmg every 0.20s | heal %d per damage tick on hit" % [blade_count, blade_damage, sustain_heal_per_hit]
+			var curr_blades: int = _get_spike_count_for_level(clamped_level)
+			var prev_blades: int = _get_spike_count_for_level(previous_level)
+			var curr_damage: int = maxi(1, int(round(8.0 * module_damage_multiplier)))
+			var prev_damage: int = 0
+			if previous_level > 0:
+				prev_damage = maxi(1, int(round(8.0 * module_damage_multiplier)))
+			var curr_heal: int = clamped_level
+			var prev_heal: int = previous_level
+			var parts: Array[String] = []
+			if curr_blades != prev_blades:
+				parts.append("%+d blades" % (curr_blades - prev_blades))
+			if curr_damage != prev_damage:
+				parts.append("%+d contact dmg every 0.20s" % (curr_damage - prev_damage))
+			if curr_heal != prev_heal:
+				parts.append("heal %+d per damage tick on hit" % (curr_heal - prev_heal))
+			if parts.is_empty():
+				return "Gain: no direct numeric change"
+			return "Gain: %s" % " | ".join(parts)
 		"puncture_lance":
-			var lance_hits: int = clampi(clamped_level, 1, 5)
-			var lance_damage_base: float = 12.0
+			var curr_hits: int = clampi(clamped_level, 1, 5)
+			var prev_hits: int = clampi(previous_level, 0, 5)
+			var curr_damage_base: float = 12.0
 			match clamped_level:
 				2:
-					lance_damage_base *= 1.20
+					curr_damage_base *= 1.20
 				3:
-					lance_damage_base *= 1.38
+					curr_damage_base *= 1.38
 				4:
-					lance_damage_base *= 1.58
+					curr_damage_base *= 1.58
 				5:
-					lance_damage_base *= 1.80
-			var lance_damage: int = maxi(1, int(round(lance_damage_base * module_damage_multiplier)))
-			return "Gain: %d lances/volley | %d pierce dmg" % [lance_hits, lance_damage]
+					curr_damage_base *= 1.80
+			var prev_damage_base: float = 0.0
+			match previous_level:
+				1:
+					prev_damage_base = 12.0
+				2:
+					prev_damage_base = 12.0 * 1.20
+				3:
+					prev_damage_base = 12.0 * 1.38
+				4:
+					prev_damage_base = 12.0 * 1.58
+				5:
+					prev_damage_base = 12.0 * 1.80
+			var curr_damage: int = maxi(1, int(round(curr_damage_base * module_damage_multiplier)))
+			var prev_damage: int = 0
+			if previous_level > 0:
+				prev_damage = maxi(1, int(round(prev_damage_base * module_damage_multiplier)))
+			var parts: Array[String] = []
+			if curr_hits != prev_hits:
+				parts.append("%+d lances/volley" % (curr_hits - prev_hits))
+			if curr_damage != prev_damage:
+				parts.append("%+d pierce dmg" % (curr_damage - prev_damage))
+			if parts.is_empty():
+				return "Gain: no direct numeric change"
+			return "Gain: %s" % " | ".join(parts)
 		"lytic_burst":
-			var burst_damage: int = maxi(1, int(round(float(_get_pulse_damage_for_level(clamped_level)) * 1.25 * module_damage_multiplier)))
-			var burst_radius: float = (_get_pulse_radius_for_level(clamped_level) + 20.0) * _get_preview_pulse_radius_multiplier()
-			var block_chance_pct: int = int(round(_get_lytic_guard_block_chance_for_level(clamped_level) * 100.0))
-			return "Gain: burst %d dmg | %.0f radius | %d%% block chance" % [burst_damage, burst_radius, block_chance_pct]
+			var curr_damage: int = maxi(1, int(round(float(_get_pulse_damage_for_level(clamped_level)) * 1.25 * module_damage_multiplier)))
+			var prev_damage: int = 0
+			if previous_level > 0:
+				prev_damage = maxi(1, int(round(float(_get_pulse_damage_for_level(previous_level)) * 1.25 * module_damage_multiplier)))
+			var curr_radius: float = (_get_pulse_radius_for_level(clamped_level) + 20.0) * _get_preview_pulse_radius_multiplier()
+			var prev_radius: float = 0.0
+			if previous_level > 0:
+				prev_radius = (_get_pulse_radius_for_level(previous_level) + 20.0) * _get_preview_pulse_radius_multiplier()
+			var curr_block_pct: int = int(round(_get_lytic_guard_block_chance_for_level(clamped_level) * 100.0))
+			var prev_block_pct: int = 0
+			if previous_level > 0:
+				prev_block_pct = int(round(_get_lytic_guard_block_chance_for_level(previous_level) * 100.0))
+			var parts: Array[String] = []
+			var delta_damage: int = curr_damage - prev_damage
+			var delta_radius: float = curr_radius - prev_radius
+			var delta_block_pct: int = curr_block_pct - prev_block_pct
+			if delta_damage != 0:
+				parts.append("%+d burst dmg" % delta_damage)
+			if absf(delta_radius) > 0.05:
+				parts.append("%+.0f burst radius" % delta_radius)
+			if delta_block_pct != 0:
+				parts.append("%+d%% block chance" % delta_block_pct)
+			if parts.is_empty():
+				return "Gain: no direct numeric change"
+			return "Gain: %s" % " | ".join(parts)
 		"infective_secretion":
-			var secretion_damage: int = maxi(1, int(round(float(_get_acid_damage_for_level(clamped_level)) * module_damage_multiplier)))
-			var secretion_lifetime: float = _get_acid_lifetime_for_level(clamped_level) * _get_preview_acid_lifetime_multiplier()
-			return "Gain: infection %d DOT | %.2fs trail uptime" % [secretion_damage, secretion_lifetime]
+			var curr_damage: int = maxi(1, int(round(float(_get_acid_damage_for_level(clamped_level)) * module_damage_multiplier)))
+			var prev_damage: int = 0
+			if previous_level > 0:
+				prev_damage = maxi(1, int(round(float(_get_acid_damage_for_level(previous_level)) * module_damage_multiplier)))
+			var curr_lifetime: float = _get_acid_lifetime_for_level(clamped_level) * _get_preview_acid_lifetime_multiplier()
+			var prev_lifetime: float = 0.0
+			if previous_level > 0:
+				prev_lifetime = _get_acid_lifetime_for_level(previous_level) * _get_preview_acid_lifetime_multiplier()
+			var parts: Array[String] = []
+			if curr_damage != prev_damage:
+				parts.append("%+d infection DOT" % (curr_damage - prev_damage))
+			var delta_lifetime: float = curr_lifetime - prev_lifetime
+			if absf(delta_lifetime) > 0.005:
+				parts.append("%+.2fs trail uptime" % delta_lifetime)
+			if parts.is_empty():
+				return "Gain: no direct numeric change"
+			return "Gain: %s" % " | ".join(parts)
 		"virion_orbit":
-			var virion_count: int = _get_orbiter_count_for_level(clamped_level)
-			var virion_damage: int = maxi(1, int(round(6.0 * module_damage_multiplier)))
-			return "Gain: %d virions | %d contact dmg + infection" % [virion_count, virion_damage]
+			var curr_count: int = _get_orbiter_count_for_level(clamped_level)
+			var prev_count: int = _get_orbiter_count_for_level(previous_level)
+			var curr_damage: int = maxi(1, int(round(6.0 * module_damage_multiplier)))
+			var prev_damage: int = 0
+			if previous_level > 0:
+				prev_damage = maxi(1, int(round(6.0 * module_damage_multiplier)))
+			var curr_speed_mult: float = 1.0
+			if clamped_level >= 5:
+				curr_speed_mult = 2.1
+			elif clamped_level >= 4:
+				curr_speed_mult = 1.8
+			elif clamped_level >= 3:
+				curr_speed_mult = 1.5
+			var prev_speed_mult: float = 0.0
+			if previous_level > 0:
+				prev_speed_mult = 1.0
+				if previous_level >= 5:
+					prev_speed_mult = 2.1
+				elif previous_level >= 4:
+					prev_speed_mult = 1.8
+				elif previous_level >= 3:
+					prev_speed_mult = 1.5
+			var parts: Array[String] = []
+			if curr_count != prev_count:
+				parts.append("%+d virions" % (curr_count - prev_count))
+			if curr_damage != prev_damage:
+				parts.append("%+d contact dmg + infection" % (curr_damage - prev_damage))
+			var delta_speed_pct: int = int(round((curr_speed_mult - prev_speed_mult) * 100.0))
+			if delta_speed_pct != 0:
+				parts.append("%+d%% orbit speed" % delta_speed_pct)
+			if parts.is_empty():
+				return "Gain: no direct numeric change"
+			return "Gain: %s" % " | ".join(parts)
 		"chain_bloom":
-			var bloom_damage_base: float = 9.0
+			var curr_damage_base: float = 9.0
 			match clamped_level:
 				2:
-					bloom_damage_base *= 1.25
+					curr_damage_base *= 1.25
 				3:
-					bloom_damage_base *= 1.55
+					curr_damage_base *= 1.55
 				4:
-					bloom_damage_base *= 1.85
+					curr_damage_base *= 1.85
 				5:
-					bloom_damage_base *= 2.20
-			var bloom_damage: int = maxi(1, int(round(bloom_damage_base * module_damage_multiplier)))
-			var bloom_radius: float = 90.0
+					curr_damage_base *= 2.20
+			var prev_damage_base: float = 0.0
+			match previous_level:
+				1:
+					prev_damage_base = 9.0
+				2:
+					prev_damage_base = 9.0 * 1.25
+				3:
+					prev_damage_base = 9.0 * 1.55
+				4:
+					prev_damage_base = 9.0 * 1.85
+				5:
+					prev_damage_base = 9.0 * 2.20
+			var curr_damage: int = maxi(1, int(round(curr_damage_base * module_damage_multiplier)))
+			var prev_damage: int = 0
+			if previous_level > 0:
+				prev_damage = maxi(1, int(round(prev_damage_base * module_damage_multiplier)))
+
+			var curr_radius: float = 90.0
 			match clamped_level:
 				2:
-					bloom_radius += 26.0
+					curr_radius += 26.0
 				3:
-					bloom_radius += 52.0
+					curr_radius += 52.0
 				4:
-					bloom_radius += 80.0
+					curr_radius += 80.0
 				5:
-					bloom_radius += 110.0
-			return "Gain: infected deaths bloom | %d dmg in %.0f radius" % [bloom_damage, bloom_radius]
+					curr_radius += 110.0
+			var prev_radius: float = 0.0
+			if previous_level > 0:
+				prev_radius = 90.0
+				match previous_level:
+					2:
+						prev_radius += 26.0
+					3:
+						prev_radius += 52.0
+					4:
+						prev_radius += 80.0
+					5:
+						prev_radius += 110.0
+
+			var parts: Array[String] = []
+			if previous_level <= 0:
+				parts.append("+infected death bloom")
+			var delta_damage: int = curr_damage - prev_damage
+			var delta_radius: float = curr_radius - prev_radius
+			if delta_damage != 0:
+				parts.append("%+d bloom dmg" % delta_damage)
+			if absf(delta_radius) > 0.05:
+				parts.append("%+.0f bloom radius" % delta_radius)
+			if parts.is_empty():
+				return "Gain: no direct numeric change"
+			return "Gain: %s" % " | ".join(parts)
 		"leech_tendril":
-			var leech_damage_base: float = 4.0
+			var curr_damage_base: float = 4.0
 			match clamped_level:
 				2:
-					leech_damage_base *= 1.25
+					curr_damage_base *= 1.25
 				3:
-					leech_damage_base *= 1.48
+					curr_damage_base *= 1.48
 				4:
-					leech_damage_base *= 1.75
+					curr_damage_base *= 1.75
 				5:
-					leech_damage_base *= 2.05
-			var leech_damage: int = maxi(1, int(round(leech_damage_base * module_damage_multiplier)))
-			var leech_heal: int = 1
+					curr_damage_base *= 2.05
+			var prev_damage_base: float = 0.0
+			match previous_level:
+				1:
+					prev_damage_base = 4.0
+				2:
+					prev_damage_base = 4.0 * 1.25
+				3:
+					prev_damage_base = 4.0 * 1.48
+				4:
+					prev_damage_base = 4.0 * 1.75
+				5:
+					prev_damage_base = 4.0 * 2.05
+			var curr_damage: int = maxi(1, int(round(curr_damage_base * module_damage_multiplier)))
+			var prev_damage: int = 0
+			if previous_level > 0:
+				prev_damage = maxi(1, int(round(prev_damage_base * module_damage_multiplier)))
+
+			var curr_heal: int = 1
 			match clamped_level:
 				2:
-					leech_heal = 2
+					curr_heal = 2
 				3:
-					leech_heal = 3
+					curr_heal = 3
 				4:
-					leech_heal = 4
+					curr_heal = 4
 				5:
-					leech_heal = 5
-			return "Gain: drain %d dmg tick | heal %d per tether tick" % [leech_damage, leech_heal]
+					curr_heal = 5
+			var prev_heal: int = 0
+			if previous_level > 0:
+				prev_heal = 1
+				match previous_level:
+					2:
+						prev_heal = 2
+					3:
+						prev_heal = 3
+					4:
+						prev_heal = 4
+					5:
+						prev_heal = 5
+			var parts: Array[String] = []
+			if curr_damage != prev_damage:
+				parts.append("%+d drain dmg tick" % (curr_damage - prev_damage))
+			if curr_heal != prev_heal:
+				parts.append("heal %+d per tether tick" % (curr_heal - prev_heal))
+			if parts.is_empty():
+				return "Gain: no direct numeric change"
+			return "Gain: %s" % " | ".join(parts)
 		"protein_shell":
-			var shell_reduction: float = _get_membrane_reduction_for_level(clamped_level) - 3.0
-			return "Gain: %.0f%% less incoming damage" % maxf(8.0, shell_reduction)
+			var curr_reduction: float = _get_membrane_reduction_for_level(clamped_level)
+			var prev_reduction: float = _get_membrane_reduction_for_level(previous_level)
+			var curr_reflect: float = _get_membrane_reflect_percent_for_level(clamped_level)
+			var prev_reflect: float = _get_membrane_reflect_percent_for_level(previous_level)
+			var parts: Array[String] = []
+			var delta_reduction: float = curr_reduction - prev_reduction
+			var delta_reflect: float = curr_reflect - prev_reflect
+			if absf(delta_reduction) > 0.05:
+				parts.append("%+.0f%% incoming dmg reduction" % delta_reduction)
+			if absf(delta_reflect) > 0.05:
+				parts.append("%+.0f%% dmg reflect" % delta_reflect)
+			if parts.is_empty():
+				return "Gain: no direct numeric change"
+			return "Gain: %s" % " | ".join(parts)
 		"host_override":
-			var threshold_pct: int = 25
+			var curr_threshold_pct: int = 25
 			match clamped_level:
 				2:
-					threshold_pct = 40
+					curr_threshold_pct = 40
 				3:
-					threshold_pct = 55
+					curr_threshold_pct = 55
 				4:
-					threshold_pct = 65
+					curr_threshold_pct = 65
 				5:
-					threshold_pct = 75
-			var hosts_cap: int = 1
+					curr_threshold_pct = 75
+			var prev_threshold_pct: int = 0
+			match previous_level:
+				1:
+					prev_threshold_pct = 25
+				2:
+					prev_threshold_pct = 40
+				3:
+					prev_threshold_pct = 55
+				4:
+					prev_threshold_pct = 65
+				5:
+					prev_threshold_pct = 75
+
+			var curr_hosts_cap: int = 1
 			match clamped_level:
 				2:
-					hosts_cap = 2
+					curr_hosts_cap = 2
 				3:
-					hosts_cap = 3
+					curr_hosts_cap = 3
 				4:
-					hosts_cap = 4
+					curr_hosts_cap = 4
 				5:
-					hosts_cap = 5
-			return "Gain: convert enemies under %d%% HP | up to %d hosts" % [threshold_pct, hosts_cap]
+					curr_hosts_cap = 5
+			var prev_hosts_cap: int = 0
+			match previous_level:
+				1:
+					prev_hosts_cap = 1
+				2:
+					prev_hosts_cap = 2
+				3:
+					prev_hosts_cap = 3
+				4:
+					prev_hosts_cap = 4
+				5:
+					prev_hosts_cap = 5
+			var parts: Array[String] = []
+			var delta_threshold_pct: int = curr_threshold_pct - prev_threshold_pct
+			var delta_hosts_cap: int = curr_hosts_cap - prev_hosts_cap
+			if delta_threshold_pct != 0:
+				parts.append("%+d%% conversion threshold" % delta_threshold_pct)
+			if delta_hosts_cap != 0:
+				parts.append("%+d max hosts" % delta_hosts_cap)
+			if parts.is_empty():
+				return "Gain: no direct numeric change"
+			return "Gain: %s" % " | ".join(parts)
 		"offense_boost":
-			return "Gain: +%d%% ability damage" % (clamped_level * 8)
+			var curr_pct: int = 10
+			match clamped_level:
+				2:
+					curr_pct = 22
+				3:
+					curr_pct = 36
+			var prev_pct: int = 0
+			match previous_level:
+				1:
+					prev_pct = 10
+				2:
+					prev_pct = 22
+				3:
+					prev_pct = 36
+			return "Gain: +%d%% ability damage" % (curr_pct - prev_pct)
 		"defense_boost":
+			var curr_reduction: int = 10
 			match clamped_level:
-				1:
-					return "Gain: 8% less incoming damage"
 				2:
-					return "Gain: 15% less incoming damage"
-				_:
-					return "Gain: 22% less incoming damage"
+					curr_reduction = 22
+				3:
+					curr_reduction = 34
+			var prev_reduction: int = 0
+			match previous_level:
+				1:
+					prev_reduction = 10
+				2:
+					prev_reduction = 22
+				3:
+					prev_reduction = 34
+			return "Gain: +%d%% incoming damage reduction" % (curr_reduction - prev_reduction)
 		"pickup_radius_boost":
+			var curr_radius_bonus: int = 100
 			match clamped_level:
-				1:
-					return "Gain: +60 flat pickup radius"
 				2:
-					return "Gain: +130 flat pickup radius"
-				_:
-					return "Gain: +220 flat pickup radius"
+					curr_radius_bonus = 220
+				3:
+					curr_radius_bonus = 360
+			var prev_radius_bonus: int = 0
+			match previous_level:
+				1:
+					prev_radius_bonus = 100
+				2:
+					prev_radius_bonus = 220
+				3:
+					prev_radius_bonus = 360
+			return "Gain: %+d flat pickup radius" % (curr_radius_bonus - prev_radius_bonus)
 		"move_speed_boost":
-			return "Gain: +%d%% movement speed" % (clamped_level * 6)
-		"cooldown_boost":
-			return "Gain: -%d%% global cooldowns" % (clamped_level * 6)
-		"vitality_boost":
+			var curr_speed_pct: int = 9
 			match clamped_level:
-				1:
-					return "Gain: +15 max HP and instant heal"
 				2:
-					return "Gain: +30 max HP and instant heal"
-				_:
-					return "Gain: +50 max HP and instant heal"
+					curr_speed_pct = 19
+				3:
+					curr_speed_pct = 30
+			var prev_speed_pct: int = 0
+			match previous_level:
+				1:
+					prev_speed_pct = 9
+				2:
+					prev_speed_pct = 19
+				3:
+					prev_speed_pct = 30
+			return "Gain: +%d%% movement speed" % (curr_speed_pct - prev_speed_pct)
+		"cooldown_boost":
+			var curr_cooldown_reduction: int = 8
+			match clamped_level:
+				2:
+					curr_cooldown_reduction = 18
+				3:
+					curr_cooldown_reduction = 28
+			var prev_cooldown_reduction: int = 0
+			match previous_level:
+				1:
+					prev_cooldown_reduction = 8
+				2:
+					prev_cooldown_reduction = 18
+				3:
+					prev_cooldown_reduction = 28
+			return "Gain: +%d%% cooldown reduction" % (curr_cooldown_reduction - prev_cooldown_reduction)
+		"vitality_boost":
+			var curr_hp_bonus: int = 35
+			match clamped_level:
+				2:
+					curr_hp_bonus = 80
+				3:
+					curr_hp_bonus = 140
+			var prev_hp_bonus: int = 0
+			match previous_level:
+				1:
+					prev_hp_bonus = 35
+				2:
+					prev_hp_bonus = 80
+				3:
+					prev_hp_bonus = 140
+			var hp_delta: int = curr_hp_bonus - prev_hp_bonus
+			return "Gain: +%d max HP and +%d instant heal" % [hp_delta, hp_delta]
 		_:
 			return ""
 
@@ -4926,6 +5359,11 @@ func _setup_audio_controls() -> void:
 		if not pause_music_mute_toggle.toggled.is_connected(pause_music_mute_callable):
 			pause_music_mute_toggle.toggled.connect(pause_music_mute_callable)
 
+	if pause_fps_option_button != null:
+		var pause_fps_limit_callable := Callable(self, "_on_pause_fps_limit_selected")
+		if not pause_fps_option_button.item_selected.is_connected(pause_fps_limit_callable):
+			pause_fps_option_button.item_selected.connect(pause_fps_limit_callable)
+
 	_refresh_audio_controls_from_manager()
 
 func _refresh_audio_controls_from_manager() -> void:
@@ -4948,6 +5386,7 @@ func _refresh_audio_controls_from_manager() -> void:
 	_set_music_slider_values(music_value)
 	_set_sfx_mute_values(sfx_muted)
 	_set_music_mute_values(music_muted)
+	_refresh_pause_fps_limit_control()
 	_syncing_audio_controls = false
 
 func _set_sfx_slider_values(value: float) -> void:
@@ -4965,6 +5404,43 @@ func _set_sfx_mute_values(value: bool) -> void:
 func _set_music_mute_values(value: bool) -> void:
 	if pause_music_mute_toggle != null:
 		pause_music_mute_toggle.button_pressed = value
+
+func _refresh_pause_fps_limit_control() -> void:
+	if pause_fps_option_button == null:
+		return
+
+	var fps_limit_ids: Array[String] = GAMEPLAY_SETTINGS.get_ordered_fps_limit_ids()
+	if fps_limit_ids.is_empty():
+		return
+
+	var saved_fps_limit_id: String = GAMEPLAY_SETTINGS.load_fps_limit_id()
+	pause_fps_option_button.clear()
+	var selected_index: int = 0
+	for index in range(fps_limit_ids.size()):
+		var fps_limit_id: String = String(fps_limit_ids[index])
+		pause_fps_option_button.add_item(GAMEPLAY_SETTINGS.get_fps_limit_display_name(fps_limit_id))
+		if fps_limit_id == saved_fps_limit_id:
+			selected_index = index
+	pause_fps_option_button.select(selected_index)
+
+func _on_pause_fps_limit_selected(index: int) -> void:
+	if _syncing_audio_controls:
+		return
+	if pause_fps_option_button == null:
+		return
+
+	var fps_limit_ids: Array[String] = GAMEPLAY_SETTINGS.get_ordered_fps_limit_ids()
+	if fps_limit_ids.is_empty():
+		return
+
+	var clamped_index: int = clampi(index, 0, fps_limit_ids.size() - 1)
+	var fps_limit_id: String = GAMEPLAY_SETTINGS.sanitize_fps_limit_id(String(fps_limit_ids[clamped_index]))
+	GAMEPLAY_SETTINGS.save_fps_limit_id(fps_limit_id)
+	GAMEPLAY_SETTINGS.apply_fps_limit_id(fps_limit_id)
+
+	_syncing_audio_controls = true
+	pause_fps_option_button.select(clamped_index)
+	_syncing_audio_controls = false
 
 func _on_sfx_slider_value_changed(value: float) -> void:
 	if _syncing_audio_controls:
@@ -5071,31 +5547,34 @@ func _build_crisis_reward_options(crisis_id: String) -> Array:
 				_build_crisis_reward_option(
 					"focused_instability",
 					"Focused Instability",
-					"+10% ability damage.",
+					"+16% ability damage.",
 					"offense_boost"
 				),
 				_build_crisis_reward_option(
 					"kinetic_reframing",
 					"Kinetic Reframing",
-					"+10% movement speed.",
+					"+14% movement speed.",
 					"move_speed_boost"
 				),
 				_build_crisis_reward_option(
 					"adaptive_shelling",
 					"Adaptive Shelling",
-					"-9% incoming damage, -3% movement speed.",
+					"-14% incoming damage, -2% movement speed.",
 					"defense_boost"
 				),
 				_build_crisis_reward_option(
 					"metabolic_surge",
 					"Metabolic Surge",
-					"+10% orbiter speed and +10% trail lifetime.",
-					"cooldown_boost"
+					"+18% orbiter speed and +18% trail lifetime.",
+					"cooldown_boost",
+					"pandemic",
+					[],
+					["infective_secretion", "virion_orbit"]
 				),
 				_build_crisis_reward_option(
 					"containment_breach",
 					"Containment Breach",
-					"+7% ability damage and +4% movement speed.",
+					"+14% ability damage and +8% movement speed.",
 					"proto_pulse"
 				)
 			]
@@ -5104,7 +5583,7 @@ func _build_crisis_reward_options(crisis_id: String) -> Array:
 				_build_crisis_reward_option(
 					"lance_overclock",
 					"Lance Overclock",
-					"+12% ability damage and +8% pulse radius.",
+					"+18% ability damage and +14% pulse radius.",
 					"puncture_lance",
 					"lytic",
 					[],
@@ -5113,19 +5592,22 @@ func _build_crisis_reward_options(crisis_id: String) -> Array:
 				_build_crisis_reward_option(
 					"metabolic_surge",
 					"Metabolic Surge",
-					"+10% orbiter speed and +10% trail lifetime.",
-					"cooldown_boost"
+					"+18% orbiter speed and +18% trail lifetime.",
+					"cooldown_boost",
+					"pandemic",
+					[],
+					["infective_secretion", "virion_orbit"]
 				),
 				_build_crisis_reward_option(
 					"containment_breach",
 					"Containment Breach",
-					"+7% ability damage and +4% movement speed.",
+					"+14% ability damage and +8% movement speed.",
 					"proto_pulse"
 				),
 				_build_crisis_reward_option(
 					"epidemic_catalyst",
 					"Epidemic Catalyst",
-					"+16% trail lifetime and +9% ability damage.",
+					"+24% trail lifetime and +15% ability damage.",
 					"chain_bloom",
 					"pandemic",
 					[],
@@ -5134,7 +5616,7 @@ func _build_crisis_reward_options(crisis_id: String) -> Array:
 				_build_crisis_reward_option(
 					"viral_density",
 					"Viral Density",
-					"+14% orbiter speed and +12% trail lifetime.",
+					"+20% orbiter speed and +16% trail lifetime.",
 					"infective_secretion",
 					"pandemic",
 					[],
@@ -5143,7 +5625,7 @@ func _build_crisis_reward_options(crisis_id: String) -> Array:
 				_build_crisis_reward_option(
 					"hemotrophic_loop",
 					"Hemotrophic Loop",
-					"+0.9 HP regen/s and +10 max HP.",
+					"+1.2 HP regen/s and +20 max HP.",
 					"leech_tendril",
 					"parasitic",
 					[],
@@ -5152,7 +5634,7 @@ func _build_crisis_reward_options(crisis_id: String) -> Array:
 				_build_crisis_reward_option(
 					"focused_instability",
 					"Focused Instability",
-					"+10% ability damage.",
+					"+16% ability damage.",
 					"offense_boost"
 				)
 			]
@@ -5161,7 +5643,7 @@ func _build_crisis_reward_options(crisis_id: String) -> Array:
 				_build_crisis_reward_option(
 					"epidemic_catalyst",
 					"Epidemic Catalyst",
-					"+16% trail lifetime and +9% ability damage.",
+					"+24% trail lifetime and +15% ability damage.",
 					"chain_bloom",
 					"pandemic",
 					[],
@@ -5170,7 +5652,7 @@ func _build_crisis_reward_options(crisis_id: String) -> Array:
 				_build_crisis_reward_option(
 					"viral_density",
 					"Viral Density",
-					"+14% orbiter speed and +12% trail lifetime.",
+					"+20% orbiter speed and +16% trail lifetime.",
 					"infective_secretion",
 					"pandemic",
 					[],
@@ -5179,7 +5661,7 @@ func _build_crisis_reward_options(crisis_id: String) -> Array:
 				_build_crisis_reward_option(
 					"hemotrophic_loop",
 					"Hemotrophic Loop",
-					"+0.9 HP regen/s and +10 max HP.",
+					"+1.2 HP regen/s and +20 max HP.",
 					"leech_tendril",
 					"parasitic",
 					[],
@@ -5188,7 +5670,7 @@ func _build_crisis_reward_options(crisis_id: String) -> Array:
 				_build_crisis_reward_option(
 					"lance_overclock",
 					"Lance Overclock",
-					"+12% ability damage and +8% pulse radius.",
+					"+18% ability damage and +14% pulse radius.",
 					"puncture_lance",
 					"lytic",
 					[],
@@ -5197,13 +5679,13 @@ func _build_crisis_reward_options(crisis_id: String) -> Array:
 				_build_crisis_reward_option(
 					"adaptive_shelling",
 					"Adaptive Shelling",
-					"-9% incoming damage, -3% movement speed.",
+					"-14% incoming damage, -2% movement speed.",
 					"defense_boost"
 				),
 				_build_crisis_reward_option(
 					"kinetic_reframing",
 					"Kinetic Reframing",
-					"+10% movement speed.",
+					"+14% movement speed.",
 					"move_speed_boost"
 				)
 			]
@@ -5212,19 +5694,19 @@ func _build_crisis_reward_options(crisis_id: String) -> Array:
 				_build_crisis_reward_option(
 					"fallback_hardened_membrane",
 					"Hardened Membrane",
-					"+10 max HP for this run.",
+					"+20 max HP for this run.",
 					"protein_shell"
 				),
 				_build_crisis_reward_option(
 					"fallback_spike_density",
 					"Spike Density",
-					"+10% ability damage for this run.",
+					"+16% ability damage for this run.",
 					"razor_halo"
 				),
 				_build_crisis_reward_option(
 					"fallback_metabolic_burst",
 					"Metabolic Burst",
-					"+8% movement speed for this run.",
+					"+14% movement speed for this run.",
 					"leech_tendril"
 				)
 			]
@@ -5294,9 +5776,9 @@ func _select_crisis_reward_options_for_current_build(configured_options: Array, 
 		return selected_options
 
 	var fallback_options: Array = [
-		_build_crisis_reward_option("fallback_hardened_membrane", "Hardened Membrane", "+10 max HP for this run.", "protein_shell"),
-		_build_crisis_reward_option("fallback_spike_density", "Spike Density", "+10% ability damage for this run.", "razor_halo"),
-		_build_crisis_reward_option("fallback_metabolic_burst", "Metabolic Burst", "+8% movement speed for this run.", "leech_tendril")
+		_build_crisis_reward_option("fallback_hardened_membrane", "Hardened Membrane", "+20 max HP for this run.", "protein_shell"),
+		_build_crisis_reward_option("fallback_spike_density", "Spike Density", "+16% ability damage for this run.", "razor_halo"),
+		_build_crisis_reward_option("fallback_metabolic_burst", "Metabolic Burst", "+14% movement speed for this run.", "leech_tendril")
 	]
 	while selected_options.size() < safe_target_count:
 		var fallback_option: Dictionary = _pick_random_unique_reward_option(fallback_options, used_ids)
@@ -5401,36 +5883,36 @@ func _apply_crisis_reward_choice(choice_index: int) -> bool:
 func _apply_crisis_reward_effect(reward_id: String) -> bool:
 	match reward_id:
 		"focused_instability":
-			_reward_module_damage_multiplier = _multiply_reward_stat_with_cap(_reward_module_damage_multiplier, 1.10, 1.0, 1.60)
+			_reward_module_damage_multiplier = _multiply_reward_stat_with_cap(_reward_module_damage_multiplier, 1.16, 1.0, 2.20)
 		"kinetic_reframing":
-			_reward_move_speed_multiplier = _multiply_reward_stat_with_cap(_reward_move_speed_multiplier, 1.10, 1.0, 1.35)
+			_reward_move_speed_multiplier = _multiply_reward_stat_with_cap(_reward_move_speed_multiplier, 1.14, 1.0, 1.65)
 		"adaptive_shelling":
-			_reward_external_damage_multiplier = _multiply_reward_stat_with_cap(_reward_external_damage_multiplier, 0.91, 0.78, 1.0)
-			_reward_move_speed_multiplier = _multiply_reward_stat_with_cap(_reward_move_speed_multiplier, 0.97, 1.0, 1.35)
+			_reward_external_damage_multiplier = _multiply_reward_stat_with_cap(_reward_external_damage_multiplier, 0.86, 0.62, 1.0)
+			_reward_move_speed_multiplier = _multiply_reward_stat_with_cap(_reward_move_speed_multiplier, 0.98, 1.0, 1.65)
 		"lance_overclock":
-			_reward_module_damage_multiplier = _multiply_reward_stat_with_cap(_reward_module_damage_multiplier, 1.12, 1.0, 1.60)
-			_reward_pulse_radius_multiplier = _multiply_reward_stat_with_cap(_reward_pulse_radius_multiplier, 1.08, 1.0, 1.40)
+			_reward_module_damage_multiplier = _multiply_reward_stat_with_cap(_reward_module_damage_multiplier, 1.18, 1.0, 2.20)
+			_reward_pulse_radius_multiplier = _multiply_reward_stat_with_cap(_reward_pulse_radius_multiplier, 1.14, 1.0, 1.70)
 		"metabolic_surge":
-			_reward_orbiter_speed_multiplier = _multiply_reward_stat_with_cap(_reward_orbiter_speed_multiplier, 1.10, 1.0, 1.45)
-			_reward_acid_lifetime_multiplier = _multiply_reward_stat_with_cap(_reward_acid_lifetime_multiplier, 1.10, 1.0, 1.55)
+			_reward_orbiter_speed_multiplier = _multiply_reward_stat_with_cap(_reward_orbiter_speed_multiplier, 1.18, 1.0, 1.95)
+			_reward_acid_lifetime_multiplier = _multiply_reward_stat_with_cap(_reward_acid_lifetime_multiplier, 1.18, 1.0, 2.10)
 		"containment_breach":
-			_reward_module_damage_multiplier = _multiply_reward_stat_with_cap(_reward_module_damage_multiplier, 1.07, 1.0, 1.60)
-			_reward_move_speed_multiplier = _multiply_reward_stat_with_cap(_reward_move_speed_multiplier, 1.04, 1.0, 1.35)
+			_reward_module_damage_multiplier = _multiply_reward_stat_with_cap(_reward_module_damage_multiplier, 1.14, 1.0, 2.20)
+			_reward_move_speed_multiplier = _multiply_reward_stat_with_cap(_reward_move_speed_multiplier, 1.08, 1.0, 1.65)
 		"epidemic_catalyst":
-			_reward_acid_lifetime_multiplier = _multiply_reward_stat_with_cap(_reward_acid_lifetime_multiplier, 1.16, 1.0, 1.55)
-			_reward_module_damage_multiplier = _multiply_reward_stat_with_cap(_reward_module_damage_multiplier, 1.09, 1.0, 1.60)
+			_reward_acid_lifetime_multiplier = _multiply_reward_stat_with_cap(_reward_acid_lifetime_multiplier, 1.24, 1.0, 2.10)
+			_reward_module_damage_multiplier = _multiply_reward_stat_with_cap(_reward_module_damage_multiplier, 1.15, 1.0, 2.20)
 		"viral_density":
-			_reward_orbiter_speed_multiplier = _multiply_reward_stat_with_cap(_reward_orbiter_speed_multiplier, 1.14, 1.0, 1.45)
-			_reward_acid_lifetime_multiplier = _multiply_reward_stat_with_cap(_reward_acid_lifetime_multiplier, 1.12, 1.0, 1.55)
+			_reward_orbiter_speed_multiplier = _multiply_reward_stat_with_cap(_reward_orbiter_speed_multiplier, 1.20, 1.0, 1.95)
+			_reward_acid_lifetime_multiplier = _multiply_reward_stat_with_cap(_reward_acid_lifetime_multiplier, 1.16, 1.0, 2.10)
 		"hemotrophic_loop":
-			_reward_passive_regen_per_second = minf(2.4, _reward_passive_regen_per_second + 0.9)
-			_reward_bonus_max_hp_flat = mini(40, _reward_bonus_max_hp_flat + 10)
+			_reward_passive_regen_per_second = minf(5.2, _reward_passive_regen_per_second + 1.2)
+			_reward_bonus_max_hp_flat = mini(120, _reward_bonus_max_hp_flat + 20)
 		"fallback_hardened_membrane":
-			_reward_bonus_max_hp_flat = mini(40, _reward_bonus_max_hp_flat + 10)
+			_reward_bonus_max_hp_flat = mini(120, _reward_bonus_max_hp_flat + 20)
 		"fallback_spike_density":
-			_reward_module_damage_multiplier = _multiply_reward_stat_with_cap(_reward_module_damage_multiplier, 1.10, 1.0, 1.60)
+			_reward_module_damage_multiplier = _multiply_reward_stat_with_cap(_reward_module_damage_multiplier, 1.16, 1.0, 2.20)
 		"fallback_metabolic_burst":
-			_reward_move_speed_multiplier = _multiply_reward_stat_with_cap(_reward_move_speed_multiplier, 1.08, 1.0, 1.35)
+			_reward_move_speed_multiplier = _multiply_reward_stat_with_cap(_reward_move_speed_multiplier, 1.14, 1.0, 1.65)
 		_:
 			return false
 	return true
@@ -5617,14 +6099,17 @@ func _grant_biomass_bonus_for_reward_crisis(crisis_id: String) -> void:
 			continue
 		if not biomass_node.is_inside_tree():
 			continue
-		if not biomass_node.has_method("_on_body_entered"):
+		if not biomass_node.has_method("_on_body_entered") and not biomass_node.has_method("collect_immediately"):
 			continue
 
 		var xp_variant: Variant = biomass_node.get("xp_value")
 		if xp_variant != null:
 			total_bonus_xp += maxi(0, int(xp_variant))
 
-		biomass_node.call("_on_body_entered", player_node)
+		if biomass_node.has_method("collect_immediately"):
+			biomass_node.call("collect_immediately")
+		else:
+			biomass_node.call("_on_body_entered", player_node)
 		collected_pickups += 1
 
 	_mass_biomass_collect_active = false
@@ -5654,7 +6139,7 @@ func _finish_crisis_reward_prompt() -> void:
 
 	if pending_genome_cache_prompt_count > 0:
 		pending_genome_cache_prompt_count -= 1
-		var did_open_cache_prompt: bool = _open_genome_cache_prompt(false)
+		var did_open_cache_prompt: bool = _open_genome_cache_prompt(false, true)
 		if did_open_cache_prompt:
 			return
 		pending_genome_cache_prompt_count = 0
@@ -5682,7 +6167,7 @@ func _finish_genome_cache_prompt() -> void:
 
 	if pending_genome_cache_prompt_count > 0:
 		pending_genome_cache_prompt_count -= 1
-		var did_open_cache_prompt: bool = _open_genome_cache_prompt(false)
+		var did_open_cache_prompt: bool = _open_genome_cache_prompt(false, true)
 		if did_open_cache_prompt:
 			return
 		pending_genome_cache_prompt_count = 0
@@ -5696,10 +6181,13 @@ func _finish_genome_cache_prompt() -> void:
 
 	_close_levelup_prompt()
 
-func _open_genome_cache_prompt(play_sound: bool = true) -> bool:
+func _open_genome_cache_prompt(play_sound: bool = true, allow_when_levelup_paused: bool = false) -> bool:
 	if run_ended:
 		return false
 	if run_paused_for_menu:
+		pending_genome_cache_prompt_count += 1
+		return false
+	if run_paused_for_levelup and not allow_when_levelup_paused:
 		pending_genome_cache_prompt_count += 1
 		return false
 	if crisis_reward_selection_active or lineage_selection_active:

@@ -11,7 +11,7 @@ signal phase_changed(new_phase: int)
 
 @export var max_hp: int = 2400
 @export var move_speed: float = 72.0
-@export var contact_damage: int = 26
+@export var contact_damage: int = 30
 @export var contact_cooldown_seconds: float = 0.30
 @export var preferred_range: float = 220.0
 @export var retreat_range: float = 145.0
@@ -28,7 +28,7 @@ signal phase_changed(new_phase: int)
 @export var phase_2_threshold_ratio: float = 0.70
 @export var phase_3_threshold_ratio: float = 0.35
 @export var phase_shift_lock_seconds: float = 0.65
-@export var projectile_damage: int = 14
+@export var projectile_damage: int = 17
 @export var projectile_speed: float = 460.0
 @export var projectile_life_seconds: float = 2.6
 @export var projectile_hit_radius: float = 10.0
@@ -46,9 +46,9 @@ signal phase_changed(new_phase: int)
 @export var targeted_blast_interval_phase_1: float = 5.6
 @export var targeted_blast_interval_phase_2: float = 4.6
 @export var targeted_blast_interval_phase_3: float = 3.7
-@export var targeted_blast_damage_phase_1: int = 20
-@export var targeted_blast_damage_phase_2: int = 28
-@export var targeted_blast_damage_phase_3: int = 36
+@export var targeted_blast_damage_phase_1: int = 24
+@export var targeted_blast_damage_phase_2: int = 33
+@export var targeted_blast_damage_phase_3: int = 42
 @export var targeted_blast_projectile_count_phase_1: int = 6
 @export var targeted_blast_projectile_count_phase_2: int = 8
 @export var targeted_blast_projectile_count_phase_3: int = 10
@@ -332,7 +332,7 @@ func _execute_targeted_blast(impact_position: Vector2, impact_radius: float, imp
 	if player_node != null and player_node.has_method("take_damage"):
 		var distance_to_player: float = impact_position.distance_to(_player.global_position)
 		if distance_to_player <= impact_radius:
-			player_node.call("take_damage", maxi(1, impact_damage))
+			player_node.call("take_damage", maxi(1, impact_damage), self)
 
 	var projectile_count: int = _get_targeted_projectile_count_for_phase()
 	var splash_projectile_damage: int = maxi(1, int(round(float(impact_damage) * 0.5)))
@@ -411,7 +411,7 @@ func _fire_projectile(origin_position: Vector2, direction: Vector2, damage_value
 	projectile.set("life_seconds", maxf(0.08, projectile_life_seconds))
 	projectile.set("hit_radius", maxf(1.0, projectile_hit_radius))
 	if projectile.has_method("setup"):
-		projectile.call("setup", safe_direction, maxi(1, damage_value), true)
+		projectile.call("setup", safe_direction, maxi(1, damage_value), true, self)
 
 func _predict_player_position(lead_seconds: float) -> Vector2:
 	if not is_instance_valid(_player):
@@ -437,7 +437,7 @@ func _try_contact_damage() -> void:
 	if distance_sq > contact_radius * contact_radius:
 		return
 
-	_player.call("take_damage", maxi(1, contact_damage))
+	_player.call("take_damage", maxi(1, contact_damage), self)
 	_next_contact_time_seconds = now_seconds + maxf(0.05, contact_cooldown_seconds)
 
 func _get_collision_radius() -> float:

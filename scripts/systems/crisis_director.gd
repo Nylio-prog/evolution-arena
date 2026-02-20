@@ -11,10 +11,9 @@ const EVENT_SCHEDULE: Array[Dictionary] = [
 	{"id": "hunter_deployment", "start": 105.0, "duration": 16.0, "reward": 5.0, "final": false},
 	{"id": "decon_flood", "start": 160.0, "duration": 17.0, "reward": 5.0, "final": false},
 	{"id": "containment_warden", "start": 220.0, "duration": 24.0, "reward": 6.0, "final": false},
-	{"id": "quarantine_lattice", "start": 275.0, "duration": 15.0, "reward": 5.0, "final": false},
-	{"id": "antiviral_drone_burst", "start": 330.0, "duration": 15.0, "reward": 5.0, "final": false},
-	{"id": "containment_seal", "start": 385.0, "duration": 17.0, "reward": 5.0, "final": false},
-	{"id": "protocol_omega_core", "start": 450.0, "duration": 90.0, "reward": 0.0, "final": true}
+	{"id": "hunter_deployment", "start": 275.0, "duration": 15.0, "reward": 5.0, "final": false},
+	{"id": "containment_seal", "start": 330.0, "duration": 17.0, "reward": 5.0, "final": false},
+	{"id": "protocol_omega_core", "start": 395.0, "duration": 90.0, "reward": 0.0, "final": true}
 ]
 
 @export var debug_log_state: bool = true

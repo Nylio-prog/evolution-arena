@@ -16,6 +16,7 @@ signal expired(projectile_node: Node)
 
 var _direction: Vector2 = Vector2.RIGHT
 var _time_left: float = 0.0
+var _source_attacker: Node = null
 
 func _ready() -> void:
 	add_to_group("enemy_projectiles")
@@ -24,13 +25,14 @@ func _ready() -> void:
 	_apply_visual()
 	_connect_signals()
 
-func setup(direction: Vector2, hit_damage: int, is_hostile: bool) -> void:
+func setup(direction: Vector2, hit_damage: int, is_hostile: bool, source_attacker: Node = null) -> void:
 	if direction.length_squared() > 0.0001:
 		_direction = direction.normalized()
 	else:
 		_direction = Vector2.RIGHT
 	damage = maxi(1, hit_damage)
 	hostile_projectile = is_hostile
+	_source_attacker = source_attacker
 	rotation = _direction.angle()
 
 func _physics_process(delta: float) -> void:
@@ -80,7 +82,10 @@ func _on_body_entered(body: Node) -> void:
 		if not body.is_in_group("player"):
 			return
 		if body.has_method("take_damage"):
-			body.call("take_damage", damage)
+			var damage_source: Node = self
+			if _source_attacker != null and is_instance_valid(_source_attacker):
+				damage_source = _source_attacker
+			body.call("take_damage", damage, damage_source)
 			if debug_log_hits:
 				print("[EnemyProjectile] hit player for ", damage)
 		_expire()

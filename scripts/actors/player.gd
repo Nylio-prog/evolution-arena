@@ -38,6 +38,7 @@ var _stat_move_speed_multiplier: float = 1.0
 var _stat_max_hp_flat: int = 0
 var _stat_incoming_damage_multiplier: float = 1.0
 var _block_chance: float = 0.0
+var _damage_reflect_ratio: float = 0.0
 var _pickup_radius_multiplier: float = 1.0
 var _pickup_radius_flat_bonus: float = 0.0
 var _hit_animation_timeout_left: float = 0.0
@@ -83,7 +84,7 @@ func _physics_process(_delta: float) -> void:
 	_apply_movement_bounds()
 	_update_animation_state(input_vector.length() > 0.01)
 
-func take_damage(amount: int) -> void:
+func take_damage(amount: int, source: Node = null) -> void:
 	if amount <= 0:
 		return
 	if current_hp <= 0:
@@ -95,7 +96,7 @@ func take_damage(amount: int) -> void:
 
 	var final_amount: int = max(1, int(round(float(amount) * incoming_damage_multiplier)))
 	_invulnerable_until_ms = now_ms + int(invulnerability_seconds * 1000.0)
-	_apply_damage_value(final_amount, amount, false)
+	_apply_damage_value(final_amount, amount, false, source)
 
 func take_dot_damage(amount: int) -> void:
 	if amount <= 0:
@@ -104,7 +105,7 @@ func take_dot_damage(amount: int) -> void:
 		return
 
 	var final_amount: int = max(1, int(round(float(amount) * incoming_damage_multiplier)))
-	_apply_damage_value(final_amount, amount, true)
+	_apply_damage_value(final_amount, amount, true, null)
 
 func force_die() -> void:
 	if current_hp <= 0:
@@ -183,6 +184,12 @@ func set_block_chance(chance: float) -> void:
 func get_block_chance() -> float:
 	return _block_chance
 
+func set_damage_reflect_ratio(ratio: float) -> void:
+	_damage_reflect_ratio = clampf(ratio, 0.0, 0.75)
+
+func get_damage_reflect_ratio() -> float:
+	return _damage_reflect_ratio
+
 func _setup_animated_sprite() -> void:
 	if animated_sprite == null:
 		push_error("Player requires an AnimatedSprite2D child node named AnimatedSprite2D.")
@@ -237,7 +244,7 @@ func _on_animated_sprite_animation_finished() -> void:
 	_hit_animation_timeout_left = 0.0
 	_play_base_animation(velocity.length() > 0.01)
 
-func _apply_damage_value(final_amount: int, raw_amount: int, is_dot: bool) -> void:
+func _apply_damage_value(final_amount: int, raw_amount: int, is_dot: bool, damage_source: Node = null) -> void:
 	if not is_dot and _block_chance > 0.0 and randf() <= _block_chance:
 		if debug_log_damage:
 			print(
@@ -247,6 +254,7 @@ func _apply_damage_value(final_amount: int, raw_amount: int, is_dot: bool) -> vo
 			)
 		return
 	current_hp = max(0, current_hp - final_amount)
+	_try_reflect_damage(final_amount, damage_source, is_dot)
 	_trigger_hit_animation()
 	if debug_log_damage:
 		var damage_type_label: String = "DOT" if is_dot else "HIT"
@@ -268,6 +276,36 @@ func _apply_damage_value(final_amount: int, raw_amount: int, is_dot: bool) -> vo
 
 	if current_hp == 0:
 		died.emit()
+
+func _try_reflect_damage(final_amount: int, damage_source: Node, is_dot: bool) -> void:
+	if is_dot:
+		return
+	if final_amount <= 0:
+		return
+	if _damage_reflect_ratio <= 0.0:
+		return
+	if damage_source == null:
+		return
+	if not is_instance_valid(damage_source):
+		return
+	if damage_source == self:
+		return
+	if damage_source.is_in_group("player"):
+		return
+	if damage_source.is_in_group("allied_hosts"):
+		return
+	if not damage_source.has_method("take_damage"):
+		return
+
+	var reflected_damage: int = maxi(1, int(round(float(final_amount) * _damage_reflect_ratio)))
+	damage_source.call("take_damage", reflected_damage)
+	if debug_log_damage:
+		print(
+			"Player reflected ",
+			reflected_damage,
+			" damage to ",
+			damage_source.name
+		)
 
 func _refresh_incoming_damage_multiplier() -> void:
 	incoming_damage_multiplier = clampf(

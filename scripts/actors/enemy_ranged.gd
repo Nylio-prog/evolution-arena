@@ -1,6 +1,8 @@
 extends CharacterBody2D
 
 const PROJECTILE_SCENE: PackedScene = preload("res://scenes/actors/enemy_projectile.tscn")
+const PHYSICS_LAYER_WORLD: int = 1
+const PHYSICS_LAYER_ENEMY: int = 2
 
 signal died(world_position: Vector2)
 signal died_detailed(world_position: Vector2, enemy_node: Node)
@@ -61,6 +63,7 @@ func _ready() -> void:
 	current_hp = max_hp
 	add_to_group("enemies")
 	add_to_group("hostile_enemies")
+	_configure_ghost_collision_profile()
 	_shot_timer = randf_range(0.15, shot_interval_seconds)
 	_strafe_sign = -1.0 if randf() < 0.5 else 1.0
 	_strafe_switch_timer = randf_range(0.55, 1.65)
@@ -145,7 +148,7 @@ func _fire_projectile(direction: Vector2) -> void:
 		var projectile_damage: int = shot_damage
 		if _is_converted_host:
 			projectile_damage = maxi(1, int(round(float(projectile_damage) * converted_damage_multiplier)))
-		projectile.call("setup", direction, projectile_damage, not _is_converted_host)
+		projectile.call("setup", direction, projectile_damage, not _is_converted_host, self)
 
 func _apply_contact_damage() -> void:
 	for i in range(get_slide_collision_count()):
@@ -168,7 +171,7 @@ func _apply_contact_damage() -> void:
 		if collider.has_method("take_damage"):
 			if debug_log_damage:
 				print("Ranged enemy contacted player for ", contact_damage)
-			collider.call("take_damage", contact_damage)
+			collider.call("take_damage", contact_damage, self)
 
 func take_damage(amount: int) -> void:
 	if amount <= 0:
@@ -426,6 +429,12 @@ func _find_nearest_hostile_enemy() -> Node2D:
 			nearest_distance_sq = distance_sq
 			nearest_enemy = enemy_node
 	return nearest_enemy
+
+func _configure_ghost_collision_profile() -> void:
+	set_collision_layer_value(PHYSICS_LAYER_WORLD, true)
+	set_collision_layer_value(PHYSICS_LAYER_ENEMY, false)
+	set_collision_mask_value(PHYSICS_LAYER_WORLD, false)
+	set_collision_mask_value(PHYSICS_LAYER_ENEMY, false)
 
 func _get_elite_marker_radius() -> float:
 	var marker_radius: float = 24.0

@@ -14,15 +14,21 @@ signal collected(amount: int)
 @export var idle_pulse_amplitude: float = 0.08
 @export var idle_pulse_speed_hz: float = 0.85
 @export var auto_collect_base_radius: float = 48.0
+@export var homing_speed_start: float = 260.0
+@export var homing_speed_max: float = 920.0
+@export var homing_acceleration: float = 2200.0
+@export var collect_distance_threshold: float = 14.0
 @export var debug_log_collect: bool = false
 
 @onready var visual_animated_sprite: AnimatedSprite2D = get_node_or_null("AnimatedSprite2D")
 
 var _is_collecting: bool = false
+var _is_homing: bool = false
 var _sprite_tween: Tween
 var _player: Node2D
 var _base_visual_scale: Vector2 = Vector2.ONE
 var _idle_pulse_phase: float = 0.0
+var _current_homing_speed: float = 0.0
 
 func _ready() -> void:
 	add_to_group("biomass_pickups")
@@ -34,11 +40,20 @@ func _ready() -> void:
 func _physics_process(delta: float) -> void:
 	if _is_collecting:
 		return
-	_update_idle_pulse(delta)
+
 	if _player == null or not is_instance_valid(_player):
 		_player = get_tree().get_first_node_in_group("player") as Node2D
 	if _player == null:
+		_is_homing = false
+		_current_homing_speed = 0.0
+		_update_idle_pulse(delta)
 		return
+
+	if _is_homing:
+		_tick_homing(delta)
+		return
+
+	_update_idle_pulse(delta)
 
 	var pickup_multiplier: float = 1.0
 	var pickup_flat_bonus: float = 0.0
@@ -48,7 +63,7 @@ func _physics_process(delta: float) -> void:
 		pickup_flat_bonus = maxf(0.0, float(_player.call("get_pickup_radius_flat_bonus")))
 	var auto_collect_radius: float = maxf(8.0, (auto_collect_base_radius + pickup_flat_bonus) * pickup_multiplier)
 	if global_position.distance_to(_player.global_position) <= auto_collect_radius:
-		_on_body_entered(_player)
+		_start_homing_to_player(_player)
 
 func _on_body_entered(body: Node) -> void:
 	if body == null:
@@ -57,10 +72,44 @@ func _on_body_entered(body: Node) -> void:
 		return
 	if _is_collecting:
 		return
+	_start_homing_to_player(body as Node2D)
 
+func collect_immediately() -> void:
+	if _is_collecting:
+		return
+	_finalize_collection()
+
+func _start_homing_to_player(player_node: Node2D) -> void:
+	if player_node == null:
+		return
+	if _is_collecting:
+		return
+	_player = player_node
+	_is_homing = true
+	_current_homing_speed = maxf(40.0, homing_speed_start)
+
+func _tick_homing(delta: float) -> void:
+	if _player == null or not is_instance_valid(_player):
+		_is_homing = false
+		_current_homing_speed = 0.0
+		return
+
+	var safe_accel: float = maxf(0.0, homing_acceleration)
+	var safe_max_speed: float = maxf(maxf(60.0, homing_speed_start), homing_speed_max)
+	_current_homing_speed = minf(safe_max_speed, _current_homing_speed + safe_accel * delta)
+	var step_distance: float = _current_homing_speed * maxf(0.0, delta)
+	global_position = global_position.move_toward(_player.global_position, step_distance)
+
+	if global_position.distance_to(_player.global_position) <= maxf(4.0, collect_distance_threshold):
+		_finalize_collection()
+
+func _finalize_collection() -> void:
+	if _is_collecting:
+		return
 	if debug_log_collect:
 		print("Biomass collected for ", xp_value, " XP")
 	_is_collecting = true
+	_is_homing = false
 	set_deferred("monitoring", false)
 	set_deferred("monitorable", false)
 	collected.emit(xp_value)
