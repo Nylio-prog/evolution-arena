@@ -34,11 +34,11 @@ const MUTATIONS: Dictionary = {
 		"icon_id": "razor_halo",
 		"max_level": 5,
 		"levels": {
-			1: {"short": "4 blades + sustain", "description": "Spawn 4 rotating blades. Blade hits heal 1 per enemy hit."},
-			2: {"short": "6 blades + sustain", "description": "Increase to 6 blades. Blade hits heal 2 per enemy hit."},
-			3: {"short": "8 blades + sustain", "description": "Increase to 8 blades, faster spin, and heal 3 per enemy hit."},
-			4: {"short": "10 blades + sustain", "description": "Increase to 10 blades with stronger rotation pressure and heal 4 per enemy hit."},
-			5: {"short": "12 blades + sustain", "description": "Max razor ring density, top rotation speed, and heal 5 per enemy hit."}
+			1: {"short": "4 blades", "description": "Spawn 4 rotating blades for close-range pressure."},
+			2: {"short": "6 blades + sustain", "description": "Increase to 6 blades and unlock sustain (heal 1 per enemy hit)."},
+			3: {"short": "8 blades + sustain", "description": "Increase to 8 blades, faster spin, and heal 2 per enemy hit."},
+			4: {"short": "10 blades + sustain", "description": "Increase to 10 blades with stronger rotation pressure and heal 3 per enemy hit."},
+			5: {"short": "12 blades + sustain", "description": "Max razor ring density, top rotation speed, and heal 4 per enemy hit."}
 		}
 	},
 	"puncture_lance": {
@@ -76,11 +76,11 @@ const MUTATIONS: Dictionary = {
 		"icon_id": "lytic_burst",
 		"max_level": 5,
 		"levels": {
-			1: {"short": "burst + guard", "description": "Emit periodic bursts and gain 10% block chance."},
-			2: {"short": "wider guard burst", "description": "Burst area and damage increase. Block chance rises to 17%."},
-			3: {"short": "reinforced burst", "description": "Burst cadence improves and block chance rises to 25%."},
-			4: {"short": "hardened burst", "description": "Burst gets stronger and block chance rises to 33%."},
-			5: {"short": "fortress burst", "description": "Peak burst pressure and 40% block chance."}
+			1: {"short": "burst + guard", "description": "Emit periodic bursts and gain 12% block chance."},
+			2: {"short": "wider guard burst", "description": "Burst area and damage increase. Block chance rises to 20%."},
+			3: {"short": "reinforced burst", "description": "Burst cadence improves and block chance rises to 29%."},
+			4: {"short": "hardened burst", "description": "Burst gets stronger and block chance rises to 37%."},
+			5: {"short": "fortress burst", "description": "Peak burst pressure and 45% block chance."}
 		}
 	},
 	"infective_secretion": {

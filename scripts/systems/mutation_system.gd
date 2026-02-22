@@ -14,9 +14,9 @@ const LEECH_TENDRIL_SCENE: PackedScene = preload("res://scenes/modules/leech_ten
 const HOST_OVERRIDE_SCENE: PackedScene = preload("res://scenes/modules/host_override.tscn")
 
 const VARIANTS: Dictionary = {
-	"lytic": "Lytic Strain",
-	"pandemic": "Pandemic Strain",
-	"parasitic": "Parasitic Strain"
+	"lytic": "Lytic Variant",
+	"pandemic": "Pandemic Variant",
+	"parasitic": "Parasitic Variant"
 }
 
 const VARIANT_STARTER_MUTATION: Dictionary = {

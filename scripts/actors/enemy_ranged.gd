@@ -8,10 +8,10 @@ signal died(world_position: Vector2)
 signal died_detailed(world_position: Vector2, enemy_node: Node)
 
 @export var move_speed: float = 74.0
-@export var max_hp: int = 11
-@export var contact_damage: int = 8
+@export var max_hp: int = 15
+@export var contact_damage: int = 10
 @export var dot_damage_multiplier: float = 0.82
-@export var shot_damage: int = 8
+@export var shot_damage: int = 10
 @export var shot_interval_seconds: float = 1.25
 @export var shot_range: float = 360.0
 @export var preferred_range: float = 210.0

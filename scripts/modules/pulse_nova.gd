@@ -10,11 +10,11 @@ const PULSE_NOVA_SPRITE_TEXTURE: Texture2D = preload("res://art/sprites/mutation
 @export var pulse_outline_color: Color = Color(0.12, 0.2, 0.26, 1.0)
 @export var pulse_sprite_texture: Texture2D = PULSE_NOVA_SPRITE_TEXTURE
 @export var pulse_sprite_scale_multiplier: float = 1.15
-@export_range(0.0, 1.0, 0.01) var block_chance_level_1: float = 0.10
-@export_range(0.0, 1.0, 0.01) var block_chance_level_2: float = 0.17
-@export_range(0.0, 1.0, 0.01) var block_chance_level_3: float = 0.25
-@export_range(0.0, 1.0, 0.01) var block_chance_level_4: float = 0.33
-@export_range(0.0, 1.0, 0.01) var block_chance_level_5: float = 0.40
+@export_range(0.0, 1.0, 0.01) var block_chance_level_1: float = 0.12
+@export_range(0.0, 1.0, 0.01) var block_chance_level_2: float = 0.20
+@export_range(0.0, 1.0, 0.01) var block_chance_level_3: float = 0.29
+@export_range(0.0, 1.0, 0.01) var block_chance_level_4: float = 0.37
+@export_range(0.0, 1.0, 0.01) var block_chance_level_5: float = 0.45
 @export var debug_log_hits: bool = false
 
 @onready var audio_manager: Node = get_node_or_null("/root/AudioManager")

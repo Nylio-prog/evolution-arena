@@ -33,6 +33,10 @@ var _start_position: Vector2 = Vector2.ZERO
 var _end_position: Vector2 = Vector2.ZERO
 var _total_pass_count: int = 1
 var _pass_index: int = 0
+var _runtime_speed_multiplier: float = 1.0
+
+func set_runtime_speed_multiplier(multiplier: float) -> void:
+	_runtime_speed_multiplier = maxf(0.1, multiplier)
 
 func _ready() -> void:
 	add_to_group("crisis_runtime_nodes")
@@ -66,7 +70,7 @@ func _process(delta: float) -> void:
 		if _phase_time_seconds >= telegraph_duration_seconds:
 			_enter_phase("active")
 	elif _phase == "active":
-		var pass_speed_scale: float = 1.0 + (float(_pass_index) * pass_speed_ramp_per_pass)
+		var pass_speed_scale: float = (1.0 + (float(_pass_index) * pass_speed_ramp_per_pass)) * _runtime_speed_multiplier
 		var effective_duration: float = maxf(0.35, sweep_duration_seconds / pass_speed_scale)
 		var normalized_time: float = clampf(_phase_time_seconds / maxf(0.01, effective_duration), 0.0, 1.0)
 		global_position = _start_position.lerp(_end_position, normalized_time)

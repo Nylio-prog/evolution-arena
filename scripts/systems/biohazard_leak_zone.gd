@@ -6,7 +6,7 @@ signal player_exposed(player_node: Node)
 @export var telegraph_duration_seconds: float = 0.45
 @export var active_duration_seconds: float = 0.0
 @export var collision_radius: float = 94.0
-@export var damage_tick_amount: int = 5
+@export var damage_tick_amount: int = 7
 @export var damage_tick_interval_seconds: float = 0.2
 @export var use_sprite_visual_when_available: bool = true
 @export var sprite_telegraph_alpha: float = 0.38

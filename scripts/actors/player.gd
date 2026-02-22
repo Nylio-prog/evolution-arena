@@ -6,6 +6,7 @@ signal died
 @export var move_speed: float = 260.0
 @export var max_hp: int = 100
 @export var invulnerability_seconds: float = 0.5
+@export var variant_camouflage_alpha: float = 0.56
 @export var visual_radius: float = 12.0
 @export var lineage_accent_color: Color = Color(1, 1, 1, 0)
 @export var lineage_accent_width: float = 2.0
@@ -26,6 +27,12 @@ signal died
 
 var current_hp: int
 var _invulnerable_until_ms: int = 0
+var _variant_invulnerable_until_ms: int = 0
+var _variant_dash_time_left: float = 0.0
+var _variant_dash_velocity: Vector2 = Vector2.ZERO
+var _variant_camouflage_time_left: float = 0.0
+var _variant_camouflage_move_speed_multiplier: float = 1.0
+var _variant_cast_rooted: bool = false
 var incoming_damage_multiplier: float = 1.0
 var _is_playing_hit_animation: bool = false
 var _base_move_speed: float = 0.0
@@ -78,11 +85,20 @@ func _physics_process(_delta: float) -> void:
 		if _hit_animation_timeout_left <= 0.0:
 			_is_playing_hit_animation = false
 			_play_base_animation(velocity.length() > 0.01)
-	var input_vector := Input.get_vector("move_left", "move_right", "move_up", "move_down")
-	velocity = input_vector * move_speed
+	_tick_variant_state(_delta)
+	if _variant_dash_time_left > 0.0:
+		velocity = _variant_dash_velocity
+	elif _variant_cast_rooted:
+		velocity = Vector2.ZERO
+	else:
+		var input_vector := Input.get_vector("move_left", "move_right", "move_up", "move_down")
+		var effective_move_speed: float = move_speed
+		if _variant_camouflage_time_left > 0.0:
+			effective_move_speed *= maxf(1.0, _variant_camouflage_move_speed_multiplier)
+		velocity = input_vector * effective_move_speed
 	move_and_slide()
 	_apply_movement_bounds()
-	_update_animation_state(input_vector.length() > 0.01)
+	_update_animation_state(velocity.length() > 0.01)
 
 func take_damage(amount: int, source: Node = null) -> void:
 	if amount <= 0:
@@ -93,6 +109,8 @@ func take_damage(amount: int, source: Node = null) -> void:
 	var now_ms := Time.get_ticks_msec()
 	if now_ms < _invulnerable_until_ms:
 		return
+	if _is_variant_damage_immune(now_ms):
+		return
 
 	var final_amount: int = max(1, int(round(float(amount) * incoming_damage_multiplier)))
 	_invulnerable_until_ms = now_ms + int(invulnerability_seconds * 1000.0)
@@ -102,6 +120,8 @@ func take_dot_damage(amount: int) -> void:
 	if amount <= 0:
 		return
 	if current_hp <= 0:
+		return
+	if _is_variant_damage_immune():
 		return
 
 	var final_amount: int = max(1, int(round(float(amount) * incoming_damage_multiplier)))
@@ -133,6 +153,43 @@ func restore_full_health() -> void:
 		return
 	current_hp = max_hp
 	hp_changed.emit(current_hp, max_hp)
+
+func cast_variant_dash(direction: Vector2, dash_distance: float, dash_duration_seconds: float, invulnerability_duration_seconds: float) -> bool:
+	if current_hp <= 0:
+		return false
+	var safe_duration: float = maxf(0.04, dash_duration_seconds)
+	var safe_distance: float = maxf(16.0, dash_distance)
+	var safe_direction: Vector2 = direction
+	if safe_direction.length_squared() <= 0.0001:
+		if velocity.length_squared() > 0.0001:
+			safe_direction = velocity.normalized()
+		else:
+			safe_direction = Vector2.RIGHT
+	else:
+		safe_direction = safe_direction.normalized()
+
+	_variant_dash_velocity = safe_direction * (safe_distance / safe_duration)
+	_variant_dash_time_left = safe_duration
+	_grant_variant_invulnerability(invulnerability_duration_seconds)
+	return true
+
+func activate_variant_camouflage(duration_seconds: float, move_speed_multiplier: float = 1.0) -> bool:
+	if current_hp <= 0:
+		return false
+	var safe_duration: float = maxf(0.05, duration_seconds)
+	_variant_camouflage_time_left = maxf(_variant_camouflage_time_left, safe_duration)
+	_variant_camouflage_move_speed_multiplier = maxf(
+		_variant_camouflage_move_speed_multiplier,
+		maxf(1.0, move_speed_multiplier)
+	)
+	_grant_variant_invulnerability(safe_duration)
+	_apply_dynamic_sprite_modulate()
+	return true
+
+func set_variant_cast_rooted(active: bool) -> void:
+	_variant_cast_rooted = active
+	if active:
+		velocity = Vector2.ZERO
 
 func set_incoming_damage_multiplier(multiplier: float) -> void:
 	_module_incoming_damage_multiplier = clampf(multiplier, 0.05, 1.0)
@@ -200,6 +257,7 @@ func _setup_animated_sprite() -> void:
 	animated_sprite.modulate = sprite_modulate
 	if not animated_sprite.animation_finished.is_connected(Callable(self, "_on_animated_sprite_animation_finished")):
 		animated_sprite.animation_finished.connect(Callable(self, "_on_animated_sprite_animation_finished"))
+	_apply_dynamic_sprite_modulate()
 	_play_base_animation(false)
 
 func _trigger_hit_animation() -> void:
@@ -243,6 +301,41 @@ func _on_animated_sprite_animation_finished() -> void:
 	_is_playing_hit_animation = false
 	_hit_animation_timeout_left = 0.0
 	_play_base_animation(velocity.length() > 0.01)
+
+func _tick_variant_state(delta: float) -> void:
+	if _variant_dash_time_left > 0.0:
+		_variant_dash_time_left = maxf(0.0, _variant_dash_time_left - delta)
+		if _variant_dash_time_left <= 0.0:
+			_variant_dash_velocity = Vector2.ZERO
+	if _variant_camouflage_time_left > 0.0:
+		var previous_time_left: float = _variant_camouflage_time_left
+		_variant_camouflage_time_left = maxf(0.0, _variant_camouflage_time_left - delta)
+		if previous_time_left > 0.0 and _variant_camouflage_time_left <= 0.0:
+			_variant_camouflage_move_speed_multiplier = 1.0
+			_apply_dynamic_sprite_modulate()
+
+func _grant_variant_invulnerability(duration_seconds: float) -> void:
+	if duration_seconds <= 0.0:
+		return
+	var now_ms: int = Time.get_ticks_msec()
+	var requested_until_ms: int = now_ms + int(maxf(0.0, duration_seconds) * 1000.0)
+	_variant_invulnerable_until_ms = maxi(_variant_invulnerable_until_ms, requested_until_ms)
+
+func _is_variant_damage_immune(now_ms: int = -1) -> bool:
+	if _variant_camouflage_time_left > 0.0:
+		return true
+	var resolved_now_ms: int = now_ms
+	if resolved_now_ms < 0:
+		resolved_now_ms = Time.get_ticks_msec()
+	return resolved_now_ms < _variant_invulnerable_until_ms
+
+func _apply_dynamic_sprite_modulate() -> void:
+	if animated_sprite == null:
+		return
+	var resolved_modulate: Color = sprite_modulate
+	if _variant_camouflage_time_left > 0.0:
+		resolved_modulate.a = clampf(resolved_modulate.a * clampf(variant_camouflage_alpha, 0.15, 1.0), 0.08, 1.0)
+	animated_sprite.modulate = resolved_modulate
 
 func _apply_damage_value(final_amount: int, raw_amount: int, is_dot: bool, damage_source: Node = null) -> void:
 	if not is_dot and _block_chance > 0.0 and randf() <= _block_chance:

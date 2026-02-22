@@ -9,9 +9,9 @@ signal defeated(world_position: Vector2, boss_node: Node)
 signal health_changed(current_hp: int, max_hp: int)
 signal phase_changed(new_phase: int)
 
-@export var max_hp: int = 2400
+@export var max_hp: int = 2750
 @export var move_speed: float = 72.0
-@export var contact_damage: int = 30
+@export var contact_damage: int = 36
 @export var contact_cooldown_seconds: float = 0.30
 @export var preferred_range: float = 220.0
 @export var retreat_range: float = 145.0
@@ -28,7 +28,7 @@ signal phase_changed(new_phase: int)
 @export var phase_2_threshold_ratio: float = 0.70
 @export var phase_3_threshold_ratio: float = 0.35
 @export var phase_shift_lock_seconds: float = 0.65
-@export var projectile_damage: int = 17
+@export var projectile_damage: int = 21
 @export var projectile_speed: float = 460.0
 @export var projectile_life_seconds: float = 2.6
 @export var projectile_hit_radius: float = 10.0
@@ -46,9 +46,9 @@ signal phase_changed(new_phase: int)
 @export var targeted_blast_interval_phase_1: float = 5.6
 @export var targeted_blast_interval_phase_2: float = 4.6
 @export var targeted_blast_interval_phase_3: float = 3.7
-@export var targeted_blast_damage_phase_1: int = 24
-@export var targeted_blast_damage_phase_2: int = 33
-@export var targeted_blast_damage_phase_3: int = 42
+@export var targeted_blast_damage_phase_1: int = 28
+@export var targeted_blast_damage_phase_2: int = 39
+@export var targeted_blast_damage_phase_3: int = 50
 @export var targeted_blast_projectile_count_phase_1: int = 6
 @export var targeted_blast_projectile_count_phase_2: int = 8
 @export var targeted_blast_projectile_count_phase_3: int = 10
@@ -150,6 +150,16 @@ func apply_difficulty_multipliers(speed_multiplier: float, hp_multiplier: float,
 	_difficulty_hp_multiplier_applied = safe_hp_multiplier
 	_difficulty_damage_multiplier_applied = safe_damage_multiplier
 	_emit_health_changed()
+
+func apply_final_boss_damage_bonus(damage_multiplier: float) -> void:
+	var safe_damage_multiplier: float = maxf(0.1, damage_multiplier)
+	if is_equal_approx(safe_damage_multiplier, 1.0):
+		return
+	contact_damage = maxi(1, int(round(float(contact_damage) * safe_damage_multiplier)))
+	projectile_damage = maxi(1, int(round(float(projectile_damage) * safe_damage_multiplier)))
+	targeted_blast_damage_phase_1 = maxi(1, int(round(float(targeted_blast_damage_phase_1) * safe_damage_multiplier)))
+	targeted_blast_damage_phase_2 = maxi(1, int(round(float(targeted_blast_damage_phase_2) * safe_damage_multiplier)))
+	targeted_blast_damage_phase_3 = maxi(1, int(round(float(targeted_blast_damage_phase_3) * safe_damage_multiplier)))
 
 func take_damage(amount: int) -> void:
 	if amount <= 0:

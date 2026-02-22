@@ -7,8 +7,8 @@ const PHYSICS_LAYER_WORLD: int = 1
 const PHYSICS_LAYER_ENEMY: int = 2
 
 @export var move_speed: float = 90.0
-@export var max_hp: int = 20
-@export var contact_damage: int = 13
+@export var max_hp: int = 26
+@export var contact_damage: int = 16
 @export var dot_damage_multiplier: float = 0.90
 @export var idle_animation_name: StringName = &"idle"
 @export var move_animation_name: StringName = &"move"

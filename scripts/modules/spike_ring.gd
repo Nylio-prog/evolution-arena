@@ -185,10 +185,7 @@ func _apply_contact_sustain(unique_hit_count: int) -> void:
 	if not player_node.has_method("heal"):
 		return
 
-	var heal_per_enemy_hit: int = maxi(
-		0,
-		sustain_heal_per_enemy_hit + maxi(0, spike_level - 1) * maxi(0, sustain_heal_per_level_bonus)
-	)
+	var heal_per_enemy_hit: int = _get_sustain_heal_per_enemy_hit_for_level(spike_level)
 	var effective_hit_count: int = mini(unique_hit_count, sustain_max_enemy_hits_per_tick)
 	if effective_hit_count <= 0:
 		return
@@ -196,6 +193,21 @@ func _apply_contact_sustain(unique_hit_count: int) -> void:
 	if heal_amount <= 0:
 		return
 	player_node.call("heal", heal_amount)
+
+func _get_sustain_heal_per_enemy_hit_for_level(level: int) -> int:
+	if level < maxi(1, sustain_unlock_level):
+		return 0
+	var safe_level: int = clampi(level, 0, 5)
+	var heal_value: int = maxi(0, sustain_heal_per_enemy_hit)
+	# Buff starts at L3 as requested.
+	if safe_level >= 3:
+		heal_value += 1
+	if safe_level >= 4:
+		heal_value += 1
+	if safe_level >= 5:
+		heal_value += 1
+	heal_value += maxi(0, safe_level - 2) * maxi(0, sustain_heal_per_level_bonus)
+	return maxi(0, heal_value)
 
 func _get_player_node() -> Node:
 	if _cached_player != null and is_instance_valid(_cached_player):

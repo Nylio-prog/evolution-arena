@@ -59,15 +59,15 @@ func _apply_to_player() -> void:
 func _get_damage_multiplier_for_level(level: int) -> float:
 	match level:
 		1:
-			return 0.88
+			return 0.90
 		2:
-			return 0.78
+			return 0.81
 		3:
-			return 0.68
+			return 0.72
 		4:
-			return 0.60
+			return 0.64
 		5:
-			return 0.52
+			return 0.56
 		_:
 			return 1.0
 

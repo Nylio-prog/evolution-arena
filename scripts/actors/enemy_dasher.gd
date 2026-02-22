@@ -8,8 +8,8 @@ const PHYSICS_LAYER_ENEMY: int = 2
 
 @export var move_speed: float = 90.0
 @export var dash_speed: float = 320.0
-@export var max_hp: int = 18
-@export var contact_damage: int = 14
+@export var max_hp: int = 24
+@export var contact_damage: int = 18
 @export var dot_damage_multiplier: float = 0.68
 @export var visual_radius: float = 9.0
 @export var idle_animation_name: StringName = &"idle"

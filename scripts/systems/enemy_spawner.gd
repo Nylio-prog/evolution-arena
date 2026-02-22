@@ -9,6 +9,10 @@ const ENEMY_RANGED_SCENE: PackedScene = preload("res://scenes/actors/enemy_range
 @export var ramp_duration_seconds: float = 185.0
 @export var spawn_ramp_delay_seconds: float = 18.0
 @export var spawn_distance: float = 480.0
+@export var spawn_distance_ramp_start_seconds: float = 140.0
+@export var spawn_distance_ramp_end_seconds: float = 420.0
+@export var spawn_distance_max_multiplier: float = 1.36
+@export var spawn_distance_variance_ratio: float = 0.12
 @export var dasher_initial_ratio: float = 0.12
 @export var dasher_max_ratio: float = 0.56
 @export var dasher_ramp_start_seconds: float = 24.0
@@ -29,10 +33,12 @@ const ENEMY_RANGED_SCENE: PackedScene = preload("res://scenes/actors/enemy_range
 @export var spawn_speed_max_multiplier: float = 1.22
 @export var spawn_hp_ramp_start_seconds: float = 46.0
 @export var spawn_hp_ramp_end_seconds: float = 320.0
-@export var spawn_hp_max_multiplier: float = 1.55
+@export var spawn_hp_min_multiplier: float = 1.18
+@export var spawn_hp_max_multiplier: float = 1.90
 @export var spawn_damage_ramp_start_seconds: float = 88.0
 @export var spawn_damage_ramp_end_seconds: float = 340.0
-@export var spawn_damage_max_multiplier: float = 1.26
+@export var spawn_damage_min_multiplier: float = 1.14
+@export var spawn_damage_max_multiplier: float = 1.55
 @export var debug_log_spawn: bool = false
 
 @onready var spawn_timer: Timer = get_node_or_null("SpawnTimer")
@@ -80,7 +86,8 @@ func _on_spawn_timer_timeout() -> void:
 	var spawn_count: int = _get_spawn_batch_count()
 	for _spawn_index in range(spawn_count):
 		var angle: float = randf() * TAU
-		var offset := Vector2.RIGHT.rotated(angle) * spawn_distance
+		var current_spawn_distance: float = _get_spawn_distance_for_current_time()
+		var offset := Vector2.RIGHT.rotated(angle) * current_spawn_distance
 		var enemy_scene: PackedScene = _select_enemy_scene()
 		var enemy_instance := _spawn_enemy_scene(enemy_scene, _player.global_position + offset)
 		if enemy_instance == null:
@@ -187,11 +194,13 @@ func _apply_runtime_spawn_scaling(enemy_instance: Node2D) -> void:
 		spawn_hp_ramp_end_seconds,
 		spawn_hp_max_multiplier
 	)
+	hp_multiplier = maxf(spawn_hp_min_multiplier, hp_multiplier)
 	var damage_multiplier: float = _compute_ramp_multiplier(
 		spawn_damage_ramp_start_seconds,
 		spawn_damage_ramp_end_seconds,
 		spawn_damage_max_multiplier
 	)
+	damage_multiplier = maxf(spawn_damage_min_multiplier, damage_multiplier)
 	enemy_instance.call("apply_spawn_scaling", speed_multiplier, hp_multiplier, damage_multiplier)
 
 func _compute_ramp_multiplier(start_seconds: float, end_seconds: float, max_multiplier: float) -> float:
@@ -201,6 +210,20 @@ func _compute_ramp_multiplier(start_seconds: float, end_seconds: float, max_mult
 	var clamped_end: float = maxf(clamped_start + 0.01, end_seconds)
 	var ramp_ratio: float = clampf((_elapsed_seconds - clamped_start) / (clamped_end - clamped_start), 0.0, 1.0)
 	return lerpf(1.0, max_multiplier, ramp_ratio)
+
+func _get_spawn_distance_for_current_time() -> float:
+	var base_distance: float = maxf(80.0, spawn_distance)
+	var distance_multiplier: float = _compute_ramp_multiplier(
+		spawn_distance_ramp_start_seconds,
+		spawn_distance_ramp_end_seconds,
+		spawn_distance_max_multiplier
+	)
+	var scaled_distance: float = base_distance * distance_multiplier
+	var variance_ratio: float = clampf(spawn_distance_variance_ratio, 0.0, 0.45)
+	if variance_ratio <= 0.0:
+		return scaled_distance
+	var jitter_multiplier: float = randf_range(1.0 - variance_ratio, 1.0 + variance_ratio)
+	return maxf(80.0, scaled_distance * jitter_multiplier)
 
 func _update_spawn_wait_time() -> void:
 	if spawn_timer == null:

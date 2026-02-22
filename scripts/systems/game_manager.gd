@@ -8,6 +8,7 @@ const ANTIVIRAL_DRONE_SCENE: PackedScene = preload("res://scenes/actors/enemy_ra
 const CONTAINMENT_PYLON_SCENE: PackedScene = preload("res://scenes/systems/containment_pylon.tscn")
 const GENOME_CACHE_POD_SCENE: PackedScene = preload("res://scenes/systems/genome_cache_pod.tscn")
 const PROTOCOL_OMEGA_BOSS_SCENE: PackedScene = preload("res://scenes/actors/protocol_omega_boss.tscn")
+const LEECH_TENDRIL_SCENE: PackedScene = preload("res://scenes/modules/leech_tendril.tscn")
 const MUTATIONS_DATA = preload("res://data/mutations.gd")
 const MUTATION_ICON_PROTO_PULSE: Texture2D = preload("res://art/sprites/ui/icons/icon_proto_pulse.png")
 const MUTATION_ICON_RAZOR_HALO: Texture2D = preload("res://art/sprites/ui/icons/icon_razor_halo.png")
@@ -35,6 +36,9 @@ const ICON_BACKGROUND_TEXTURE: Texture2D = preload("res://art/sprites/ui/icons/i
 const VARIANT_ICON_LYTIC: Texture2D = preload("res://art/sprites/ui/icons/icon_razor_halo.png")
 const VARIANT_ICON_PANDEMIC: Texture2D = preload("res://art/sprites/ui/icons/icon_infective_secretion.png")
 const VARIANT_ICON_PARASITIC: Texture2D = preload("res://art/sprites/ui/icons/icon_leech_tendril.png")
+const VARIANT_CAST_ICON_LYTIC_DASH: Texture2D = preload("res://art/sprites/ui/icons/icon_variant_cast_lytic_dash.png")
+const VARIANT_CAST_ICON_PANDEMIC_CAMOUFLAGE: Texture2D = preload("res://art/sprites/ui/icons/icon_variant_cast_pandemic_camouflage.png")
+const VARIANT_CAST_ICON_PARASITIC_SIPHON: Texture2D = preload("res://art/sprites/ui/icons/icon_variant_cast_parasitic_siphon.png")
 const GAMEPLAY_SETTINGS = preload("res://scripts/systems/gameplay_settings.gd")
 const RUN_INVENTORY_SLOT_SIZE: float = 64.0
 const RUN_INVENTORY_ICON_PADDING: float = 5.0
@@ -165,6 +169,12 @@ const MUTATION_TAG_SYNERGY_RULES: Array[Dictionary] = [
 @onready var boss_name_label: Label = get_node_or_null("UiHud/BossNameLabel")
 @onready var boss_health_bar: ProgressBar = get_node_or_null("UiHud/BossHealthBar")
 @onready var lineage_label: Label = get_node_or_null("UiHud/LineageLabel")
+@onready var variant_cast_panel: Panel = get_node_or_null("UiHud/VariantCastPanel")
+@onready var variant_cast_label: Label = get_node_or_null("UiHud/VariantCastPanel/VariantCastLabel")
+@onready var variant_cast_state_label: Label = get_node_or_null("UiHud/VariantCastPanel/VariantCastStateLabel")
+@onready var variant_cast_icon: TextureRect = get_node_or_null("UiHud/VariantCastPanel/VariantCastIcon")
+@onready var variant_cast_overlay: ColorRect = get_node_or_null("UiHud/VariantCastPanel/VariantCastIcon/VariantCastCooldownOverlay")
+@onready var variant_cast_cooldown_label: Label = get_node_or_null("UiHud/VariantCastPanel/VariantCastIcon/VariantCastCooldownLabel")
 @onready var arena_background_sprite: Sprite2D = get_node_or_null("ArenaSprite")
 @onready var ui_hud_layer: CanvasLayer = get_node_or_null("UiHud")
 @onready var run_inventory_bar: Control = get_node_or_null("UiHud/RunInventoryBar")
@@ -323,6 +333,16 @@ var _selected_difficulty_id: String = "medium"
 var _enemy_difficulty_speed_multiplier: float = 1.0
 var _enemy_difficulty_hp_multiplier: float = 1.0
 var _enemy_difficulty_damage_multiplier: float = 1.0
+var _variant_cast_cooldown_left: float = 0.0
+var _parasitic_siphon_time_left: float = 0.0
+var _parasitic_siphon_tick_left: float = 0.0
+var _parasitic_siphon_sfx_cooldown_left: float = 0.0
+var _variant_cast_hud_icon_variant_id: String = ""
+var _parasitic_siphon_beam_frames: SpriteFrames
+var _parasitic_siphon_beam_animation: StringName = &"default"
+var _parasitic_siphon_beam_frame_size: Vector2 = Vector2(128.0, 128.0)
+var _parasitic_siphon_beam_template_scale: Vector2 = Vector2.ONE
+var _has_parasitic_siphon_beam_template: bool = false
 @export var debug_allow_grant_xp: bool = false
 @export var debug_grant_xp_amount: int = 20
 @export var biomass_xp_multiplier: float = 1.35
@@ -347,6 +367,52 @@ var _enemy_difficulty_damage_multiplier: float = 1.0
 @export var synergy_popup_duration_seconds: float = 4.8
 @export var synergy_popup_fade_seconds: float = 0.36
 @export var runtime_popup_top_offset: float = 150.0
+@export var variant_cast_keycode: int = KEY_Q
+@export var variant_cast_cooldown_seconds: float = 10.0
+@export var variant_cast_overlay_max_alpha: float = 0.78
+@export var variant_cast_icon_dim_alpha_on_cooldown: float = 0.56
+@export var variant_cast_decimal_display_threshold_seconds: float = 5.0
+@export var variant_cast_panel_spacing_from_inventory: float = 12.0
+@export var variant_cast_scaling_target_level: int = 35
+@export var lytic_cast_cooldown_level1_seconds: float = 15.0
+@export var lytic_cast_cooldown_target_seconds: float = 3.0
+@export var lytic_cast_dash_distance: float = 210.0
+@export var lytic_cast_dash_distance_target: float = 520.0
+@export var lytic_cast_dash_duration_seconds: float = 0.16
+@export var lytic_cast_dash_duration_target_seconds: float = 0.22
+@export var lytic_cast_dash_invulnerability_seconds: float = 0.42
+@export var lytic_cast_dash_invulnerability_target_seconds: float = 0.68
+@export var pandemic_cast_cooldown_level1_seconds: float = 15.0
+@export var pandemic_cast_cooldown_target_seconds: float = 6.0
+@export var pandemic_cast_camouflage_duration_seconds: float = 2.6
+@export var pandemic_cast_camouflage_duration_target_seconds: float = 4.0
+@export var pandemic_cast_camouflage_move_speed_multiplier: float = 1.12
+@export var pandemic_cast_camouflage_move_speed_multiplier_target: float = 1.30
+@export var parasitic_cast_cooldown_level1_seconds: float = 15.0
+@export var parasitic_cast_cooldown_target_seconds: float = 5.5
+@export var parasitic_cast_siphon_duration_seconds: float = 1.0
+@export var parasitic_cast_siphon_duration_target_seconds: float = 2.4
+@export var parasitic_cast_siphon_tick_interval_seconds: float = 0.33
+@export var parasitic_cast_siphon_tick_interval_target_seconds: float = 0.16
+@export var parasitic_cast_siphon_radius: float = 210.0
+@export var parasitic_cast_siphon_radius_target: float = 360.0
+@export var parasitic_cast_siphon_hit_all_nearby: bool = true
+@export var parasitic_cast_siphon_max_targets: int = 4
+@export var parasitic_cast_siphon_max_targets_target: int = 8
+@export var parasitic_cast_siphon_damage_per_tick: int = 7
+@export var parasitic_cast_siphon_damage_per_tick_target: int = 17
+@export var parasitic_cast_siphon_heal_per_hit: int = 1
+@export var parasitic_cast_siphon_heal_per_hit_target: int = 3
+@export var parasitic_cast_siphon_elite_damage_multiplier: float = 0.60
+@export var parasitic_cast_siphon_elite_damage_multiplier_target: float = 1.0
+@export var parasitic_cast_siphon_visual_max_beams: int = 18
+@export var parasitic_cast_siphon_visual_duration_seconds: float = 0.17
+@export var parasitic_cast_siphon_visual_beam_thickness_scale: float = 0.24
+@export var parasitic_cast_siphon_visual_beam_start_offset: float = 18.0
+@export var parasitic_cast_siphon_visual_beam_end_offset: float = 0.0
+@export var parasitic_cast_siphon_visual_ring_width: float = 3.0
+@export var parasitic_cast_siphon_visual_color: Color = Color(0.54, 1.0, 0.76, 0.92)
+@export var parasitic_cast_siphon_sfx_interval_seconds: float = 0.24
 @export var base_passive_regen_per_second: float = 1.0
 @export var run_intro_popup_top_offset: float = 170.0
 @export var final_crisis_intro_popup_enabled: bool = true
@@ -366,6 +432,10 @@ var _enemy_difficulty_damage_multiplier: float = 1.0
 @export var containment_sweep_spacing: float = 220.0
 @export var containment_sweep_contact_damage: int = 50
 @export var containment_sweep_contact_cooldown_seconds: float = 0.45
+@export var containment_sweep_base_speed_multiplier: float = 1.10
+@export var containment_sweep_speed_multiplier_easy: float = 1.00
+@export var containment_sweep_speed_multiplier_medium: float = 1.12
+@export var containment_sweep_speed_multiplier_hard: float = 1.24
 @export var final_containment_concurrent_count: int = 3
 @export var final_containment_spacing: float = 220.0
 @export var final_containment_wave_duration_seconds: float = 16.5
@@ -374,16 +444,28 @@ var _enemy_difficulty_damage_multiplier: float = 1.0
 @export var final_boss_name: String = "PROTOCOL OMEGA"
 @export var final_boss_spawn_radius: float = 280.0
 @export var final_boss_min_spawn_distance_to_player: float = 180.0
+@export var final_boss_damage_multiplier_easy: float = 1.20
+@export var final_boss_damage_multiplier_medium: float = 1.85
+@export var final_boss_damage_multiplier_hard: float = 2.45
 @export var final_boss_death_slowmo_scale: float = 0.22
 @export var final_boss_death_victory_delay_seconds: float = 2.0
-@export var biohazard_leak_initial_spawn_count: int = 0
-@export var biohazard_leak_spawn_interval_seconds: float = 1.0
+@export var biohazard_leak_initial_spawn_count: int = 2
+@export var biohazard_leak_initial_spawn_bonus_easy: int = 0
+@export var biohazard_leak_initial_spawn_bonus_medium: int = 1
+@export var biohazard_leak_initial_spawn_bonus_hard: int = 2
+@export var biohazard_leak_spawn_interval_seconds: float = 0.72
+@export var biohazard_leak_spawn_interval_multiplier_easy: float = 1.0
+@export var biohazard_leak_spawn_interval_multiplier_medium: float = 0.82
+@export var biohazard_leak_spawn_interval_multiplier_hard: float = 0.68
 @export var final_biohazard_spawn_interval_multiplier: float = 0.70
 @export var final_biohazard_max_active_bonus: int = 8
 @export var biohazard_leak_player_position_sample_interval_seconds: float = 0.20
 @export var biohazard_leak_player_position_history_seconds: float = 10.0
 @export var biohazard_leak_player_position_min_age_seconds: float = 1.2
-@export var biohazard_leak_max_active_zones: int = 28
+@export var biohazard_leak_max_active_zones: int = 36
+@export var biohazard_leak_max_active_bonus_easy: int = 0
+@export var biohazard_leak_max_active_bonus_medium: int = 8
+@export var biohazard_leak_max_active_bonus_hard: int = 16
 @export var biohazard_leak_min_distance_between_zones: float = 165.0
 @export var biohazard_leak_spawn_resolve_attempts: int = 10
 @export var biohazard_leak_prediction_strength: float = 0.70
@@ -392,14 +474,14 @@ var _enemy_difficulty_damage_multiplier: float = 1.0
 @export var biohazard_leak_prediction_path_factor: float = 0.80
 @export var biohazard_leak_target_attraction_weight: float = 0.22
 @export var biohazard_leak_collision_radius: float = 94.0
-@export var biohazard_leak_damage_tick_amount: int = 5
+@export var biohazard_leak_damage_tick_amount: int = 7
 @export var biohazard_leak_damage_tick_interval_seconds: float = 0.2
 @export var biohazard_leak_telegraph_duration_min: float = 0.45
 @export var biohazard_leak_telegraph_duration_max: float = 0.95
 @export var strain_bloom_elite_spawn_radius_min: float = 180.0
 @export var strain_bloom_elite_spawn_radius_max: float = 280.0
 @export var strain_bloom_elite_speed_multiplier: float = 1.45
-@export var strain_bloom_elite_hp_multiplier: float = 14.0
+@export var strain_bloom_elite_hp_multiplier: float = 15.0
 @export var strain_bloom_first_elite_hp_ratio: float = 0.3333
 @export var strain_bloom_elite_damage_multiplier: float = 4.0
 @export var strain_bloom_elite_scale_multiplier: float = 2.0
@@ -441,6 +523,7 @@ func _ready() -> void:
 	_load_run_difficulty_settings()
 	GAMEPLAY_SETTINGS.apply_saved_fps_limit()
 	_cache_postprocess_shader_material()
+	_cache_parasitic_siphon_beam_template()
 
 	if OS.has_feature("standalone") and not OS.has_feature("dev_cheats"):
 		debug_allow_grant_xp = false
@@ -490,6 +573,7 @@ func _ready() -> void:
 			_on_level_changed(int(current_level_value))
 	_update_timer_label()
 	_refresh_lineage_labels()
+	_refresh_variant_cast_hud()
 	_refresh_metabolism_hud()
 	_setup_crisis_director()
 	_update_crisis_debug_banner()
@@ -634,6 +718,13 @@ func _reset_runtime_state() -> void:
 	_pending_crisis_failure_audio = false
 	_last_run_end_reason = ""
 	_last_containment_sweep_hit_seconds = -1000.0
+	_variant_cast_cooldown_left = 0.0
+	_parasitic_siphon_time_left = 0.0
+	_parasitic_siphon_tick_left = 0.0
+	_parasitic_siphon_sfx_cooldown_left = 0.0
+	_variant_cast_hud_icon_variant_id = ""
+	if player != null and player.has_method("set_variant_cast_rooted"):
+		player.call("set_variant_cast_rooted", false)
 	_reset_score_runtime()
 	_restore_global_time_scale()
 	_final_victory_sequence_active = false
@@ -1038,12 +1129,32 @@ func _spawn_protocol_omega_boss() -> void:
 		var phase_callable := Callable(self, "_on_protocol_omega_boss_phase_changed")
 		if not boss_node.is_connected("phase_changed", phase_callable):
 			boss_node.connect("phase_changed", phase_callable)
+	call_deferred("_apply_final_boss_difficulty_damage_bonus", boss_node)
 
 	var boss_max_hp: int = 1
 	if boss_node.has_method("get_max_hp"):
 		boss_max_hp = maxi(1, int(boss_node.call("get_max_hp")))
 	_on_protocol_omega_boss_health_changed(boss_max_hp, boss_max_hp)
 	_set_boss_health_ui_visible(true)
+
+func _apply_final_boss_difficulty_damage_bonus(boss_node: Node2D) -> void:
+	if boss_node == null:
+		return
+	if not is_instance_valid(boss_node):
+		return
+	if not boss_node.has_method("apply_final_boss_damage_bonus"):
+		return
+	var damage_multiplier: float = _get_final_boss_damage_bonus_for_selected_difficulty()
+	boss_node.call("apply_final_boss_damage_bonus", damage_multiplier)
+
+func _get_final_boss_damage_bonus_for_selected_difficulty() -> float:
+	match _selected_difficulty_id:
+		"easy":
+			return maxf(0.1, final_boss_damage_multiplier_easy)
+		"hard":
+			return maxf(0.1, final_boss_damage_multiplier_hard)
+		_:
+			return maxf(0.1, final_boss_damage_multiplier_medium)
 
 func _clear_protocol_omega_boss() -> void:
 	if _protocol_omega_boss_target != null and is_instance_valid(_protocol_omega_boss_target):
@@ -1640,6 +1751,7 @@ func _spawn_containment_sweep(
 	var spacing: float = maxf(40.0, containment_sweep_spacing)
 	if spacing_override > 0.0:
 		spacing = maxf(40.0, spacing_override)
+	var sweep_speed_multiplier: float = _get_containment_sweep_speed_multiplier_for_selected_difficulty()
 	var split_axis: Vector2 = Vector2.RIGHT.rotated(randf() * TAU).normalized()
 
 	for i in range(concurrent_count):
@@ -1655,6 +1767,8 @@ func _spawn_containment_sweep(
 
 		if sweep_node.has_method("set"):
 			sweep_node.set("sweep_pass_count", sweep_pass_count)
+		if sweep_node.has_method("set_runtime_speed_multiplier"):
+			sweep_node.call("set_runtime_speed_multiplier", sweep_speed_multiplier)
 
 		if sweep_node.has_method("begin_sweep"):
 			sweep_node.call("begin_sweep", local_center, active_duration_seconds)
@@ -1666,6 +1780,18 @@ func _spawn_containment_sweep(
 		var player_contacted_callable := Callable(self, "_on_containment_sweep_player_contacted")
 		if sweep_node.has_signal("player_contacted") and not sweep_node.is_connected("player_contacted", player_contacted_callable):
 			sweep_node.connect("player_contacted", player_contacted_callable)
+
+func _get_containment_sweep_speed_multiplier_for_selected_difficulty() -> float:
+	var base_multiplier: float = maxf(0.1, containment_sweep_base_speed_multiplier)
+	var difficulty_multiplier: float = 1.0
+	match _selected_difficulty_id:
+		"easy":
+			difficulty_multiplier = maxf(0.1, containment_sweep_speed_multiplier_easy)
+		"hard":
+			difficulty_multiplier = maxf(0.1, containment_sweep_speed_multiplier_hard)
+		_:
+			difficulty_multiplier = maxf(0.1, containment_sweep_speed_multiplier_medium)
+	return base_multiplier * difficulty_multiplier
 
 func _clear_containment_sweep() -> void:
 	for sweep_node in _active_containment_sweeps:
@@ -1689,7 +1815,10 @@ func _spawn_biohazard_leaks(_active_duration_seconds: float) -> void:
 	if player_node != null:
 		_record_biohazard_player_position(player_node.global_position)
 
-	var initial_spawn_count: int = maxi(0, biohazard_leak_initial_spawn_count)
+	var initial_spawn_count: int = maxi(
+		0,
+		biohazard_leak_initial_spawn_count + _get_biohazard_initial_spawn_bonus_for_selected_difficulty()
+	)
 	for _spawn_index in range(initial_spawn_count):
 		_spawn_one_biohazard_leak()
 
@@ -1723,6 +1852,7 @@ func _tick_biohazard_leak_spawner(delta: float) -> void:
 	_prune_biohazard_position_history()
 
 	var max_active_zones: int = maxi(1, biohazard_leak_max_active_zones)
+	max_active_zones += maxi(0, _get_biohazard_max_active_bonus_for_selected_difficulty())
 	if _final_crisis_active:
 		max_active_zones += maxi(0, final_biohazard_max_active_bonus)
 	if _active_biohazard_leaks.size() >= max_active_zones:
@@ -1730,6 +1860,7 @@ func _tick_biohazard_leak_spawner(delta: float) -> void:
 
 	_biohazard_leak_spawn_accumulator += delta
 	var spawn_interval: float = maxf(0.05, biohazard_leak_spawn_interval_seconds)
+	spawn_interval *= _get_biohazard_spawn_interval_multiplier_for_selected_difficulty()
 	if _final_crisis_active:
 		var final_interval_multiplier: float = clampf(final_biohazard_spawn_interval_multiplier, 0.15, 1.0)
 		spawn_interval = maxf(0.05, spawn_interval * final_interval_multiplier)
@@ -1738,6 +1869,33 @@ func _tick_biohazard_leak_spawner(delta: float) -> void:
 		if _active_biohazard_leaks.size() >= max_active_zones:
 			break
 		_spawn_one_biohazard_leak(player_node)
+
+func _get_biohazard_spawn_interval_multiplier_for_selected_difficulty() -> float:
+	match _selected_difficulty_id:
+		"easy":
+			return clampf(biohazard_leak_spawn_interval_multiplier_easy, 0.25, 2.0)
+		"hard":
+			return clampf(biohazard_leak_spawn_interval_multiplier_hard, 0.25, 2.0)
+		_:
+			return clampf(biohazard_leak_spawn_interval_multiplier_medium, 0.25, 2.0)
+
+func _get_biohazard_max_active_bonus_for_selected_difficulty() -> int:
+	match _selected_difficulty_id:
+		"easy":
+			return maxi(0, biohazard_leak_max_active_bonus_easy)
+		"hard":
+			return maxi(0, biohazard_leak_max_active_bonus_hard)
+		_:
+			return maxi(0, biohazard_leak_max_active_bonus_medium)
+
+func _get_biohazard_initial_spawn_bonus_for_selected_difficulty() -> int:
+	match _selected_difficulty_id:
+		"easy":
+			return maxi(0, biohazard_leak_initial_spawn_bonus_easy)
+		"hard":
+			return maxi(0, biohazard_leak_initial_spawn_bonus_hard)
+		_:
+			return maxi(0, biohazard_leak_initial_spawn_bonus_medium)
 
 func _get_biohazard_player_node() -> Node2D:
 	var player_node: Node2D = player as Node2D
@@ -2102,7 +2260,7 @@ func _get_crisis_objective_text(phase_name: String, crisis_id: String) -> String
 						return "Kill elite before timer expires"
 					if _strain_bloom_elite_killed:
 						return "Elite down - hold until reward"
-					return "Locate and eliminate elite strain"
+					return "Locate and eliminate elite variant"
 				"decon_flood":
 					return "Avoid leak zones - heavy damage over time"
 				"quarantine_lattice":
@@ -2351,22 +2509,22 @@ func _on_crisis_started(crisis_id: String, is_final: bool, duration_seconds: flo
 	if not is_final:
 		match crisis_id:
 			"uv_sweep_grid":
-				_spawn_containment_sweep(duration_seconds, 3, containment_sweep_spacing, 2)
+				_spawn_containment_sweep(duration_seconds, 4, maxf(120.0, containment_sweep_spacing * 0.88), 2)
 			"hunter_deployment":
 				_spawn_strain_bloom_elite(crisis_id)
 			"decon_flood":
 				_spawn_biohazard_leaks(duration_seconds)
 			"quarantine_lattice":
-				_spawn_containment_sweep(duration_seconds, 4, maxf(90.0, containment_sweep_spacing * 0.72), 3)
+				_spawn_containment_sweep(duration_seconds, 7, maxf(70.0, containment_sweep_spacing * 0.52), 4)
 			"antiviral_drone_burst":
 				_spawn_antiviral_drone_wave(maxi(2, antiviral_drone_wave_count))
-				_spawn_containment_sweep(duration_seconds, 2, containment_sweep_spacing, 2)
+				_spawn_containment_sweep(duration_seconds, 4, maxf(80.0, containment_sweep_spacing * 0.62), 3)
 			"containment_seal":
-				_spawn_containment_sweep(duration_seconds, 3, maxf(110.0, containment_sweep_spacing * 0.66), 2)
+				_spawn_containment_sweep(duration_seconds, 8, maxf(65.0, containment_sweep_spacing * 0.48), 4)
 				_start_containment_seal_objective(crisis_id)
 			"containment_warden":
 				_spawn_strain_bloom_elite(crisis_id)
-				_spawn_containment_sweep(duration_seconds, 3, containment_sweep_spacing, 2)
+				_spawn_containment_sweep(duration_seconds, 6, maxf(80.0, containment_sweep_spacing * 0.58), 3)
 
 	if not debug_log_crisis_timeline:
 		return
@@ -2457,6 +2615,7 @@ func _get_crisis_phase_time_remaining() -> float:
 func _process(delta: float) -> void:
 	_update_inventory_tooltip_position()
 	_tick_synergy_popup(delta)
+	_refresh_variant_cast_hud()
 	if run_ended:
 		return
 	if run_paused_for_menu:
@@ -2467,6 +2626,8 @@ func _process(delta: float) -> void:
 	_recalculate_run_score()
 	_update_timer_label()
 	_tick_reward_passive_regen(delta)
+	_tick_variant_cast(delta)
+	_refresh_variant_cast_hud()
 	_tick_crisis_director(delta)
 	_tick_biohazard_leak_spawner(delta)
 	_tick_final_crisis_layers(delta)
@@ -2497,9 +2658,412 @@ func _tick_reward_passive_regen(delta: float) -> void:
 	_reward_passive_regen_progress -= float(heal_amount)
 	player.call("heal", heal_amount)
 
+func _tick_variant_cast(delta: float) -> void:
+	_variant_cast_cooldown_left = maxf(0.0, _variant_cast_cooldown_left - delta)
+	_parasitic_siphon_sfx_cooldown_left = maxf(0.0, _parasitic_siphon_sfx_cooldown_left - delta)
+	if _parasitic_siphon_time_left <= 0.0:
+		return
+
+	var previous_channel_time: float = _parasitic_siphon_time_left
+	_parasitic_siphon_time_left = maxf(0.0, _parasitic_siphon_time_left - delta)
+	if previous_channel_time > 0.0 and _parasitic_siphon_time_left <= 0.0:
+		if player != null and player.has_method("set_variant_cast_rooted"):
+			player.call("set_variant_cast_rooted", false)
+	_parasitic_siphon_tick_left -= delta
+	if _parasitic_siphon_tick_left > 0.0:
+		return
+
+	_parasitic_siphon_tick_left = maxf(0.08, _get_parasitic_siphon_tick_interval_for_level())
+	_apply_parasitic_siphon_tick()
+
+func _try_cast_variant_ability() -> bool:
+	if run_ended or run_paused_for_menu or run_paused_for_levelup:
+		return false
+	if crisis_reward_selection_active or lineage_selection_active or genome_cache_selection_active:
+		return false
+	if player == null:
+		return false
+	if _variant_cast_cooldown_left > 0.0:
+		return false
+
+	var variant_id: String = _get_current_variant_id_for_rewards()
+	if variant_id.is_empty():
+		return false
+
+	var did_cast: bool = false
+	match variant_id:
+		"lytic":
+			did_cast = _cast_lytic_variant_ability()
+		"pandemic":
+			did_cast = _cast_pandemic_variant_ability()
+		"parasitic":
+			did_cast = _cast_parasitic_variant_ability()
+		_:
+			did_cast = false
+
+	if did_cast:
+		_variant_cast_cooldown_left = _get_variant_cast_cooldown_for_variant(variant_id)
+		_refresh_variant_cast_hud()
+	return did_cast
+
+func _cast_lytic_variant_ability() -> bool:
+	if player == null:
+		return false
+	if not player.has_method("cast_variant_dash"):
+		return false
+	var player_node := player as Node2D
+	var dash_direction: Vector2 = _resolve_lytic_dash_direction(player_node)
+	return bool(
+		player.call(
+			"cast_variant_dash",
+			dash_direction,
+			maxf(24.0, _get_lytic_dash_distance_for_level()),
+			maxf(0.04, _get_lytic_dash_duration_for_level()),
+			maxf(0.0, _get_lytic_dash_invulnerability_for_level())
+		)
+	)
+
+func _resolve_lytic_dash_direction(player_node: Node2D) -> Vector2:
+	if player_node != null:
+		var to_mouse: Vector2 = get_global_mouse_position() - player_node.global_position
+		if to_mouse.length_squared() > 0.0001:
+			return to_mouse.normalized()
+	return _resolve_variant_cast_direction()
+
+func _cast_pandemic_variant_ability() -> bool:
+	if player == null:
+		return false
+	if not player.has_method("activate_variant_camouflage"):
+		return false
+	return bool(
+		player.call(
+			"activate_variant_camouflage",
+			maxf(0.05, _get_pandemic_camouflage_duration_for_level()),
+			maxf(1.0, _get_pandemic_camouflage_move_speed_multiplier_for_level())
+		)
+	)
+
+func _cast_parasitic_variant_ability() -> bool:
+	var safe_duration: float = maxf(0.1, _get_parasitic_siphon_duration_for_level())
+	_parasitic_siphon_time_left = maxf(_parasitic_siphon_time_left, safe_duration)
+	_parasitic_siphon_tick_left = 0.0
+	if player != null and player.has_method("set_variant_cast_rooted"):
+		player.call("set_variant_cast_rooted", true)
+	return true
+
+func _apply_parasitic_siphon_tick() -> void:
+	var player_node := player as Node2D
+	if player_node == null:
+		return
+
+	var safe_radius: float = maxf(24.0, _get_parasitic_siphon_radius_for_level())
+	var safe_radius_sq: float = safe_radius * safe_radius
+	var candidates: Array[Dictionary] = []
+	for enemy_variant in get_tree().get_nodes_in_group("hostile_enemies"):
+		var enemy_node := enemy_variant as Node2D
+		if enemy_node == null:
+			continue
+		if not is_instance_valid(enemy_node):
+			continue
+		if enemy_node == player_node:
+			continue
+		var distance_sq: float = player_node.global_position.distance_squared_to(enemy_node.global_position)
+		if distance_sq > safe_radius_sq:
+			continue
+		candidates.append({
+			"node": enemy_node,
+			"distance_sq": distance_sq
+		})
+
+	if candidates.is_empty():
+		return
+
+	candidates.sort_custom(Callable(self, "_sort_siphon_candidate_by_distance"))
+	var target_count: int = candidates.size()
+	if not parasitic_cast_siphon_hit_all_nearby:
+		target_count = mini(candidates.size(), maxi(1, _get_parasitic_siphon_max_targets_for_level()))
+	var base_damage: int = maxi(1, _get_parasitic_siphon_damage_per_tick_for_level())
+	var elite_damage_multiplier: float = _get_parasitic_siphon_elite_multiplier_for_level()
+	var heal_per_hit: int = maxi(0, _get_parasitic_siphon_heal_per_hit_for_level())
+	var total_heal: int = 0
+	var drained_targets: Array[Node2D] = []
+
+	for i in range(target_count):
+		var candidate: Dictionary = candidates[i]
+		var target := candidate.get("node", null) as Node2D
+		if target == null:
+			continue
+		if not target.has_method("take_damage"):
+			continue
+
+		var damage_to_apply: int = base_damage
+		if _is_elite_or_boss_target(target):
+			damage_to_apply = maxi(
+				1,
+				int(round(float(base_damage) * clampf(elite_damage_multiplier, 0.1, 1.5)))
+			)
+		target.call("take_damage", damage_to_apply)
+		drained_targets.append(target)
+		total_heal += heal_per_hit
+
+	if total_heal > 0 and player_node.has_method("heal"):
+		player_node.call("heal", total_heal)
+	if not drained_targets.is_empty():
+		_spawn_parasitic_siphon_visual(player_node.global_position, drained_targets, safe_radius)
+		if _parasitic_siphon_sfx_cooldown_left <= 0.0:
+			_play_sfx("sfx_leech_tendril_loop", -8.0, randf_range(0.96, 1.04))
+			_parasitic_siphon_sfx_cooldown_left = maxf(0.08, parasitic_cast_siphon_sfx_interval_seconds)
+
+func _sort_siphon_candidate_by_distance(a: Dictionary, b: Dictionary) -> bool:
+	return float(a.get("distance_sq", INF)) < float(b.get("distance_sq", INF))
+
+func _is_elite_or_boss_target(target: Node2D) -> bool:
+	if target == null:
+		return false
+	if target == _protocol_omega_boss_target:
+		return true
+	if target.is_in_group("elite_enemies"):
+		return true
+	if target.has_method("is_elite_enemy"):
+		return bool(target.call("is_elite_enemy"))
+	return false
+
+func _resolve_variant_cast_direction() -> Vector2:
+	var input_direction: Vector2 = Input.get_vector("move_left", "move_right", "move_up", "move_down")
+	if input_direction.length_squared() > 0.0001:
+		return input_direction.normalized()
+
+	var player_node := player as Node2D
+	if player_node == null:
+		return Vector2.RIGHT
+
+	var player_velocity_variant: Variant = player_node.get("velocity")
+	if player_velocity_variant is Vector2:
+		var player_velocity: Vector2 = player_velocity_variant
+		if player_velocity.length_squared() > 0.0001:
+			return player_velocity.normalized()
+
+	var nearest_enemy: Node2D = _find_nearest_hostile_enemy(player_node.global_position, 520.0)
+	if nearest_enemy != null:
+		var to_enemy: Vector2 = nearest_enemy.global_position - player_node.global_position
+		if to_enemy.length_squared() > 0.0001:
+			return to_enemy.normalized()
+	return Vector2.RIGHT
+
+func _find_nearest_hostile_enemy(origin: Vector2, max_distance: float = 0.0) -> Node2D:
+	var best_target: Node2D
+	var best_distance_sq: float = INF
+	var max_distance_sq: float = INF
+	if max_distance > 0.0:
+		max_distance_sq = max_distance * max_distance
+
+	for enemy_variant in get_tree().get_nodes_in_group("hostile_enemies"):
+		var enemy_node := enemy_variant as Node2D
+		if enemy_node == null:
+			continue
+		if not is_instance_valid(enemy_node):
+			continue
+		var distance_sq: float = origin.distance_squared_to(enemy_node.global_position)
+		if distance_sq > max_distance_sq:
+			continue
+		if distance_sq >= best_distance_sq:
+			continue
+		best_distance_sq = distance_sq
+		best_target = enemy_node
+	return best_target
+
+func _get_variant_cast_level_progress() -> float:
+	var target_level: int = maxi(2, variant_cast_scaling_target_level)
+	var safe_level: int = maxi(1, level_reached)
+	var denominator: float = float(target_level - 1)
+	if denominator <= 0.0:
+		return 1.0
+	return clampf((float(safe_level) - 1.0) / denominator, 0.0, 1.0)
+
+func _scale_variant_cast_float(level_one_value: float, target_level_value: float) -> float:
+	return lerpf(level_one_value, target_level_value, _get_variant_cast_level_progress())
+
+func _scale_variant_cast_int(level_one_value: int, target_level_value: int) -> int:
+	return int(round(_scale_variant_cast_float(float(level_one_value), float(target_level_value))))
+
+func _get_variant_cast_cooldown_for_variant(variant_id: String) -> float:
+	match variant_id:
+		"lytic":
+			return maxf(0.1, _scale_variant_cast_float(lytic_cast_cooldown_level1_seconds, lytic_cast_cooldown_target_seconds))
+		"pandemic":
+			return maxf(0.1, _scale_variant_cast_float(pandemic_cast_cooldown_level1_seconds, pandemic_cast_cooldown_target_seconds))
+		"parasitic":
+			return maxf(0.1, _scale_variant_cast_float(parasitic_cast_cooldown_level1_seconds, parasitic_cast_cooldown_target_seconds))
+		_:
+			return maxf(0.1, variant_cast_cooldown_seconds)
+
+func _get_lytic_dash_distance_for_level() -> float:
+	return _scale_variant_cast_float(lytic_cast_dash_distance, lytic_cast_dash_distance_target)
+
+func _get_lytic_dash_duration_for_level() -> float:
+	return _scale_variant_cast_float(lytic_cast_dash_duration_seconds, lytic_cast_dash_duration_target_seconds)
+
+func _get_lytic_dash_invulnerability_for_level() -> float:
+	return _scale_variant_cast_float(lytic_cast_dash_invulnerability_seconds, lytic_cast_dash_invulnerability_target_seconds)
+
+func _get_pandemic_camouflage_duration_for_level() -> float:
+	return _scale_variant_cast_float(pandemic_cast_camouflage_duration_seconds, pandemic_cast_camouflage_duration_target_seconds)
+
+func _get_pandemic_camouflage_move_speed_multiplier_for_level() -> float:
+	return maxf(
+		1.0,
+		_scale_variant_cast_float(
+			pandemic_cast_camouflage_move_speed_multiplier,
+			pandemic_cast_camouflage_move_speed_multiplier_target
+		)
+	)
+
+func _get_parasitic_siphon_duration_for_level() -> float:
+	return _scale_variant_cast_float(parasitic_cast_siphon_duration_seconds, parasitic_cast_siphon_duration_target_seconds)
+
+func _get_parasitic_siphon_tick_interval_for_level() -> float:
+	return _scale_variant_cast_float(parasitic_cast_siphon_tick_interval_seconds, parasitic_cast_siphon_tick_interval_target_seconds)
+
+func _get_parasitic_siphon_radius_for_level() -> float:
+	return _scale_variant_cast_float(parasitic_cast_siphon_radius, parasitic_cast_siphon_radius_target)
+
+func _get_parasitic_siphon_max_targets_for_level() -> int:
+	return maxi(1, _scale_variant_cast_int(parasitic_cast_siphon_max_targets, parasitic_cast_siphon_max_targets_target))
+
+func _get_parasitic_siphon_damage_per_tick_for_level() -> int:
+	return maxi(1, _scale_variant_cast_int(parasitic_cast_siphon_damage_per_tick, parasitic_cast_siphon_damage_per_tick_target))
+
+func _get_parasitic_siphon_heal_per_hit_for_level() -> int:
+	return maxi(0, _scale_variant_cast_int(parasitic_cast_siphon_heal_per_hit, parasitic_cast_siphon_heal_per_hit_target))
+
+func _get_parasitic_siphon_elite_multiplier_for_level() -> float:
+	return _scale_variant_cast_float(
+		parasitic_cast_siphon_elite_damage_multiplier,
+		parasitic_cast_siphon_elite_damage_multiplier_target
+	)
+
+func _spawn_parasitic_siphon_visual(origin: Vector2, drained_targets: Array[Node2D], radius: float) -> void:
+	if drained_targets.is_empty():
+		return
+	var visual_root := Node2D.new()
+	visual_root.global_position = origin
+	visual_root.z_index = -2
+	add_child(visual_root)
+
+	var beam_color: Color = parasitic_cast_siphon_visual_color
+	var beam_count: int = mini(drained_targets.size(), maxi(1, parasitic_cast_siphon_visual_max_beams))
+	for beam_index in range(beam_count):
+		var target_node: Node2D = drained_targets[beam_index]
+		if target_node == null or not is_instance_valid(target_node):
+			continue
+		var target_local: Vector2 = target_node.global_position - origin
+		var total_distance: float = target_local.length()
+		if total_distance <= 1.0:
+			continue
+		var direction: Vector2 = target_local / total_distance
+		var start_offset: float = maxf(0.0, parasitic_cast_siphon_visual_beam_start_offset)
+		var end_offset: float = maxf(0.0, parasitic_cast_siphon_visual_beam_end_offset)
+		var beam_length: float = total_distance - start_offset - end_offset
+		if beam_length <= 2.0:
+			continue
+
+		if _has_parasitic_siphon_beam_template:
+			var beam_root := Node2D.new()
+			beam_root.position = direction * start_offset
+			beam_root.rotation = direction.angle()
+			visual_root.add_child(beam_root)
+
+			var beam_sprite: AnimatedSprite2D = _create_parasitic_siphon_beam_sprite()
+			beam_root.add_child(beam_sprite)
+			beam_sprite.modulate = beam_color
+			var frame_width: float = maxf(1.0, _parasitic_siphon_beam_frame_size.x)
+			var frame_height: float = maxf(1.0, _parasitic_siphon_beam_frame_size.y)
+			var thickness_scale: float = maxf(0.02, parasitic_cast_siphon_visual_beam_thickness_scale)
+			beam_sprite.position = Vector2.ZERO
+			beam_sprite.offset = Vector2(0.0, -frame_height * 0.5)
+			beam_sprite.scale = Vector2(
+				(beam_length / frame_width) * _parasitic_siphon_beam_template_scale.x,
+				thickness_scale * _parasitic_siphon_beam_template_scale.y
+			)
+		else:
+			var beam_line := Line2D.new()
+			beam_line.width = maxf(1.0, parasitic_cast_siphon_visual_beam_thickness_scale * 14.0)
+			beam_line.default_color = beam_color
+			beam_line.begin_cap_mode = Line2D.LINE_CAP_ROUND
+			beam_line.end_cap_mode = Line2D.LINE_CAP_ROUND
+			beam_line.antialiased = true
+			beam_line.add_point(direction * (start_offset + beam_length))
+			beam_line.add_point(direction * start_offset)
+			visual_root.add_child(beam_line)
+
+	var ring_line := Line2D.new()
+	ring_line.width = maxf(1.0, parasitic_cast_siphon_visual_ring_width)
+	ring_line.default_color = Color(beam_color.r, beam_color.g, beam_color.b, beam_color.a * 0.72)
+	ring_line.antialiased = true
+	ring_line.closed = true
+	var ring_radius: float = maxf(24.0, radius * 0.92)
+	var ring_segments: int = 36
+	for segment_index in range(ring_segments):
+		var t: float = float(segment_index) / float(ring_segments)
+		var angle: float = t * TAU
+		ring_line.add_point(Vector2(cos(angle), sin(angle)) * ring_radius)
+	visual_root.add_child(ring_line)
+
+	visual_root.scale = Vector2(0.82, 0.82)
+	var visual_duration: float = maxf(0.05, parasitic_cast_siphon_visual_duration_seconds)
+	var fade_tween: Tween = create_tween()
+	fade_tween.set_parallel(true)
+	fade_tween.tween_property(visual_root, "scale", Vector2(1.06, 1.06), visual_duration)
+	fade_tween.tween_property(visual_root, "modulate:a", 0.0, visual_duration)
+	fade_tween.finished.connect(Callable(visual_root, "queue_free"))
+
+func _cache_parasitic_siphon_beam_template() -> void:
+	_has_parasitic_siphon_beam_template = false
+	_parasitic_siphon_beam_frames = null
+	_parasitic_siphon_beam_animation = &"default"
+	_parasitic_siphon_beam_frame_size = Vector2(128.0, 128.0)
+	_parasitic_siphon_beam_template_scale = Vector2.ONE
+	if LEECH_TENDRIL_SCENE == null:
+		return
+
+	var template_root: Node = LEECH_TENDRIL_SCENE.instantiate()
+	if template_root == null:
+		return
+	var beam_template: AnimatedSprite2D = template_root.get_node_or_null("BeamTemplate") as AnimatedSprite2D
+	if beam_template != null and beam_template.sprite_frames != null:
+		var template_frames: SpriteFrames = beam_template.sprite_frames.duplicate(true) as SpriteFrames
+		if template_frames != null:
+			_parasitic_siphon_beam_frames = template_frames
+			_parasitic_siphon_beam_template_scale = beam_template.scale
+			if template_frames.get_animation_names().size() > 0:
+				_parasitic_siphon_beam_animation = template_frames.get_animation_names()[0]
+			if template_frames.has_animation(_parasitic_siphon_beam_animation) and template_frames.get_frame_count(_parasitic_siphon_beam_animation) > 0:
+				var first_frame: Texture2D = template_frames.get_frame_texture(_parasitic_siphon_beam_animation, 0)
+				if first_frame != null:
+					_parasitic_siphon_beam_frame_size = first_frame.get_size()
+			_has_parasitic_siphon_beam_template = true
+
+	template_root.free()
+
+func _create_parasitic_siphon_beam_sprite() -> AnimatedSprite2D:
+	var beam_sprite := AnimatedSprite2D.new()
+	beam_sprite.centered = false
+	beam_sprite.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
+	beam_sprite.modulate = parasitic_cast_siphon_visual_color
+	if _parasitic_siphon_beam_frames != null:
+		beam_sprite.sprite_frames = _parasitic_siphon_beam_frames
+		if _parasitic_siphon_beam_frames.has_animation(_parasitic_siphon_beam_animation):
+			beam_sprite.animation = _parasitic_siphon_beam_animation
+			beam_sprite.play(_parasitic_siphon_beam_animation)
+	return beam_sprite
+
 func _unhandled_input(event: InputEvent) -> void:
 	var key_event := event as InputEventKey
 	if key_event != null and key_event.pressed and not key_event.echo:
+		if key_event.keycode == variant_cast_keycode:
+			if _try_cast_variant_ability():
+				get_viewport().set_input_as_handled()
+				return
 		if key_event.keycode == KEY_G and _can_use_debug_xp_cheat():
 			_debug_grant_xp()
 			get_viewport().set_input_as_handled()
@@ -2595,7 +3159,114 @@ func _refresh_lineage_labels() -> void:
 	if lineage_label != null:
 		lineage_label.text = "Variant: %s" % current_lineage_name
 
+	_refresh_variant_cast_hud()
 	_refresh_choice_panel_labels()
+
+func _refresh_variant_cast_hud() -> void:
+	if variant_cast_panel == null:
+		return
+
+	_layout_variant_cast_hud_panel()
+
+	var variant_id: String = _get_current_variant_id_for_rewards()
+	var has_variant: bool = not variant_id.is_empty()
+	variant_cast_panel.visible = has_variant and not run_ended
+	if not variant_cast_panel.visible and _inventory_tooltip_slot == variant_cast_panel:
+		_hide_inventory_tooltip()
+	if not has_variant:
+		_variant_cast_hud_icon_variant_id = ""
+		if _inventory_tooltip_slot == variant_cast_panel:
+			_hide_inventory_tooltip()
+		return
+
+	if variant_cast_label != null:
+		var key_text: String = _get_variant_cast_key_display()
+		variant_cast_label.text = key_text
+
+	if variant_id != _variant_cast_hud_icon_variant_id:
+		_variant_cast_hud_icon_variant_id = variant_id
+		var variant_icon: Texture2D = _get_variant_cast_icon_for_variant(variant_id)
+		if variant_cast_icon != null:
+			_apply_icon_template(variant_cast_icon, variant_icon, "lineage", ICON_TEMPLATE_INVENTORY_ICON_INSET)
+
+	var safe_cooldown: float = _get_variant_cast_cooldown_for_variant(variant_id)
+	var cooldown_ratio: float = clampf(_variant_cast_cooldown_left / safe_cooldown, 0.0, 1.0)
+	var icon_alpha: float = lerpf(1.0, clampf(variant_cast_icon_dim_alpha_on_cooldown, 0.15, 1.0), cooldown_ratio)
+
+	if variant_cast_icon != null:
+		variant_cast_icon.modulate = Color(1.0, 1.0, 1.0, icon_alpha)
+
+	if variant_cast_overlay != null and variant_cast_icon != null:
+		var overlay_size: Vector2 = variant_cast_icon.size
+		var top_fill_offset: float = overlay_size.y * (1.0 - cooldown_ratio)
+		var overlay_color: Color = variant_cast_overlay.color
+		overlay_color.a = clampf(variant_cast_overlay_max_alpha, 0.0, 1.0)
+		variant_cast_overlay.color = overlay_color
+		variant_cast_overlay.offset_top = top_fill_offset
+		variant_cast_overlay.visible = cooldown_ratio > 0.001
+
+	if variant_cast_state_label != null:
+		if variant_id == "parasitic" and _parasitic_siphon_time_left > 0.001:
+			variant_cast_state_label.text = "CHANNEL"
+		elif _variant_cast_cooldown_left > 0.001:
+			variant_cast_state_label.text = "COOLDOWN"
+		else:
+			variant_cast_state_label.text = "READY"
+
+	if variant_cast_cooldown_label != null:
+		if _variant_cast_cooldown_left > 0.001:
+			if _variant_cast_cooldown_left <= maxf(0.1, variant_cast_decimal_display_threshold_seconds):
+				variant_cast_cooldown_label.text = "%.1f" % _variant_cast_cooldown_left
+			else:
+				variant_cast_cooldown_label.text = "%d" % int(ceil(_variant_cast_cooldown_left))
+		else:
+			variant_cast_cooldown_label.text = ""
+
+func _get_variant_cast_icon_for_variant(variant_id: String) -> Texture2D:
+	match variant_id:
+		"lytic":
+			return VARIANT_CAST_ICON_LYTIC_DASH
+		"pandemic":
+			return VARIANT_CAST_ICON_PANDEMIC_CAMOUFLAGE
+		"parasitic":
+			return VARIANT_CAST_ICON_PARASITIC_SIPHON
+		_:
+			return null
+
+func _get_variant_cast_key_display() -> String:
+	var key_text: String = OS.get_keycode_string(variant_cast_keycode).strip_edges()
+	if key_text.is_empty():
+		key_text = "Q"
+	return key_text
+
+func _layout_variant_cast_hud_panel() -> void:
+	if variant_cast_panel == null:
+		return
+
+	var panel_width: float = variant_cast_panel.offset_right - variant_cast_panel.offset_left
+	if panel_width <= 1.0:
+		panel_width = maxf(160.0, variant_cast_panel.get_combined_minimum_size().x)
+
+	var panel_height: float = variant_cast_panel.offset_bottom - variant_cast_panel.offset_top
+	if panel_height <= 1.0:
+		panel_height = maxf(64.0, variant_cast_panel.get_combined_minimum_size().y)
+
+	var desired_left: float = variant_cast_panel.offset_left
+	var desired_top: float = variant_cast_panel.offset_top
+
+	if run_inventory_bar != null:
+		desired_left = run_inventory_bar.offset_left
+		desired_top = run_inventory_bar.offset_top
+		if run_inventory_rows != null:
+			desired_top += run_inventory_rows.get_combined_minimum_size().y
+		else:
+			desired_top += run_inventory_bar.offset_bottom - run_inventory_bar.offset_top
+		desired_top += maxf(0.0, variant_cast_panel_spacing_from_inventory)
+
+	variant_cast_panel.offset_left = desired_left
+	variant_cast_panel.offset_right = desired_left + panel_width
+	variant_cast_panel.offset_top = desired_top
+	variant_cast_panel.offset_bottom = desired_top + panel_height
 
 func _refresh_choice_panel_labels() -> void:
 	if levelup_title_label != null:
@@ -3063,7 +3734,7 @@ func _queue_run_intro_popup() -> void:
 		return
 
 	var popup_title: String = "OUTBREAK BRIEFING"
-	var popup_body: String = "Move with WASD.\nCollect biomass to level up.\nAt Level 2, choose your variant starter spell.\nPick mutations and stats to shape your build.\nSurvive containment events and defeat the final OMEGA boss."
+	var popup_body: String = "Move with WASD.\nCollect biomass to level up.\nAt Level 2, choose your variant starter spell and unlock your Q ability.\nPress Q to cast your variant ability (cooldown and scale with level).\nPick mutations and stats to shape your build.\nSurvive containment events and defeat the final OMEGA boss."
 	_queue_runtime_popup(
 		popup_title,
 		popup_body,
@@ -3305,6 +3976,83 @@ func _on_inventory_slot_mouse_exited(slot: Control) -> void:
 	if _inventory_tooltip_slot != slot:
 		return
 	_hide_inventory_tooltip()
+
+func _on_variant_cast_panel_mouse_entered() -> void:
+	if variant_cast_panel == null or not is_instance_valid(variant_cast_panel):
+		return
+	if not variant_cast_panel.visible:
+		return
+	var variant_id: String = _get_current_variant_id_for_rewards()
+	if variant_id.is_empty():
+		return
+	var tooltip_title: String = _build_variant_cast_tooltip_title(variant_id)
+	var tooltip_body: String = _build_variant_cast_tooltip_body(variant_id)
+	if tooltip_body.is_empty():
+		return
+	_show_inventory_tooltip(tooltip_title, tooltip_body, variant_cast_panel)
+
+func _on_variant_cast_panel_mouse_exited() -> void:
+	if _inventory_tooltip_slot != variant_cast_panel:
+		return
+	_hide_inventory_tooltip()
+
+func _build_variant_cast_tooltip_title(variant_id: String) -> String:
+	var key_text: String = _get_variant_cast_key_display()
+	match variant_id:
+		"lytic":
+			return "%s: Predator Dash" % key_text
+		"pandemic":
+			return "%s: Viral Camouflage" % key_text
+		"parasitic":
+			return "%s: Siphon Pulse" % key_text
+		_:
+			return "%s: Variant Cast" % key_text
+
+func _build_variant_cast_tooltip_body(variant_id: String) -> String:
+	var lines: PackedStringArray = PackedStringArray()
+	var cooldown_seconds: float = _get_variant_cast_cooldown_for_variant(variant_id)
+	var ready_in_seconds: float = maxf(0.0, _variant_cast_cooldown_left)
+
+	match variant_id:
+		"lytic":
+			lines.append("Dash toward your cursor and ignore damage during the dash.")
+			lines.append("Damage: 0 (mobility cast)")
+			lines.append("Dash distance: %.0f" % _get_lytic_dash_distance_for_level())
+			lines.append("Dash duration: %.2fs" % _get_lytic_dash_duration_for_level())
+			lines.append("Invulnerability: %.2fs" % _get_lytic_dash_invulnerability_for_level())
+		"pandemic":
+			lines.append("Enter camouflage and become untargetable briefly.")
+			lines.append("Damage: 0 (utility cast)")
+			lines.append("Camouflage duration: %.2fs" % _get_pandemic_camouflage_duration_for_level())
+			var move_speed_bonus_percent: float = (_get_pandemic_camouflage_move_speed_multiplier_for_level() - 1.0) * 100.0
+			lines.append("Move speed while active: +%d%%" % int(round(move_speed_bonus_percent)))
+		"parasitic":
+			var channel_seconds: float = _get_parasitic_siphon_duration_for_level()
+			var tick_seconds: float = _get_parasitic_siphon_tick_interval_for_level()
+			var tick_damage: int = _get_parasitic_siphon_damage_per_tick_for_level()
+			var heal_per_hit: int = _get_parasitic_siphon_heal_per_hit_for_level()
+			var tick_count: int = maxi(1, int(ceil(channel_seconds / maxf(0.01, tick_seconds))))
+			var damage_per_target: int = tick_damage * tick_count
+			lines.append("Channel in place and drain enemies in a radius.")
+			lines.append("Damage: %d per tick (~%d per target per cast)" % [tick_damage, damage_per_target])
+			lines.append("Channel duration: %.2fs" % channel_seconds)
+			lines.append("Tick interval: %.2fs" % tick_seconds)
+			lines.append("Drain radius: %.0f" % _get_parasitic_siphon_radius_for_level())
+			if parasitic_cast_siphon_hit_all_nearby:
+				lines.append("Targets: all nearby enemies")
+			else:
+				lines.append("Targets: up to %d" % _get_parasitic_siphon_max_targets_for_level())
+			lines.append("Heal: +%d per enemy hit per tick" % heal_per_hit)
+		_:
+			return ""
+
+	lines.append("")
+	lines.append("Cooldown: %.1fs" % cooldown_seconds)
+	if ready_in_seconds > 0.001:
+		lines.append("Ready in: %.1fs" % ready_in_seconds)
+	else:
+		lines.append("Ready now")
+	return "\n".join(lines)
 
 func _show_inventory_tooltip(title_text: String, body_text: String, slot: Control) -> void:
 	_ensure_inventory_tooltip_ui()
@@ -3848,7 +4596,7 @@ func _resolve_default_death_reason() -> String:
 				return "Sealed by containment protocol."
 	if phase_name == "final":
 		return "Contained by Protocol OMEGA."
-	return "Overwhelmed by hostile strains."
+	return "Overwhelmed by hostile variants."
 
 func _show_victory() -> void:
 	_apply_crisis_ui_accent("victory", "protocol_omega_core", 0.0)
@@ -4340,15 +5088,15 @@ func _get_orbiter_count_for_level(level_value: int) -> int:
 func _get_membrane_reduction_for_level(level_value: int) -> float:
 	match level_value:
 		1:
-			return 12.0
+			return 10.0
 		2:
-			return 22.0
+			return 19.0
 		3:
-			return 32.0
+			return 28.0
 		4:
-			return 40.0
+			return 36.0
 		5:
-			return 48.0
+			return 44.0
 		_:
 			return 0.0
 
@@ -4370,17 +5118,30 @@ func _get_membrane_reflect_percent_for_level(level_value: int) -> float:
 func _get_lytic_guard_block_chance_for_level(level_value: int) -> float:
 	match level_value:
 		1:
-			return 0.10
+			return 0.12
 		2:
-			return 0.17
+			return 0.20
 		3:
-			return 0.25
+			return 0.29
 		4:
-			return 0.33
+			return 0.37
 		5:
-			return 0.40
+			return 0.45
 		_:
 			return 0.0
+
+func _get_razor_halo_heal_per_hit_for_level(level_value: int) -> int:
+	match level_value:
+		2:
+			return 1
+		3:
+			return 2
+		4:
+			return 3
+		5:
+			return 4
+		_:
+			return 0
 
 func _get_pulse_damage_for_level(level_value: int) -> int:
 	match level_value:
@@ -4589,8 +5350,8 @@ func _build_mutation_gain_summary_for_level(mutation_id: String, level_value: in
 			var prev_damage: int = 0
 			if previous_level > 0:
 				prev_damage = maxi(1, int(round(8.0 * module_damage_multiplier)))
-			var curr_heal: int = clamped_level
-			var prev_heal: int = previous_level
+			var curr_heal: int = _get_razor_halo_heal_per_hit_for_level(clamped_level)
+			var prev_heal: int = _get_razor_halo_heal_per_hit_for_level(previous_level)
 			var parts: Array[String] = []
 			if curr_blades != prev_blades:
 				parts.append("%+d blades" % (curr_blades - prev_blades))
@@ -4955,7 +5716,7 @@ func _build_mutation_gain_summary_for_level(mutation_id: String, level_value: in
 					prev_radius_bonus = 220
 				3:
 					prev_radius_bonus = 360
-			return "Gain: %+d flat pickup radius" % (curr_radius_bonus - prev_radius_bonus)
+			return "Gain: %+d pickup radius" % (curr_radius_bonus - prev_radius_bonus)
 		"move_speed_boost":
 			var curr_speed_pct: int = 9
 			match clamped_level:
@@ -5099,38 +5860,52 @@ func _set_lineage_choice_button_texts() -> void:
 	_set_lineage_choice_text(
 		lineage_choice_1,
 		lineage_choice_1_text,
-		"Lytic Strain",
-		"Burst hunter: close-range pressure and target deletion",
+		"Lytic Variant",
+		"Close-range execution variant that deletes priority targets in melee windows.",
 		_build_lineage_starter_text("lytic"),
+		_build_lineage_active_text("lytic"),
 		"Favored rolls: Razor Halo, Puncture Lance, Lytic Burst"
 	)
 	_set_lineage_choice_text(
 		lineage_choice_2,
 		lineage_choice_2_text,
-		"Pandemic Strain",
-		"Contagion spread: infect, propagate, collapse packs",
+		"Pandemic Variant",
+		"Contagion spread variant that infects packs and wins through chain pressure.",
 		_build_lineage_starter_text("pandemic"),
+		_build_lineage_active_text("pandemic"),
 		"Favored rolls: Infective Secretion, Virion Orbit, Chain Bloom"
 	)
 	_set_lineage_choice_text(
 		lineage_choice_3,
 		lineage_choice_3_text,
-		"Parasitic Strain",
-		"Drain/control: out-sustain and convert weakened hosts",
+		"Parasitic Variant",
+		"Drain-control variant built around sustain, tether pressure, and host conversion.",
 		_build_lineage_starter_text("parasitic"),
+		_build_lineage_active_text("parasitic"),
 		"Favored rolls: Leech Tendril, Protein Shell, Host Override"
 	)
 
 func _build_lineage_starter_text(lineage_id: String) -> String:
 	match lineage_id:
 		"lytic":
-			return "Starter: Razor Halo L1 - %s" % _build_mutation_gain_summary_for_level("razor_halo", 1)
+			return "Razor Halo L1: %s" % _build_mutation_gain_summary_for_level("razor_halo", 1)
 		"pandemic":
-			return "Starter: Infective Secretion L1 - %s" % _build_mutation_gain_summary_for_level("infective_secretion", 1)
+			return "Infective Secretion L1: %s" % _build_mutation_gain_summary_for_level("infective_secretion", 1)
 		"parasitic":
-			return "Starter: Leech Tendril L1 - %s" % _build_mutation_gain_summary_for_level("leech_tendril", 1)
+			return "Leech Tendril L1: %s" % _build_mutation_gain_summary_for_level("leech_tendril", 1)
 		_:
-			return "Starter: None"
+			return "None"
+
+func _build_lineage_active_text(lineage_id: String) -> String:
+	match lineage_id:
+		"lytic":
+			return "Predator Dash: burst forward and ignore damage during the dash."
+		"pandemic":
+			return "Viral Camouflage: become untargetable briefly and move faster while hidden."
+		"parasitic":
+			return "Siphon Pulse: channel in place, drain nearby hosts in a burst field, and heal per tick."
+		_:
+			return "None"
 
 func _set_lineage_choice_text(
 	button: Button,
@@ -5138,26 +5913,34 @@ func _set_lineage_choice_text(
 	title_text: String,
 	description_text: String,
 	starter_text: String,
+	active_text: String,
 	favored_text: String
 ) -> void:
 	if button == null:
 		return
 	if rich_text == null:
-		button.text = "%s\n%s\n%s\n%s" % [title_text, description_text, starter_text, favored_text]
+		button.text = "%s\n%s\n%s\n%s\n%s" % [title_text, description_text, starter_text, active_text, favored_text]
 		return
 	button.text = ""
-	rich_text.text = _format_lineage_choice_bbcode(title_text, description_text, starter_text, favored_text)
+	rich_text.text = _format_lineage_choice_bbcode(title_text, description_text, starter_text, active_text, favored_text)
 
 func _set_lineage_choice_icon(icon_rect: TextureRect, icon_texture: Texture2D) -> void:
 	if icon_rect == null:
 		return
 	_apply_icon_template(icon_rect, icon_texture, "lineage", ICON_TEMPLATE_LINEAGE_ICON_INSET)
 
-func _format_lineage_choice_bbcode(title_text: String, description_text: String, starter_text: String, favored_text: String) -> String:
-	return "[center][b]%s[/b]\n%s\n[color=#9ec4d6]%s[/color]\n[color=#7fa4b6]%s[/color][/center]" % [
+func _format_lineage_choice_bbcode(
+	title_text: String,
+	description_text: String,
+	starter_text: String,
+	active_text: String,
+	favored_text: String
+) -> String:
+	return "[center][font_size=23][b]%s[/b][/font_size]\n[font_size=16][color=#c8deea]%s[/color][/font_size]\n\n[font_size=15][color=#9ec4d6][b]Starter Spell[/b][/color][/font_size]\n[font_size=14][color=#b7d3e2]%s[/color][/font_size]\n\n[font_size=15][color=#9ec4d6][b]Variant Cast (Q)[/b][/color][/font_size]\n[font_size=14][color=#b7d3e2]%s[/color][/font_size]\n\n[font_size=13][color=#7fa4b6][i]%s[/i][/color][/font_size][/center]" % [
 		title_text,
 		description_text,
 		starter_text,
+		active_text,
 		favored_text
 	]
 
@@ -5363,6 +6146,15 @@ func _setup_audio_controls() -> void:
 		var pause_fps_limit_callable := Callable(self, "_on_pause_fps_limit_selected")
 		if not pause_fps_option_button.item_selected.is_connected(pause_fps_limit_callable):
 			pause_fps_option_button.item_selected.connect(pause_fps_limit_callable)
+
+	if variant_cast_panel != null:
+		variant_cast_panel.mouse_filter = Control.MOUSE_FILTER_STOP
+		var variant_panel_enter_callable := Callable(self, "_on_variant_cast_panel_mouse_entered")
+		if not variant_cast_panel.mouse_entered.is_connected(variant_panel_enter_callable):
+			variant_cast_panel.mouse_entered.connect(variant_panel_enter_callable)
+		var variant_panel_exit_callable := Callable(self, "_on_variant_cast_panel_mouse_exited")
+		if not variant_cast_panel.mouse_exited.is_connected(variant_panel_exit_callable):
+			variant_cast_panel.mouse_exited.connect(variant_panel_exit_callable)
 
 	_refresh_audio_controls_from_manager()
 
