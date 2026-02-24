@@ -367,7 +367,6 @@ var _has_parasitic_siphon_beam_template: bool = false
 @export var synergy_popup_duration_seconds: float = 4.8
 @export var synergy_popup_fade_seconds: float = 0.36
 @export var runtime_popup_top_offset: float = 150.0
-@export var variant_cast_keycode: int = KEY_Q
 @export var variant_cast_cooldown_seconds: float = 10.0
 @export var variant_cast_overlay_max_alpha: float = 0.78
 @export var variant_cast_icon_dim_alpha_on_cooldown: float = 0.56
@@ -522,6 +521,7 @@ func _ready() -> void:
 	_reset_runtime_state()
 	_load_run_difficulty_settings()
 	GAMEPLAY_SETTINGS.apply_saved_fps_limit()
+	GAMEPLAY_SETTINGS.apply_saved_input_bindings()
 	_cache_postprocess_shader_material()
 	_cache_parasitic_siphon_beam_template()
 
@@ -3059,11 +3059,12 @@ func _create_parasitic_siphon_beam_sprite() -> AnimatedSprite2D:
 
 func _unhandled_input(event: InputEvent) -> void:
 	var key_event := event as InputEventKey
+	if _is_spell_input_event(event):
+		if _try_cast_variant_ability():
+			get_viewport().set_input_as_handled()
+			return
+
 	if key_event != null and key_event.pressed and not key_event.echo:
-		if key_event.keycode == variant_cast_keycode:
-			if _try_cast_variant_ability():
-				get_viewport().set_input_as_handled()
-				return
 		if key_event.keycode == KEY_G and _can_use_debug_xp_cheat():
 			_debug_grant_xp()
 			get_viewport().set_input_as_handled()
@@ -3110,6 +3111,23 @@ func _unhandled_input(event: InputEvent) -> void:
 		KEY_3, KEY_KP_3:
 			_on_levelup_choice_pressed(2)
 			get_viewport().set_input_as_handled()
+
+func _is_spell_input_event(event: InputEvent) -> bool:
+	if event == null:
+		return false
+	if not InputMap.has_action("spell"):
+		var key_event := event as InputEventKey
+		if key_event == null:
+			return false
+		if not key_event.pressed or key_event.echo:
+			return false
+		return key_event.keycode == KEY_Q
+
+	var key_event := event as InputEventKey
+	if key_event != null:
+		if not key_event.pressed or key_event.echo:
+			return false
+	return event.is_action_pressed("spell")
 
 func _on_player_hp_changed(current_hp: int, max_hp: int) -> void:
 	if hp_label != null:
@@ -3234,7 +3252,7 @@ func _get_variant_cast_icon_for_variant(variant_id: String) -> Texture2D:
 			return null
 
 func _get_variant_cast_key_display() -> String:
-	var key_text: String = OS.get_keycode_string(variant_cast_keycode).strip_edges()
+	var key_text: String = GAMEPLAY_SETTINGS.get_input_action_display("spell")
 	if key_text.is_empty():
 		key_text = "Q"
 	return key_text
@@ -3734,7 +3752,9 @@ func _queue_run_intro_popup() -> void:
 		return
 
 	var popup_title: String = "OUTBREAK BRIEFING"
-	var popup_body: String = "Move with WASD.\nCollect biomass to level up.\nAt Level 2, choose your variant starter spell and unlock your Q ability.\nPress Q to cast your variant ability (cooldown and scale with level).\nPick mutations and stats to shape your build.\nSurvive containment events and defeat the final OMEGA boss."
+	var move_hint: String = _build_move_controls_hint()
+	var spell_key_hint: String = _get_variant_cast_key_display()
+	var popup_body: String = "Move with %s.\nCollect biomass to level up.\nAt Level 2, choose your variant starter spell and unlock your cast ability.\nPress %s to cast your variant ability (cooldown and scale with level).\nPick mutations and stats to shape your build.\nSurvive containment events and defeat the final OMEGA boss." % [move_hint, spell_key_hint]
 	_queue_runtime_popup(
 		popup_title,
 		popup_body,
@@ -3744,6 +3764,13 @@ func _queue_run_intro_popup() -> void:
 		maxf(0.0, run_intro_popup_top_offset)
 	)
 	_run_intro_popup_shown = true
+
+func _build_move_controls_hint() -> String:
+	var up_text: String = GAMEPLAY_SETTINGS.get_input_action_display("move_up")
+	var left_text: String = GAMEPLAY_SETTINGS.get_input_action_display("move_left")
+	var down_text: String = GAMEPLAY_SETTINGS.get_input_action_display("move_down")
+	var right_text: String = GAMEPLAY_SETTINGS.get_input_action_display("move_right")
+	return "%s/%s/%s/%s" % [up_text, left_text, down_text, right_text]
 
 func _queue_runtime_popup(
 	title_text: String,

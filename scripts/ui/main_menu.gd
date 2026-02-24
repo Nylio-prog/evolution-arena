@@ -15,6 +15,12 @@ const GAMEPLAY_SETTINGS = preload("res://scripts/systems/gameplay_settings.gd")
 @onready var music_slider: HSlider = get_node_or_null("OptionsPanel/OptionsContent/AudioRows/MusicRow/MusicSlider")
 @onready var music_mute_toggle: CheckButton = get_node_or_null("OptionsPanel/OptionsContent/AudioRows/MusicRow/MusicMuteToggle")
 @onready var fps_limit_option_button: OptionButton = get_node_or_null("OptionsPanel/OptionsContent/FpsLimitRow/FpsLimitOptionButton")
+@onready var move_up_bind_button: Button = get_node_or_null("OptionsPanel/OptionsContent/ControlsRows/MoveUpRow/MoveUpBindButton")
+@onready var move_left_bind_button: Button = get_node_or_null("OptionsPanel/OptionsContent/ControlsRows/MoveLeftRow/MoveLeftBindButton")
+@onready var move_down_bind_button: Button = get_node_or_null("OptionsPanel/OptionsContent/ControlsRows/MoveDownRow/MoveDownBindButton")
+@onready var move_right_bind_button: Button = get_node_or_null("OptionsPanel/OptionsContent/ControlsRows/MoveRightRow/MoveRightBindButton")
+@onready var spell_bind_button: Button = get_node_or_null("OptionsPanel/OptionsContent/ControlsRows/SpellRow/SpellBindButton")
+@onready var controls_hint_label: Label = get_node_or_null("OptionsPanel/OptionsContent/ControlsHint")
 @onready var options_difficulty_row: HBoxContainer = get_node_or_null("OptionsPanel/OptionsContent/DifficultyRow")
 @onready var difficulty_option_button: OptionButton = get_node_or_null("DifficultyPanel/DifficultyContent/DifficultyPickerRow/DifficultyOptionButton")
 @onready var difficulty_description_label: Label = get_node_or_null("DifficultyPanel/DifficultyContent/DifficultyDescriptionPanel/DifficultyDescriptionPadding/DifficultyDescription")
@@ -33,16 +39,20 @@ var _sfx_reentry_guard: bool = false
 var _selected_difficulty_id: String = "medium"
 var _selected_fps_limit_id: String = "unlimited"
 var _syncing_fps_controls: bool = false
+var _rebind_buttons: Dictionary = {}
+var _rebinding_action_id: String = ""
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	GAMEPLAY_SETTINGS.apply_saved_fps_limit()
+	GAMEPLAY_SETTINGS.apply_saved_input_bindings()
 	_connect_ui()
 	_set_options_visible(false)
 	_set_credits_visible(false)
 	_set_difficulty_visible(false)
 	_setup_difficulty_controls()
 	_setup_audio_controls()
+	_setup_input_binding_controls()
 	_play_music("bgm_menu_loop")
 	_begin_arena_preload()
 
@@ -50,6 +60,28 @@ func _process(_delta: float) -> void:
 	_poll_arena_preload()
 
 func _unhandled_input(event: InputEvent) -> void:
+	if _rebinding_action_id != "":
+		var rebind_key_event := event as InputEventKey
+		if rebind_key_event == null:
+			return
+		if not rebind_key_event.pressed or rebind_key_event.echo:
+			return
+		if rebind_key_event.keycode == KEY_ESCAPE:
+			_rebinding_action_id = ""
+			_refresh_input_binding_buttons()
+			get_viewport().set_input_as_handled()
+			return
+		var captured_keycode: int = int(rebind_key_event.physical_keycode)
+		if captured_keycode <= 0:
+			captured_keycode = int(rebind_key_event.keycode)
+		if captured_keycode > 0:
+			GAMEPLAY_SETTINGS.save_input_binding(_rebinding_action_id, captured_keycode)
+			_play_sfx("sfx_ui_click")
+		_rebinding_action_id = ""
+		_refresh_input_binding_buttons()
+		get_viewport().set_input_as_handled()
+		return
+
 	var key_event := event as InputEventKey
 	if key_event == null:
 		return
@@ -141,8 +173,13 @@ func _on_quit_pressed() -> void:
 	get_tree().quit()
 
 func _set_options_visible(should_show: bool) -> void:
+	if not should_show and _rebinding_action_id != "":
+		_rebinding_action_id = ""
+		_refresh_input_binding_buttons()
 	if options_panel != null:
 		options_panel.visible = should_show
+	if should_show:
+		_refresh_input_binding_buttons()
 
 func _set_credits_visible(should_show: bool) -> void:
 	if credits_panel != null:
@@ -197,6 +234,48 @@ func _setup_audio_controls() -> void:
 		_on_music_mute_toggled(music_mute_toggle.button_pressed)
 
 	_setup_fps_limit_controls()
+
+func _setup_input_binding_controls() -> void:
+	_rebind_buttons = {
+		"move_up": move_up_bind_button,
+		"move_left": move_left_bind_button,
+		"move_down": move_down_bind_button,
+		"move_right": move_right_bind_button,
+		"spell": spell_bind_button
+	}
+	for action_id in GAMEPLAY_SETTINGS.get_ordered_input_action_ids():
+		var button: Button = _rebind_buttons.get(action_id) as Button
+		if button == null:
+			continue
+		var bind_callable := Callable(self, "_on_input_bind_button_pressed").bind(action_id)
+		if not button.pressed.is_connected(bind_callable):
+			button.pressed.connect(bind_callable)
+	_refresh_input_binding_buttons()
+
+func _on_input_bind_button_pressed(action_id: String) -> void:
+	var safe_action_id: String = String(action_id).strip_edges().to_lower()
+	if safe_action_id.is_empty():
+		return
+	_rebinding_action_id = safe_action_id
+	_play_sfx("sfx_ui_click")
+	_refresh_input_binding_buttons()
+
+func _refresh_input_binding_buttons() -> void:
+	for action_id in GAMEPLAY_SETTINGS.get_ordered_input_action_ids():
+		var button: Button = _rebind_buttons.get(action_id) as Button
+		if button == null:
+			continue
+		if _rebinding_action_id == action_id:
+			button.text = "Press key..."
+		else:
+			button.text = GAMEPLAY_SETTINGS.get_input_action_display(action_id)
+
+	if controls_hint_label != null:
+		if _rebinding_action_id == "":
+			controls_hint_label.text = "Click a control, then press a key. Press Esc to cancel."
+		else:
+			var action_name: String = GAMEPLAY_SETTINGS.get_input_action_display_name(_rebinding_action_id)
+			controls_hint_label.text = "Press a key for %s. Press Esc to cancel." % action_name
 
 func _setup_fps_limit_controls() -> void:
 	if fps_limit_option_button == null:

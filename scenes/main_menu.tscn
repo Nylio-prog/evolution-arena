@@ -165,17 +165,17 @@ layout_mode = 2
 
 [node name="OptionsPanel" type="PanelContainer" parent="."]
 visible = false
-custom_minimum_size = Vector2(620, 320)
+custom_minimum_size = Vector2(680, 600)
 layout_mode = 1
 anchors_preset = 8
 anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = -310.0
-offset_top = -160.0
-offset_right = 310.0
-offset_bottom = 160.0
+offset_left = -340.0
+offset_top = -300.0
+offset_right = 340.0
+offset_bottom = 300.0
 grow_horizontal = 2
 grow_vertical = 2
 theme_override_constants/margin_left = 20
@@ -285,6 +285,127 @@ custom_minimum_size = Vector2(220, 0)
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 18
+
+[node name="ControlsTitle" type="Label" parent="OptionsPanel/OptionsContent"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+theme_override_colors/font_color = Color(0.82, 0.93, 1, 0.96)
+text = "Controls"
+
+[node name="ControlsRows" type="VBoxContainer" parent="OptionsPanel/OptionsContent"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="MoveUpRow" type="HBoxContainer" parent="OptionsPanel/OptionsContent/ControlsRows"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="MoveUpLabel" type="Label" parent="OptionsPanel/OptionsContent/ControlsRows/MoveUpRow"]
+custom_minimum_size = Vector2(160, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+theme_override_colors/font_color = Color(0.74, 0.89, 0.98, 0.95)
+text = "Move Up"
+
+[node name="MoveUpBindButton" type="Button" parent="OptionsPanel/OptionsContent/ControlsRows/MoveUpRow"]
+custom_minimum_size = Vector2(220, 38)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 18
+theme_override_styles/normal = SubResource("StyleBoxFlat_button")
+theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_button_pressed")
+text = "W"
+
+[node name="MoveLeftRow" type="HBoxContainer" parent="OptionsPanel/OptionsContent/ControlsRows"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="MoveLeftLabel" type="Label" parent="OptionsPanel/OptionsContent/ControlsRows/MoveLeftRow"]
+custom_minimum_size = Vector2(160, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+theme_override_colors/font_color = Color(0.74, 0.89, 0.98, 0.95)
+text = "Move Left"
+
+[node name="MoveLeftBindButton" type="Button" parent="OptionsPanel/OptionsContent/ControlsRows/MoveLeftRow"]
+custom_minimum_size = Vector2(220, 38)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 18
+theme_override_styles/normal = SubResource("StyleBoxFlat_button")
+theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_button_pressed")
+text = "A"
+
+[node name="MoveDownRow" type="HBoxContainer" parent="OptionsPanel/OptionsContent/ControlsRows"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="MoveDownLabel" type="Label" parent="OptionsPanel/OptionsContent/ControlsRows/MoveDownRow"]
+custom_minimum_size = Vector2(160, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+theme_override_colors/font_color = Color(0.74, 0.89, 0.98, 0.95)
+text = "Move Down"
+
+[node name="MoveDownBindButton" type="Button" parent="OptionsPanel/OptionsContent/ControlsRows/MoveDownRow"]
+custom_minimum_size = Vector2(220, 38)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 18
+theme_override_styles/normal = SubResource("StyleBoxFlat_button")
+theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_button_pressed")
+text = "S"
+
+[node name="MoveRightRow" type="HBoxContainer" parent="OptionsPanel/OptionsContent/ControlsRows"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="MoveRightLabel" type="Label" parent="OptionsPanel/OptionsContent/ControlsRows/MoveRightRow"]
+custom_minimum_size = Vector2(160, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+theme_override_colors/font_color = Color(0.74, 0.89, 0.98, 0.95)
+text = "Move Right"
+
+[node name="MoveRightBindButton" type="Button" parent="OptionsPanel/OptionsContent/ControlsRows/MoveRightRow"]
+custom_minimum_size = Vector2(220, 38)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 18
+theme_override_styles/normal = SubResource("StyleBoxFlat_button")
+theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_button_pressed")
+text = "D"
+
+[node name="SpellRow" type="HBoxContainer" parent="OptionsPanel/OptionsContent/ControlsRows"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="SpellLabel" type="Label" parent="OptionsPanel/OptionsContent/ControlsRows/SpellRow"]
+custom_minimum_size = Vector2(160, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+theme_override_colors/font_color = Color(0.74, 0.89, 0.98, 0.95)
+text = "Cast Spell"
+
+[node name="SpellBindButton" type="Button" parent="OptionsPanel/OptionsContent/ControlsRows/SpellRow"]
+custom_minimum_size = Vector2(220, 38)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 18
+theme_override_styles/normal = SubResource("StyleBoxFlat_button")
+theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_button_pressed")
+text = "Q"
+
+[node name="ControlsHint" type="Label" parent="OptionsPanel/OptionsContent"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+theme_override_colors/font_color = Color(0.66, 0.81, 0.93, 0.95)
+text = "Click a control, then press a key. Press Esc to cancel."
 
 [node name="CloseOptionsButton" type="Button" parent="OptionsPanel/OptionsContent"]
 custom_minimum_size = Vector2(220, 54)

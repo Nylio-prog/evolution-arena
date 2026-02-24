@@ -10,3 +10,6 @@
 
 # Local export artifacts
 /build/
+
+# Antigravity
+.antigravity/

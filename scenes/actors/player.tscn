@@ -237,7 +237,6 @@ scale = Vector2(0.3, 0.3)
 sprite_frames = SubResource("SpriteFrames_ds2sr")
 animation = &"hit"
 
-[node name="Camera2D" type="Camera2D" parent="."]
-enabled = true
+[node name="Camera2D" type="Camera2D" parent="." unique_id=162137531]
 position_smoothing_enabled = true
 position_smoothing_speed = 10.0
